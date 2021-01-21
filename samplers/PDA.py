@@ -1,5 +1,4 @@
 from copy import deepcopy
-
 from ete3 import Tree
 import typing as t
 from pydantic import BaseModel
@@ -14,40 +13,41 @@ class PDA(BaseModel):
     sample_subtree: Tree = Tree()
     pd_score: float = 0
 
+    class Config:
+        arbitrary_types_allowed = True
+
     @staticmethod
-    def get_farthest_leaves(node: Tree, node_to_height: t.Dict[str, float]) -> t.Tuple[
-        t.List[str], float]:
+    def get_farthest_leaves(node: Tree, node_to_height: t.Dict[str, t.List[float, str]]) -> t.Tuple[t.List[str], float]:
         """
         :param node: node under which to two farthest leaves need to be detected
-        :param node_to_height: a map of node to its height in the tree
-        :return: (1) a list of the two farthest leaves in the tree whose root is node
-                 (2) the distance between the two leaves
+        :param node_to_height: a map of node
+        to its height in the tree, represented both by the the distance from its farthest leaf and the name of that
+        respective leaf
+        :return: (1) a list of the two farthest leaves in the tree whose root is node (2) the
+        distance between the two leaves
         """
         if node.is_leaf():
-            node_to_height[node.name] = 0
+            node_to_height[node.name] = [0, ""]
             return [], 0
-
-        children_dists = []
-        leaves_distances_from_node = []
+        children_diameters = []
+        node_diameter_components = [[0, ""], [0, ""]]
         for child in node.get_children():
-            farthest_leaves, leaves_dist = PDA.get_farthest_leaves(child, node_to_height)
-            [child_height, farthest_leaf_from_child] = node_to_height[child]
-            children_dists.append((farthest_leaves, leaves_dist))
-            leaves_distances_from_node.append([child_height + child.dist, farthest_leaf_from_child])
+            children_diameters.append(PDA.get_farthest_leaves(child, node_to_height))
+            [child_height, child_farthest_leaf] = node_to_height[child.name]
+            child_dist_from_node = child_height + child.dist
+            if child_dist_from_node > node_diameter_components[0][0]:
+                node_diameter_components[1] = node_diameter_components[0]
+                node_diameter_components[0] = [child_dist_from_node, child_farthest_leaf]
+            elif child_dist_from_node > node_diameter_components[1]:
+                node_diameter_components[1] = child_farthest_leaf
 
-        max_leaves_dist_from_child = max(children_dists, key=itemgetter(1))
-        first_farthest_leaf = max(leaves_distances_from_node, key=itemgetter(0))
-        leaves_distances_from_node.remove(first_farthest_leaf)
-        second_farthest_leaf = max(leaves_distances_from_node, key=itemgetter(0))
-        node_to_height[node.name] = first_farthest_leaf[0]
-
-        max_leaves_dist = max_leaves_dist_from_child[1]
-        most_distant_leaves = max_leaves_dist_from_child[0]
-        if max_leaves_dist < first_farthest_leaf[0] + second_farthest_leaf[0]:
-            max_leaves_dist = first_farthest_leaf[0] + second_farthest_leaf[0]
-            most_distant_leaves = [first_farthest_leaf[1], second_farthest_leaf[1]]
-
-        return most_distant_leaves, max_leaves_dist
+        [max_child_diameter_leaves, max_child_diameter] = max(children_diameters, key=itemgetter(1))
+        node_diameter = node_diameter_components[0][0] + node_diameter_components[1][0]
+        node_diameter_leaves = [node_diameter_components[0][1], node_diameter_components[1][1]]
+        if node_diameter > max_child_diameter:
+            return node_diameter_leaves, node_diameter
+        else:
+            return max_child_diameter_leaves, max_child_diameter
 
     def get_pd_addition(self, leaf_name) -> t.Tuple[str, float]:
         """
@@ -113,8 +113,12 @@ class PDA(BaseModel):
         :param is_weighted: indicates weather the computed PD should be weighted or not
         :return: list of names of chosen leaves
         """
-        assert (k > 1, "required sample size must be at least 2")
-        assert (k < len(self.tree.get_leaf_names()), f"required sample size must be smaller than the dataset size {len(self.tree.get_leaf_names())}")
+        if k == 1:
+            raise ValueError("required sample size must be at least 2")
+        elif k >= len(self.tree.get_leaf_names()):
+            raise ValueError(
+                f"required sample size must be smaller than the dataset size {len(self.tree.get_leaf_names())}")
+        self.add_internal_names()
         while self.sample_size < k:
             self.do_pd_step(is_weighted)
         return self.sample_subtree.get_leaf_names()
