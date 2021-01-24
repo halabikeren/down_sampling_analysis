@@ -8,6 +8,7 @@ RUN conda install -c bioconda cd-hit
 COPY requirements.txt /temp/requirements.txt
 RUN pip install -r /temp/requirements.txt
 
-WORKDIR /app
+WORKDIR /down_sampling_analysis
 COPY . .
-CMD ["python"]
+ENV PYTHONPATH=.
+CMD ["python", "-m", "unittest", "discover", "./tests"]
