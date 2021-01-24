@@ -33,7 +33,7 @@ jobs:
           push: true
           pull: true
           tags: ghcr.io/halabikeren/down_sampling_analysis:latest
-          cache-from: type=registry,ref=ghcr.io/tal-leibman/messages-app-flask:latest
+          cache-from: type=registry,ref=ghcr.io/halabikeren/down_sampling_analysis:latest
           cache-to: type=inline
       - name: unit tester
         run:  docker run down_sampling_analysis
