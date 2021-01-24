@@ -27,5 +27,6 @@ jobs:
           tags: ghcr.io/halabikeren/down_sampling_analysis:latest
           cache-from: type=registry,ref=ghcr.io/halabikeren/down_sampling_analysis:latest
           cache-to: type=inline
+
       - name: Unit tests
         run:  docker run down_sampling_analysis
