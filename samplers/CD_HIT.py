@@ -23,6 +23,10 @@ class CDHIT(BaseModel):
         :return: path of the output file provided by cd-hit
         """
         input_name = os.path.splitext(os.path.basename(self.sequences_path))[0]
+        records = list((SeqIO.parse(self.sequences_path), "fasta"))
+        for record in records:
+            if "-" in record.seq:
+                raise ValueError(f"sequence data at {self.sequences_path}is aligned, so cd-hit cannot run on it")
         output_file = f"{self.aux_dir}/{input_name}_threshold_{threshold}"
         word_len = (5 if threshold > 0.7 else 4) if threshold > 0.6 else (3 if threshold > 0.5 else 2)
         res = os.system(f"cd-hit -i {self.sequences_path} -o {output_file} -c {threshold} -n {word_len}")
