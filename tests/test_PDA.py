@@ -1,3 +1,4 @@
+import os
 import unittest
 from pydantic import ValidationError
 from samplers import PDA
@@ -18,22 +19,60 @@ class TestPDA(unittest.TestCase):
         accepted_sample = set(pda.sample_subtree.get_leaf_names())
         self.assertEqual(accepted_sample, expected_sample)
 
+    def test_unweighted_sample_external(self):
+        pda = PDA(tree=Tree("((A:2,B:1):1,(C:1,(D:8,E:2):2):2);"), aux_dir=f"{os.path.dirname(os.path.realpath(__file__))}/aux/pda/")
+        pda.compute_sample(3, use_external=True)
+        expected_sample = {"A", "D", "E"}
+        accepted_sample = set(pda.sample_subtree.get_leaf_names())
+        self.assertEqual(accepted_sample, expected_sample)
+
     def test_null_weighted_sample(self):
-        pda = PDA(tree=Tree("((A:2,B:1):1,(C:1,(D:8,E:2):2):2);"), taxon_to_weight={"A": 1, "B": 1, "C": 1, "D": 1, "E": 1})
+        pda = PDA(tree=Tree("((A:2,B:1):1,(C:1,(D:8,E:2):2):2);"),
+                  taxon_to_weight={"A": 1, "B": 1, "C": 1, "D": 1, "E": 1})
         pda.compute_sample(3)
         expected_sample = {"A", "D", "E"}
         accepted_sample = set(pda.sample_subtree.get_leaf_names())
         self.assertEqual(accepted_sample, expected_sample)
 
-    def test_weighted_sample(self):
-        pda = PDA(tree=Tree("((A:2,B:1):1,(C:1,(D:8,E:2):2):2);"), taxon_to_weight={"A": 0.5, "B": 0.5, "C": 1, "D": 0.01, "E": 0.5})
+    def test_null_weighted_sample_external(self):
+        pda = PDA(tree=Tree("((A:2,B:1):1,(C:1,(D:8,E:2):2):2);"),
+                  taxon_to_weight={"A": 1, "B": 1, "C": 1, "D": 1, "E": 1}, aux_dir=f"{os.path.dirname(os.path.realpath(__file__))}/aux/pda/")
         pda.compute_sample(3)
         expected_sample = {"A", "D", "E"}
         accepted_sample = set(pda.sample_subtree.get_leaf_names())
         self.assertEqual(accepted_sample, expected_sample)
+
+    def test_weighted_sample_no_normalization(self):
+        pda = PDA(tree=Tree("((A:2,B:1):1,(C:1,(D:8,E:2):2):2);"),
+                  taxon_to_weight={"A": 0.5, "B": 0.5, "C": 1, "D": 0.01, "E": 0.5})
+        pda.compute_sample(3, is_weighted=True)
+        expected_sample = {"A", "D", "E"}
+        accepted_sample = set(pda.sample_subtree.get_leaf_names())
+        self.assertEqual(accepted_sample, expected_sample)
+
+    def test_weighted_sample_no_normalization_external(self):
+        pda = PDA(tree=Tree("((A:2,B:1):1,(C:1,(D:8,E:2):2):2);"),
+                  taxon_to_weight={"A": 0.5, "B": 0.5, "C": 1, "D": 0.01, "E": 0.5}, aux_dir=f"{os.path.dirname(os.path.realpath(__file__))}/aux/pda/")
+        pda.compute_sample(3, use_external=True)
+        expected_sample = {"A", "D", "E"}
+        accepted_sample = set(pda.sample_subtree.get_leaf_names())
+        self.assertEqual(accepted_sample, expected_sample)
+
+    def test_weighted_sample_with_normalization(self):
+        pda = PDA(tree=Tree("((A:2,B:1):1,(C:1,(D:8,E:2):2):2);"),
+                  taxon_to_weight={"A": 0.5, "B": 0.5, "C": 1, "D": 0.01, "E": 0.5})
         pda.norm_factor = 0.01
         expected_sample = {"A", "C", "E"}
         pda.compute_sample(3, is_weighted=True)
+        accepted_sample = set(pda.sample_subtree.get_leaf_names())
+        self.assertEqual(accepted_sample, expected_sample)
+
+    def test_weighted_sample_with_normalization_external(self):
+        pda = PDA(tree=Tree("((A:2,B:1):1,(C:1,(D:8,E:2):2):2);"),
+                  taxon_to_weight={"A": 0.5, "B": 0.5, "C": 1, "D": 0.01, "E": 0.5}, aux_dir=f"{os.path.dirname(os.path.realpath(__file__))}/aux/pda/")
+        pda.norm_factor = 0.01
+        expected_sample = {"A", "C", "E"}
+        pda.compute_sample(3, is_weighted=True, use_external=True)
         accepted_sample = set(pda.sample_subtree.get_leaf_names())
         self.assertEqual(accepted_sample, expected_sample)
 

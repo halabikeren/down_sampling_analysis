@@ -1,12 +1,21 @@
+from dotenv import load_dotenv
+
+load_dotenv()
 from copy import deepcopy
+import re
 from ete3 import Tree
 import typing as t
 from pydantic import BaseModel
 from operator import itemgetter
+import os
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class PDA(BaseModel):
     tree: Tree
+    aux_dir: str = os.getcwd()
     taxon_to_weight: t.Dict[str, float] = None
     norm_factor: float = 1
     sample_size: int = 0
@@ -55,11 +64,12 @@ class PDA(BaseModel):
         :return: returns a pair of leaves maximizing the weighted pd score
         """
         leaves = self.tree.get_leaves()
-        pairs = [(leaves[i], leaves[j]) for i in range(len(leaves)) for j in range(i+1, len(leaves))]
+        pairs = [(leaves[i], leaves[j]) for i in range(len(leaves)) for j in range(i + 1, len(leaves))]
         max_pd_score = 0
         max_pd_leaves = ["", ""]
         for (leaf_1, leaf_2) in pairs:
-            pd_score = self.norm_factor * self.tree.get_distance(leaf_1, leaf_2) + (self.taxon_to_weight[leaf_1.name] + self.taxon_to_weight[leaf_2.name])
+            pd_score = self.norm_factor * self.tree.get_distance(leaf_1, leaf_2) + (
+                    self.taxon_to_weight[leaf_1.name] + self.taxon_to_weight[leaf_2.name])
             if pd_score > max_pd_score:
                 max_pd_score = pd_score
                 max_pd_leaves = [leaf_1.name, leaf_2.name]
@@ -129,12 +139,13 @@ class PDA(BaseModel):
                 node.name = "N" + str(i)
                 i += 1
 
-    def compute_sample(self, k: int, is_weighted: bool = False) -> t.List[str]:
+    def compute_sample(self, k: int, is_weighted: bool = False, use_external=False) -> t.List[str]:
         """
         computes the most phylogenetically diverse weighted sample based on the greedy algorithm of Steel (2005).
         for more details see https://academic.oup.com/sysbio/article-abstract/54/4/527/2842877
         :param k: required sample size
         :param is_weighted: indicates weather the computed PD should be weighted or not
+        :param use_external: indicates weather the pda tool should be used or internally impleemnted code
         :return: list of names of chosen leaves
         """
         self.sample_size = 0
@@ -143,7 +154,33 @@ class PDA(BaseModel):
         elif k >= len(self.tree.get_leaf_names()):
             raise ValueError(
                 f"required sample size must be smaller than the dataset size {len(self.tree.get_leaf_names())}")
-        self.add_internal_names()
-        while self.sample_size < k:
-            self.do_pd_step(is_weighted)
-        return self.sample_subtree.get_leaf_names()
+        if not use_external:
+            self.add_internal_names()
+            while self.sample_size < k:
+                self.do_pd_step(is_weighted)
+            return self.sample_subtree.get_leaf_names()
+        else:
+            res = os.system(f"mkdir -p {self.aux_dir}")
+            self.tree.write(outfile=f"{self.aux_dir}/tree.nwk", format=5)
+            weights_arg = ""
+            if is_weighted:
+                with open(f"{self.aux_dir}/weights.txt", "w") as weights_file:
+                    weights_file.write(f"{self.norm_factor}\n")
+                    for taxon in self.taxon_to_weight:
+                        weights_file.write(f"{taxon}\t{self.taxon_to_weight[taxon]}\n")
+                weights_arg = f" -e {self.aux_dir}/weights.txt"
+            res = os.system(
+                f"{os.getenv('PDA_EXE')} -g -k {k}{weights_arg} {self.aux_dir}/tree.nwk {self.aux_dir}/out.pda")
+            if res != 0:
+                raise IOError("PDA failed to properly execute and provide an output file")
+            output_regex = re.compile(
+                "For k = \d* the optimal PD score is (\d*).*?The optimal PD set has \d* taxa\:(.*?)Corresponding",
+                re.MULTILINE | re.DOTALL)
+            with open(f"{self.aux_dir}/out.pda", "r") as result:
+                result_content = result.read()
+                output = output_regex.search(result_content)
+            self.pd_score = float(output.group(1))
+            sample_members = [member for member in output.group(2).split("\n") if member != ""]
+            self.sample_subtree = deepcopy(self.tree)
+            self.sample_subtree.prune(sample_members)
+            return sample_members
