@@ -3,11 +3,14 @@ import typing as t
 from pydantic import BaseModel
 import os
 import logging
+
 log = logging.getLogger(__name__)
 
+
 class CDHIT(BaseModel):
-    sequences_path: str
-    aux_dir: str = os.getcwd()
+    all_sequences_path: str
+    sampled_sequences_path: str = None
+    aux_dir: str
     sample_size: int = 0
     similarity_threshold: float = 0
     sample_members: t.List[str] = []
@@ -22,14 +25,14 @@ class CDHIT(BaseModel):
         :param threshold: similarity threshold for ch-hit
         :return: path of the output file provided by cd-hit
         """
-        input_name = os.path.splitext(os.path.basename(self.sequences_path))[0]
-        records = list((SeqIO.parse(self.sequences_path), "fasta"))
+        input_name = os.path.splitext(os.path.basename(self.all_sequences_path))[0]
+        records = list((SeqIO.parse(self.all_sequences_path, "fasta")))
         for record in records:
             if "-" in record.seq:
-                raise ValueError(f"sequence data at {self.sequences_path}is aligned, so cd-hit cannot run on it")
+                raise ValueError(f"sequence data at {self.all_sequences_path}is aligned, so cd-hit cannot run on it")
         output_file = f"{self.aux_dir}/{input_name}_threshold_{threshold}"
         word_len = (5 if threshold > 0.7 else 4) if threshold > 0.6 else (3 if threshold > 0.5 else 2)
-        res = os.system(f"cd-hit -i {self.sequences_path} -o {output_file} -c {threshold} -n {word_len}")
+        res = os.system(f"cd-hit -i {self.all_sequences_path} -o {output_file} -c {threshold} -n {word_len}")
         if res != 0:
             raise IOError("CD-HIT failed to properly execute and provide an output file")
         return output_file
@@ -105,13 +108,27 @@ class CDHIT(BaseModel):
         else:  # self.sample_size < middle_sample_size:
             self.compute_similarity_threshold(left_thr, middle_thr)
 
-    def compute_sample(self, k: int) -> t.List[str]:
+    def compute_sample(self, k: int, write: bool = False):
         """
         :param k: the required sample size
+        :param write: boolean indicating if the sampled sequences should be written to an output file or not
         :return: the sampled sequence names
         """
-        res = os.system(f"mkdir -p {self.aux_dir}")
-        self.sample_size = k
-        self.compute_similarity_threshold(0.4, 1)  # the minimum threshold is set based on experience
-        self.sample_members = self.thr_to_sample[self.similarity_threshold]
-        return self.sample_members
+        sample_candidates = [record.description for record in list(SeqIO.parse(self.all_sequences_path, "fasta"))]
+        if k < 0 or k > len(sample_candidates):
+            raise ValueError(f"sample size {k} is invalid for data of size {len(sample_candidates)}")
+        if k == len(sample_candidates):
+            self.sample_members = sample_candidates
+            if write:
+                res = os.system(f"cp -r {self.all_sequences_path} {self.sampled_sequences_path}")
+        else:
+            res = os.system(f"mkdir -p {self.aux_dir}")
+            self.sample_size = k
+            self.compute_similarity_threshold(0.4, 1)  # the minimum threshold is set based on experience
+            self.sample_members = self.thr_to_sample[self.similarity_threshold]
+            if write:
+                input_name = os.path.splitext(os.path.basename(self.all_sequences_path))[0]
+                output_file = f"{self.aux_dir}/{input_name}_threshold_{self.similarity_threshold}"
+                res = os.system(f"cp -r {output_file} {self.sampled_sequences_path}")
+            if self.aux_dir != os.path.dirname(os.path.realpath(self.all_sequences_path)):
+                res = os.system(f"rm -r {self.aux_dir}")
