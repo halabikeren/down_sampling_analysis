@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Pda(Sampler):
-    aligned_sequences_path: str = None
     taxon_to_weight: t.Dict[str, float] = None
     taxon_to_weight_filepath: str = None
     norm_factor: float = 1
@@ -31,12 +30,13 @@ class Pda(Sampler):
     )  # sample subtree is saved such that if later on, a larger sample is required, we can simply extend the current one rather than start over
     pd_score: float = 0
 
-    def compute_taxon_weights(self):
+    def compute_taxon_weights(self, aligned_sequences_path: str):
         """
         computes the weight of each taxon (or sequence) based on the
         :return:
         """
-        alignment = list(AlignIO.parse(self.aligned_sequences_path, "fasta"))[0]
+        self.taxon_to_weight = dict()  # reset taxon to weight
+        alignment = list(AlignIO.parse(aligned_sequences_path, "fasta"))[0]
         alignment_records = [record for record in alignment]
         # compute for each position the frequency of characters in it
         pos_to_char_feq = dict()
@@ -54,7 +54,9 @@ class Pda(Sampler):
             for pos in pos_to_char_feq:
                 pos_weight = 1 - pos_to_char_feq[pos]["-"]
                 weight += pos_weight * pos_to_char_feq[pos][seq_record.seq[pos]]
-            self.taxon_to_weight[seq_record.description] = weight
+            self.taxon_to_weight[
+                seq_record.description if seq_record.description else seq_record.id
+            ] = (weight / alignment.get_alignment_length())
 
     @staticmethod
     def get_max_pd_pair(
