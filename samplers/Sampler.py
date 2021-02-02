@@ -1,5 +1,7 @@
 import os
 import typing as t
+
+import subprocess
 from Bio import SeqIO
 from dataclasses import dataclass
 
@@ -34,6 +36,8 @@ class Sampler:
         """
         sample = self.get_sample(k)
         if type(sample) is str:
-            os.rename(sample, output_path)
+            subprocess.run(
+                f"cp -r {sample} {output_path}", shell=True, capture_output=True
+            )
         else:
-            SeqIO.parse(sample, output_path, "fasta")
+            SeqIO.write(sample, output_path, "fasta")
