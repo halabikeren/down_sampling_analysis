@@ -134,8 +134,22 @@ class TestPDA(unittest.TestCase):
             tree=self.tree,
             aux_dir=self.aux_dir,
         )
-        pda.compute_taxon_weights(f"{os.path.dirname(os.path.realpath(__file__))}/data/aligned_seq_data.fas")
-        self.assertEqual(pda.taxon_to_weight, {'A': 0.68359375, 'B': 0.68359375, 'C': 0.3645833333333333, 'D': 0.5911458333333334, 'E': 0.7356770833333334, 'F': 0.7356770833333334, 'G': 0.7356770833333334, 'H': 0.7356770833333334})
+        pda.compute_taxon_weights(
+            f"{os.path.dirname(os.path.realpath(__file__))}/data/aligned_seq_data.fas"
+        )
+        self.assertEqual(
+            pda.taxon_to_weight,
+            {
+                "A": 0.68359375,
+                "B": 0.68359375,
+                "C": 0.3645833333333333,
+                "D": 0.5911458333333334,
+                "E": 0.7356770833333334,
+                "F": 0.7356770833333334,
+                "G": 0.7356770833333334,
+                "H": 0.7356770833333334,
+            },
+        )
 
 
 if __name__ == "__main__":
