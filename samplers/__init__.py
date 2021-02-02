@@ -1,10 +1,10 @@
 from enum import Enum
 from functools import partial
 
-from samplers.Sampler import Sampler
-from samplers.Pda import Pda
-from samplers.CdHit import CdHit
-from samplers.Random import Random
+from samplers.sampler import Sampler
+from samplers.pda import Pda
+from samplers.cdhit import CdHit
+from samplers.random import Random
 
 
 class SamplingMethod(Enum):
