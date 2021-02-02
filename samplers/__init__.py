@@ -1,4 +1,6 @@
 from enum import Enum
+from functools import partial
+
 from samplers.Sampler import Sampler
 from samplers.Pda import Pda
 from samplers.CdHit import CdHit
@@ -6,9 +8,17 @@ from samplers.Random import Random
 
 
 class SamplingMethod(Enum):
-    Pda = "pda"
-    CdHit = "cdhit"
-    Random = "random"
+    PDA = ("pda", partial(Pda))
+    CDHIT = ("cdhit", partial(CdHit))
+    RANDOM = ("random", partial(Random))
+
+    def __call__(self):
+        return self._call()
+
+
+SamplingMethod.PDA._call = Pda
+SamplingMethod.CDHIT._call = CdHit
+SamplingMethod.RANDOM._call = Random
 
 
 __all__ = [en.value for en in SamplingMethod] + ["SamplingMethod"]
