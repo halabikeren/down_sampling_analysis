@@ -1,3 +1,4 @@
+import shutil
 import typing as t
 import os
 import unittest
@@ -64,11 +65,7 @@ class TestPipeline(unittest.TestCase):
     def tearDown(self):
         with open(TestPipeline.json_path, "r") as json_file:
             pipeline_json_input = json.load(json_file)
-        subprocess.run(
-            f"rm -rf {pipeline_json_input['pipeline_dir']}",
-            shell=True,
-            capture_output=True,
-        )
+        os.system(f"rm -r {pipeline_json_input['pipeline_dir']}")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 import os
+import shutil
 import typing as t
 
 import subprocess
@@ -36,8 +37,6 @@ class Sampler:
         """
         sample = self.get_sample(k, **kwargs)
         if type(sample) is str:
-            subprocess.run(
-                f"cp -r {sample} {output_path}", shell=True, capture_output=True
-            )
+            shutil.copyfile(sample, output_path)
         else:
             SeqIO.write(sample, output_path, "fasta")

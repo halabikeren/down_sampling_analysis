@@ -1,3 +1,4 @@
+import shutil
 import typing as t
 from pipeline_utils import (
     SequenceDataType,
@@ -44,19 +45,15 @@ class Pipeline:
         ).group(1)
         self.pipeline_dir = pipeline_input.pipeline_dir
         processed_data_dir = f"{self.pipeline_dir}/input_data/"
-        subprocess.run(
-            f"mkdir -p {processed_data_dir}", shell=True, capture_output=True
-        )
-
+        os.makedirs(processed_data_dir)
         logger.info(f"Setting input for pipeline at {processed_data_dir}")
 
         self.unaligned_sequence_data_path = (
             f"{processed_data_dir}{dataset_name}_unaligned.fasta"
         )
-        subprocess.run(
-            f"cp -r {pipeline_input.unaligned_sequence_data_path} {self.unaligned_sequence_data_path}",
-            shell=True,
-            capture_output=True,
+        shutil.copyfile(
+            pipeline_input.unaligned_sequence_data_path,
+            self.unaligned_sequence_data_path,
         )
         logger.info(
             f"Unaligned sequence data saved at {self.unaligned_sequence_data_path}"
@@ -66,20 +63,15 @@ class Pipeline:
             f"{processed_data_dir}{dataset_name}_aligned.fasta"
         )
         if pipeline_input.aligned_sequence_data_path:
-            subprocess.run(
-                f"cp -r {pipeline_input.aligned_sequence_data_path} {self.aligned_sequence_data_path}",
-                shell=True,
-                capture_output=True,
+            shutil.copyfile(
+                pipeline_input.aligned_sequence_data_path,
+                self.aligned_sequence_data_path,
             )
             logger.info(f"Aligned data saved at {self.aligned_sequence_data_path}")
 
         self.tree_path = f"{processed_data_dir}{dataset_name}_tree.nwk"
         if pipeline_input.tree_path:
-            subprocess.run(
-                f"cp -r {pipeline_input.tree_path} {self.tree_path}",
-                shell=True,
-                capture_output=True,
-            )
+            shutil.copyfile(pipeline_input.tree_path, self.tree_path)
             logger.info(f"Tree saved at {self.tree_path}")
 
         # fill in available parameters
@@ -310,16 +302,12 @@ class Pipeline:
         :return: None. generated samples and saves them in respective directories under self.pipeline_dir
         """
         samples_dir = f"{self.pipeline_dir}/samples/"
-        subprocess.run(f"mkdir -p {samples_dir}", shell=True, capture_output=True)
+        os.makedirs(samples_dir, exist_ok=True)
         # set sampling environment
         fraction_to_samples_dir = {}
         for fraction in pipeline_input.sampling_fractions:
             fraction_to_samples_dir[fraction] = f"{samples_dir}fraction_{fraction}/"
-            subprocess.run(
-                f"mkdir -p {fraction_to_samples_dir[fraction]}",
-                shell=True,
-                capture_output=True,
-            )
+            os.makedirs(fraction_to_samples_dir[fraction], exist_ok=True)
 
         # generate the samples
         tree = Tree(self.tree_path)
