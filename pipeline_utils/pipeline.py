@@ -141,10 +141,11 @@ class Pipeline:
         """
         if type(sequence_data) is not list:
             sequence_data = list(SeqIO.parse(sequence_data, "fasta"))
+        global_len = len(sequence_data[0].seq)
         for record in sequence_data:
-            if "-" in record.seq:
-                return True
-        return False
+            if len(record.seq) != global_len:
+                return False
+        return True
 
     @staticmethod
     def translate(sequence_records: t.List[SeqIO.SeqRecord], output_path: str):
