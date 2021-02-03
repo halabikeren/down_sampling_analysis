@@ -12,10 +12,10 @@ RUN conda install -c bioconda raxml
 RUN echo 'alias pda="/pda-1.0.3-Linux/bin/pda"' >> ~/.bashrc
 RUN echo 'alias rate4site="/down_sampling_analysis/docker_aux/Rate4Site/3.0/bin/rate4site_doublerep"' >> ~/.bashrc
 
-
 # install python packages
 COPY requirements.txt /temp/requirements.txt
 RUN pip install -r /temp/requirements.txt
+
 # copy code and toy data
 WORKDIR /down_sampling_analysis
 COPY . .

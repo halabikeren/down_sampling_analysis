@@ -42,7 +42,6 @@ class TestPDA(unittest.TestCase):
         self.assertEqual(accepted_sample, expected_sample)
 
     def test_null_weighted_sample(self):
-
         pda = Pda(
             sequences_path=self.sequences_data_path,
             tree=self.tree,
