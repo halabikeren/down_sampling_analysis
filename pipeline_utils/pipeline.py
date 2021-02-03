@@ -54,14 +54,9 @@ class Pipeline:
         self.unaligned_sequence_data_path = (
             f"{processed_data_dir}{dataset_name}_unaligned.fasta"
         )
-        logger.info(
-            f"Unaligned sequence data saved at {self.unaligned_sequence_data_path}"
-        )
         self.aligned_sequence_data_path = (
             f"{processed_data_dir}{dataset_name}_aligned.fasta"
         )
-        logger.info(f"Aligned sequence data saved at {self.aligned_sequence_data_path}")
-
         self.tree_path = f"{processed_data_dir}{dataset_name}_tree.nwk"
         if pipeline_input.tree_path:
             subprocess.run(f"cp -r {pipeline_input.tree_path} {self.tree_path}")
@@ -75,15 +70,24 @@ class Pipeline:
                 shell=True,
                 capture_output=True,
             )
+            logger.info(
+                f"Sequence data is already aligned. Aligned sequence data saved at {self.aligned_sequence_data_path}"
+            )
             Pipeline.un_align(
                 str(pipeline_input.sequence_data_path),
                 self.unaligned_sequence_data_path,
+            )
+            logger.info(
+                f"Unaligned sequence data saved at {self.unaligned_sequence_data_path}"
             )
         else:
             subprocess.run(
                 f"cp -r {pipeline_input.sequence_data_path} {self.unaligned_sequence_data_path}",
                 shell=True,
                 capture_output=True,
+            )
+            logger.info(
+                f"Unaligned sequence data saved at {self.unaligned_sequence_data_path}"
             )
             self.aligned_sequence_data_path = Pipeline.align(
                 self.unaligned_sequence_data_path,
@@ -92,10 +96,9 @@ class Pipeline:
                 pipeline_input.alignment_method,
                 pipeline_input.alignment_params,
             )
-
-        logger.info(
-            f"Alignment generated successfully using {pipeline_input.alignment_method.value}"
-        )
+            logger.info(
+                f"Alignment generated successfully using {pipeline_input.alignment_method.value}"
+            )
 
         self.unaligned_sequence_data = list(
             SeqIO.parse(self.unaligned_sequence_data_path, "fasta")
@@ -111,9 +114,9 @@ class Pipeline:
                 pipeline_input.tree_reconstruction_method,
                 pipeline_input.tree_reconstruction_params,
             )
-        logger.info(
-            f"Tree reconstructed successfully at {self.tree_path} using {pipeline_input.tree_reconstruction_method.value}"
-        )
+            logger.info(
+                f"Tree reconstructed successfully at {self.tree_path} using {pipeline_input.tree_reconstruction_method.value}"
+            )
 
         # set sampling info structure
         self.samples_info = dict()
