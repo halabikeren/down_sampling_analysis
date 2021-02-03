@@ -1,15 +1,21 @@
-import subprocess
-from collections import defaultdict
-
-from Bio import SeqIO, AlignIO
-from copy import deepcopy
+import os
 import re
-from ete3 import Tree
+import subprocess
 import typing as t
+from collections import defaultdict
+from copy import deepcopy
 from dataclasses import dataclass
 from operator import itemgetter
-import os
+
+from Bio import SeqIO, AlignIO
+from ete3 import Tree
+
 from samplers import Sampler
+
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -206,14 +212,14 @@ class Pda(Sampler):
             weights_arg += f" -e {os.path.dirname(self.sequences_path)}/weights.txt"
 
         process = subprocess.run(
-            f"{os.getenv('pda')} -g -k {k}{weights_arg} {self.aux_dir}/tree.nwk {self.aux_dir}/out.pda",
+            f"{os.environ['pda']} -g -k {k}{weights_arg} {self.aux_dir}/tree.nwk {self.aux_dir}/out.pda",
             shell=True,
             capture_output=True,
         )
         if process.returncode != 0:
             raise RuntimeError(
                 f"PDA failed to properly execute and provide an output file. Execution "
-                f"output is {process.stdout}"
+                f"output is {process.stderr}"
             )
 
         output_regex = re.compile(

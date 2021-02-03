@@ -6,12 +6,14 @@ from io import StringIO
 import pandas as pd
 from programs import Program
 
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
 
 @dataclass
 class Rate4Site(Program):
     def __init__(self):
         self.name = "rate4site"
-        self.program_exe = os.getenv("rate4site")
+        self.program_exe = os.environ["rate4site"]
         self.input_param_name = "-s"
         self.output_param_name = "-o"
         self.module_to_load = "Rate4Site/Rate4Site-3.0"
