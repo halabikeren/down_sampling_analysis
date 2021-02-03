@@ -65,7 +65,7 @@ class Pipeline:
         self.tree_path = f"{processed_data_dir}{dataset_name}_tree.nwk"
         if pipeline_input.tree_path:
             subprocess.run(f"cp -r {pipeline_input.tree_path} {self.tree_path}")
-        logger.info(f"Tree saved at {self.tree_path}")
+            logger.info(f"Tree saved at {self.tree_path}")
 
         # fill in available parameters
         self.sequence_data_type = pipeline_input.sequence_data_type
@@ -112,7 +112,7 @@ class Pipeline:
                 pipeline_input.tree_reconstruction_params,
             )
         logger.info(
-            f"Tree reconstructed successfully using {pipeline_input.tree_reconstruction_method.value}"
+            f"Tree reconstructed successfully at {self.tree_path} using {pipeline_input.tree_reconstruction_method.value}"
         )
 
         # set sampling info structure
