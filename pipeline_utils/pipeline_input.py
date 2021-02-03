@@ -1,5 +1,10 @@
 import typing as t
-from pipeline_utils import SequenceDataType, AlignmentMethod, TreeReconstructionMethod
+from pipeline_utils import (
+    SequenceDataType,
+    AlignmentMethod,
+    TreeReconstructionMethod,
+)
+from programs import ProgramName
 from pydantic import BaseModel, FilePath, DirectoryPath, Field
 from samplers import SamplingMethod
 
@@ -9,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class PipelineInput(BaseModel):
+
     pipeline_dir: DirectoryPath  # path in which the entire pipeline input and output will be placed
     sequence_data_path: FilePath  # full path to a fasta file with sequence data that is either aligned or not aligned
     sequence_data_type: SequenceDataType  # the type of provided sequence data in the form of SequenceDataType
@@ -16,7 +22,7 @@ class PipelineInput(BaseModel):
         AlignmentMethod.MAFFT
     )  # the method that the alignment should be build with, in case that it is not provided
     alignment_params: t.Optional[
-        t.Dict[str, str]
+        t.Dict[str, t.Any]
     ] = None  # the parameters that the alignment method should be executed with. The default ones are viewable in
     # the method Pipeline.align()
     tree_path: t.Optional[
@@ -36,10 +42,14 @@ class PipelineInput(BaseModel):
     sampling_methods: t.List[SamplingMethod] = Field(
         default_factory=lambda: [m for m in SamplingMethod]
     )  # the methods of sampling that should be used in the scope of the pipeline
-    programs: t.List[str] = Field(
-        default_factory=lambda: ["r4s"]
+    samples_alignment_method: AlignmentMethod = (
+        AlignmentMethod.MAFFT
+    )  # the method that the alignment should be build with, in case that it is not provided
+    samples_alignment_params: t.Optional[t.Dict[str, t.Any]] = None
+    programs: t.List[ProgramName] = Field(
+        default_factory=lambda: [n for n in ProgramName]
     )  # the programs that should be executed on the sampled data in the scope of the pipeline
-    program_params: t.Optional[
+    programs_params: t.Optional[
         t.Dict[str, t.Any]
     ] = None  # a map of programs to parameters it should be executed with
     weight_pda: bool = (
