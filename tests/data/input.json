@@ -1,5 +1,6 @@
 {
   "pipeline_dir": "./tests/data/pipeline_test/",
   "sequence_data_path": "./tests/data/seq_data.fas",
-  "sequence_data_type": "nucleotide"
+  "sequence_data_type": "nucleotide",
+  "parallelize": 0
 }
