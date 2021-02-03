@@ -5,6 +5,7 @@ from pipeline_utils import (
     TreeReconstructionMethod,
     PipelineInput,
 )
+from programs import *
 import re
 from dataclasses import dataclass
 import time
@@ -16,7 +17,7 @@ import subprocess
 from Bio import SeqIO, AlignIO
 import os
 from pydantic import FilePath
-from samplers import SamplingMethod
+from samplers import *
 
 import logging
 
@@ -30,15 +31,10 @@ class Pipeline:
     unaligned_sequence_data: t.List[SeqIO.SeqRecord]
     aligned_sequence_data_path: str
     tree_path: str
-    sequence_data_type: SequenceDataType
     samples_info: t.Dict[
         float, t.Dict[SamplingMethod, t.Dict[str, t.Any]]
     ]  # will map sample fractions to maps of sampling methods to their info (input path, output paths,
     # analysis results ect.)
-    weight_pda: bool = False
-    parallelize: bool = True
-    priority: int = 0
-    queue: str = "itaym"
 
     def __init__(self, pipeline_input: PipelineInput):
 
@@ -79,14 +75,23 @@ class Pipeline:
                 shell=True,
                 capture_output=True,
             )
-            self.un_align(str(pipeline_input.sequence_data_path))
+            Pipeline.un_align(
+                str(pipeline_input.sequence_data_path),
+                self.unaligned_sequence_data_path,
+            )
         else:
             subprocess.run(
                 f"cp -r {pipeline_input.sequence_data_path} {self.unaligned_sequence_data_path}",
                 shell=True,
                 capture_output=True,
             )
-            self.align(pipeline_input.alignment_method, pipeline_input.alignment_params)
+            self.aligned_sequence_data_path = Pipeline.align(
+                self.unaligned_sequence_data_path,
+                self.aligned_sequence_data_path,
+                pipeline_input.sequence_data_type,
+                pipeline_input.alignment_method,
+                pipeline_input.alignment_params,
+            )
 
         logger.info(
             f"Alignment generated successfully using {pipeline_input.alignment_method.value}"
@@ -101,6 +106,8 @@ class Pipeline:
 
         if not os.path.exists(self.tree_path):
             self.build_tree(
+                self.aligned_sequence_data_path,
+                self.tree_path,
                 pipeline_input.tree_reconstruction_method,
                 pipeline_input.tree_reconstruction_params,
             )
@@ -113,14 +120,15 @@ class Pipeline:
         for fraction in pipeline_input.sampling_fractions:
             self.samples_info[fraction] = dict()
             for method in pipeline_input.sampling_methods:
-                self.samples_info[fraction][method.value[0]] = {
-                    "path": None,
-                    "program_performance": dict(),
+                self.samples_info[fraction][method.value] = {
+                    "unaligned_sequence_data_path": None,
+                    "aligned_sequence_data_path": None,
+                    "programs_performance": dict(),
                 }
-                for program in pipeline_input.programs:
-                    self.samples_info[fraction][method.value[0]]["program_performance"][
-                        program
-                    ] = {"input_dir": None, "output_dir": None, "result": None}
+                for program_name in pipeline_input.programs:
+                    self.samples_info[fraction][method.value]["programs_performance"][
+                        program_name.value
+                    ] = {"input_path": None, "output_path": None, "result": None}
 
     @staticmethod
     def is_aligned(sequence_data: t.Union[FilePath, t.List[SeqIO.SeqRecord]]) -> bool:
@@ -182,63 +190,64 @@ class Pipeline:
             aligned_codon_records.append(aligned_codon_record)
         SeqIO.write(aligned_codon_records, aligned_codon_path, "fasta")
 
-    def un_align(self, input_path: str):
+    @staticmethod
+    def un_align(input_data: t.Union[str, t.List[SeqIO.SeqRecord]], output_path: str):
         """
-        :param input_path: sequence data in the form of a filepath
+        :param input_data: either a path to a sequence data file or a list of sequence records
+        :param output_path: full path to write the unaligned data to
         :return: None. writes unaligned data to the respective file
         """
-        if not self.unaligned_sequence_data:
-            self.unaligned_sequence_data = list(SeqIO.parse(input_path, "fasta"))
-        for record in self.unaligned_sequence_data:
+        if type(input_data) is str:
+            input_data = list(SeqIO.parse(input_data, "fasta"))
+        for record in input_data:
             record.seq = str(record.seq).replace("-", "")
-        SeqIO.write(
-            self.unaligned_sequence_data, self.unaligned_sequence_data_path, "fasta"
-        )
+        SeqIO.write(input_data, output_path, "fasta")
 
+    @staticmethod
     def align(
-        self,
+        input_path: str,
+        output_path: str,
+        sequence_data_type: SequenceDataType,
         alignment_method: AlignmentMethod,
-        alignment_params: t.Dict[str, str] = None,
-    ):
+        alignment_params: t.Optional[t.Dict[str, t.Any]] = None,
+    ) -> str:
         """
         Aligns sequence data according to given method
+        input_path: unaligned sequence data path
+        output_path: the path to write the alignment to
+        alignment_method: the method that the sequence data should be aligned with
+        alignment_params: the parameters that the method should be run with
         :return:
         """
-        if os.path.exists(self.aligned_sequence_data_path):
-            alternative_alignment_path = self.aligned_sequence_data_path.replace(
+        if os.path.exists(output_path):
+            alternative_alignment_path = output_path.replace(
                 ".fasta", f"_{time.time()}.fasta"
             )
             logger.warning(
-                f"{self.aligned_sequence_data_path} already exists. The program will create the alignment in the "
+                f"{output_path} already exists. The program will create the alignment in the "
                 f"alternative path {alternative_alignment_path} "
             )
-            self.aligned_sequence_data_path = alternative_alignment_path
+            output_path = alternative_alignment_path
 
-        sequence_records = list(SeqIO.parse(self.unaligned_sequence_data_path, "fasta"))
-        alignment_input_path = self.unaligned_sequence_data_path
-        alignment_output_path = self.aligned_sequence_data_path
+        sequence_records = list(SeqIO.parse(input_path, "fasta"))
+        alignment_input_path = input_path
+        alignment_output_path = output_path
         if (
-            self.sequence_data_type == SequenceDataType.CODON
+            sequence_data_type == SequenceDataType.CODON
             and alignment_method == AlignmentMethod.MAFFT
         ):
-            alignment_input_path = self.unaligned_sequence_data_path.replace(
-                ".fasta", "_translated.fasta"
-            )
-            self.translate(
+            alignment_input_path = output_path.replace(".fasta", "_translated.fasta")
+            Pipeline.translate(
                 sequence_records,
-                self.unaligned_sequence_data_path.replace(
-                    ".fasta", "_translated.fasta"
-                ),
+                input_path.replace(".fasta", "_translated.fasta"),
             )
-            alignment_output_path = self.aligned_sequence_data_path.replace(
-                ".fasta", "_translated.fasta"
-            )
+            alignment_output_path = output_path.replace(".fasta", "_translated.fasta")
 
         cmd = ""
-        if alignment_method == AlignmentMethod.MAFFT:
+        if not alignment_method or alignment_method == AlignmentMethod.MAFFT:
             cmd = f"mafft --localpair --maxiterate 1000 {alignment_input_path} > {alignment_output_path}"
         elif alignment_method == AlignmentMethod.PRANK:
-            cmd = f"prank -d={alignment_input_path} -o={alignment_output_path} -f=fasta -support {'-codon' if self.sequence_data_type == SequenceDataType.CODON else ''} -iterate=100 -showtree "
+            cmd = f"prank -d={alignment_input_path} -o={alignment_output_path} -f=fasta -support {'-codon' if sequence_data_type == SequenceDataType.CODON else ''} -iterate=100 -showtree "
         if alignment_params:
             cmd += " ".join(
                 [
@@ -249,26 +258,31 @@ class Pipeline:
         process = subprocess.run(cmd, shell=True, capture_output=True)
         if process.returncode != 0:
             raise IOError(
-                f"failed to align {self.unaligned_sequence_data_path} with {alignment_method.value} execution output is {process.stdout} "
+                f"failed to align {output_path} with {alignment_method.value} execution output is {process.stdout} "
             )
         if (
             alignment_method == AlignmentMethod.MAFFT
-            and self.sequence_data_type == SequenceDataType.CODON
+            and sequence_data_type == SequenceDataType.CODON
         ):
-            self.reverse_translate(
-                self.unaligned_sequence_data_path,
+            Pipeline.reverse_translate(
+                input_path,
                 alignment_output_path,
-                self.aligned_sequence_data_path,
+                output_path,
             )
             os.remove(alignment_input_path)
             os.remove(alignment_output_path)
+        return output_path
 
+    @staticmethod
     def build_tree(
-        self,
+        input_path: str,
+        output_path: str,
         tree_reconstruction_method: TreeReconstructionMethod,
-        tree_reconstruction_params: t.Dict[str, str] = None,
+        tree_reconstruction_params: t.Optional[t.Dict[str, t.Any]] = None,
     ):
         """
+        :param input_path path to aligned sequence data in a fasta format
+        :param output_path path in which the tree should be written in newick format
         :param tree_reconstruction_method: enum representing the tree reconstruction method
         :param tree_reconstruction_params: map of parameter names to parameter values
         :return: None
@@ -277,7 +291,7 @@ class Pipeline:
             TreeReconstructionMethod.UPGMA,
             TreeReconstructionMethod.NJ,
         ]:
-            alignment = list(AlignIO.parse(self.aligned_sequence_data_path, "fasta"))[0]
+            alignment = list(AlignIO.parse(input_path, "fasta"))[0]
             calculator = DistanceCalculator("identity")
             dm = calculator.get_distance(alignment)
             constructor = DistanceTreeConstructor()
@@ -285,50 +299,45 @@ class Pipeline:
                 tree = constructor.upgma(dm)
             else:
                 tree = constructor.nj(dm)
-            with open(self.tree_path, "w") as output_handle:
+            with open(output_path, "w") as output_handle:
                 NewickIO.write([tree], output_handle)
-            tree = Tree(self.tree_path, format=1)
-            tree.write(outfile=self.tree_path, format=5)
+            tree = Tree(output_path, format=1)
+            tree.write(outfile=output_path, format=5)
 
         elif tree_reconstruction_method == TreeReconstructionMethod.ML:
-            output_dir, output_filename = os.path.split(self.tree_path)
+            output_dir, output_filename = os.path.split(output_path)
             aux_dir = f"{output_dir}/raxml_aux/"
             os.mkdir(aux_dir)
             os.chdir(aux_dir)
             model = (
                 tree_reconstruction_params["-m"]
-                if "-m" in tree_reconstruction_params
+                if tree_reconstruction_params and "-m" in tree_reconstruction_params
                 else "GTRGAMMA"
             )
             num_of_categories = (
                 tree_reconstruction_params["-n"]
-                if "-n" in tree_reconstruction_params
+                if tree_reconstruction_params and "-n" in tree_reconstruction_params
                 else 4
             )
-            cmd = f"raxmlHPC -s {self.aligned_sequence_data_path} -n out -m {model} -c {num_of_categories}"
+            cmd = f"raxmlHPC -s {input_path} -n out -m {model} -c {num_of_categories}"
             process = subprocess.run(cmd, shell=True, capture_output=True)
             if process.returncode != 0:
                 raise IOError(
                     f"failed to reconstruct ML tree with raxml. Execution output is {process.stdout}"
                 )
-            os.rename(f"{aux_dir}RAxML_bestTree.out", self.tree_path)
+            os.rename(f"{aux_dir}RAxML_bestTree.out", output_path)
             os.remove(aux_dir)
 
-    def generate_samples(
-        self,
-        sampling_fractions: t.List[float],
-        sampling_methods: t.List[SamplingMethod],
-    ):
+    def generate_samples(self, pipeline_input: PipelineInput):
         """
-        :param sampling_fractions: the fractions of data that should be sampled
-        :param sampling_methods: the methods that the data should be sampled with
+        :param pipeline_input instance holding parameters for pipeline execution
         :return: None. generated samples and saves them in respective directories under self.pipeline_dir
         """
         samples_dir = f"{self.pipeline_dir}/samples/"
         subprocess.run(f"mkdir -p {samples_dir}", shell=True, capture_output=True)
         # set sampling environment
         fraction_to_samples_dir = {}
-        for fraction in sampling_fractions:
+        for fraction in pipeline_input.sampling_fractions:
             fraction_to_samples_dir[fraction] = f"{samples_dir}fraction_{fraction}/"
             subprocess.run(
                 f"mkdir -p {fraction_to_samples_dir[fraction]}",
@@ -338,116 +347,134 @@ class Pipeline:
 
         # generate the samples
         tree = Tree(self.tree_path)
-        for method in sampling_methods:
-            sampler = method.value[1](
+        for method in pipeline_input.sampling_methods:
+            sampler_instance = method_to_callable[method.value](
                 sequences_path=self.unaligned_sequence_data_path,
-                aux_dir=f"{samples_dir}method_{method.value[0]}_aux/",
+                aux_dir=f"{samples_dir}method_{method.value}_aux/",
                 tree=tree,
             )
-            for fraction in sampling_fractions:
-                self.samples_info[fraction][method.value[0]][
-                    "path"
-                ] = f"{fraction_to_samples_dir[fraction]}method_{method.value[0]}.fasta"
+            for fraction in pipeline_input.sampling_fractions:
+                self.samples_info[fraction][method.value][
+                    "unaligned_sequence_data_path"
+                ] = f"{fraction_to_samples_dir[fraction]}unaligned_method_{method.value}.fasta"
                 sample_size = int(fraction * len(self.unaligned_sequence_data))
-                logger.info(
-                    f"Sampling data of size {sample_size} using {method.value[0]}"
-                )
+                logger.info(f"Sampling data of size {sample_size} using {method.value}")
                 try:
-                    sampler.write_sample(
+                    if method.value == "pda" and pipeline_input.weight_pda:
+                        sampler_instance.compute_taxon_weights(
+                            self.aligned_sequence_data_path
+                        )
+
+                    sampler_instance.write_sample(
                         sample_size,
-                        output_path=self.samples_info[fraction][method.value[0]][
-                            "path"
+                        output_path=self.samples_info[fraction][method.value][
+                            "unaligned_sequence_data_path"
                         ],
+                        is_weighted=pipeline_input.weight_pda,
                     )
                 except Exception as e:
                     logger.error(
-                        f"Failed to sample {sample_size} sequences with {method.value[0]} due to error {e}"
+                        f"Failed to sample {sample_size} sequences with {method.value} due to error {e}"
                     )
                     raise IOError(
-                        f"Failed to sample {sample_size} sequences with {method.value[0]} due to error {e}"
+                        f"Failed to sample {sample_size} sequences with {method.value} due to error {e}"
                     )
+
+                # align the sample
+                self.samples_info[fraction][method.value][
+                    "aligned_sequence_data_path"
+                ] = f"{fraction_to_samples_dir[fraction]}aligned_method_{method.value}.fasta"
+                self.samples_info[fraction][method.value][
+                    "aligned_sequence_data_path"
+                ] = Pipeline.align(
+                    self.samples_info[fraction][method.value][
+                        "unaligned_sequence_data_path"
+                    ],
+                    self.samples_info[fraction][method.value][
+                        "aligned_sequence_data_path"
+                    ],
+                    pipeline_input.sequence_data_type,
+                    pipeline_input.samples_alignment_method,
+                    pipeline_input.samples_alignment_params,
+                )
 
         logger.info("Completed samples generation")
 
-    # def execute_programs(
-    #         self,
-    #         programs: t.List[str],
-    #         programs_params: t.Optional[t.Dict[str, t.Dict[str, t.Any]]] = None,
-    #         parallelize: bool = True,
-    #         priority: int = 0,
-    #         queue: str = "itaym",
-    # ):
-    #     """
-    #     :param programs: list of program executables or aliases of them, that should be executed on the samples in
-    #     self.samples_info
-    #     :param programs_params:
-    #     :param parallelize: a boolean indicating weather execution of the programs on the samples
-    #     should be parallelized (i.e., for each combo of program, fraction and method of sampling, a job will be
-    #     generated) or should be run in turns
-    #     :param priority:
-    #     :param queue:
-    #     :return: None. The input, output and result of each program will be be
-    #     saved to self.samples_info
-    #     """
-    #
-    #     for fraction in self.samples_info:
-    #         for method in self.samples_info[fraction]:
-    #             sample_path = self.samples_info[fraction][method.value[0]]["path"]
-    #             for program in programs:
-    #                 params = programs_params[program]
-    #                 # set input from the program
-    #
-    #                 # construct command line
-    #
-    #                 # execute the program
-
-    # def run_program( self, program: str, input_parameters: t.Dict[str, str], working_dir: str = None, ): """ :param
-    # program: path to te executable of a program :param input_parameters: dictionary that maps input argument name
-    # to input argument value :param input_parameters dictionary that maps input parameter names to values for the
-    # program :param working_dir: a directory to create and run the jobs in, if needed :return: the output of the
-    # program in a string format, if exists, or none (in case the output is written to a file, for example """
-    # command = f"{program}" + " ".join( [ f"{param_name} {input_parameters[param_name]}" for param_name in
-    # input_parameters ] ) if not self.parallelize: process = subprocess.run(command, shell=True,
-    # capture_output=True) if process.returncode != 0: raise RuntimeError( f"Program {program} failed to execute with
-    # error {process.stderr} and output {process.stdout}" ) else: subprocess.run(f"mkdir -p {working_dir}",
-    # shell=True, capture_output=True) self.submit_as_job(command, working_dir, self.priority, self.queue)
-
-    def submit_as_job(
-        self, command: str, working_dir: str, priority: int = 0, queue="itaym"
-    ):
+    def execute_programs(self, pipeline_input: PipelineInput):
         """
-        executes a command via a job
-        :param command: string of a command to run as shell
-        :param working_dir: directory to hold the job and job output files
-        :param priority:
-        :param queue:
-        :return: None
+        :param pipeline_input: instance holding arguments for pipeline execution
+        :return: None. The input, output and result of each program will be be
+        saved to self.samples_info
         """
-        error_filepath = f"{working_dir}job_output"
-        job_filepath = f"{working_dir}job.sh"
-        job_name = command.split(" ")[0]
-        self.create_job_file(
-            job_name, [command], error_filepath, job_filepath, queue=queue
-        )
-        subprocess.run(f"qsub -p {priority} {job_filepath}")
+        programs_dir = f"{self.pipeline_dir}/programs_results/"
+        program_name_to_instance = dict()
+        completion_validators = (
+            []
+        )  # this list will hold paths to touch files that should be created upon completion of the jobs holding the
+        # programs executions
+        for program_name in pipeline_input.programs:
+            program_dir = f"{programs_dir}{program_name.value}/"
+            subprocess.run(f"mkdir -p {program_dir}", shell=True, capture_output=True)
+            program_to_exec = program_to_callable[program_name.value]()
+            program_name_to_instance[program_name] = program_to_exec
+            for fraction in self.samples_info:
+                for method_name in self.samples_info[fraction]:
 
-    @staticmethod
-    def create_job_file(
-        job_name,
-        commands,
-        error_filepath,
-        job_filepath,
-        cpus_number=1,
-        queue="itaym",
-        mem_alloc="2gb",
-    ):
-        with open(job_filepath, "w") as handle:
-            handle.write(
-                f"# !/bin/bash\n\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n#PBS -q {queue}\n"
-            )
-            handle.write("#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH\n")
-            handle.write(
-                f"#PBS -N {job_name}\n#PBS -e {error_filepath}\n#PBS -o {error_filepath}\n"
-            )
-            handle.write(f"#PBS -l select=ncpus={cpus_number}:mem={mem_alloc}\n")
-            handle.write("\n".join(commands))
+                    # set input and output paths
+                    program_exec_info = self.samples_info[fraction][method_name][
+                        "programs_performance"
+                    ][program_name.value]
+                    program_exec_info["input_path"] = self.samples_info[fraction][
+                        method_name
+                    ]["aligned_sequence_data_path"]
+                    program_exec_info[
+                        "output_path"
+                    ] = f"{program_dir}fraction_{fraction}_sampling_method_{method_name}_output.txt"
+
+                    # execute the program - its the same issue as with the SamplingMethod enum. Here the enum is
+                    # called ProgramName
+                    program_params = None
+                    if (
+                        pipeline_input.programs_params
+                        and program_name.value in pipeline_input.programs_params
+                    ):
+                        program_params = pipeline_input.programs_params[
+                            program_name.value
+                        ]
+                    if pipeline_input.parallelize:
+                        completion_validator_path = program_to_exec.exec(
+                            program_exec_info["input_path"],
+                            program_exec_info["output_path"],
+                            additional_params=program_params,
+                            parallelize=pipeline_input.parallelize,
+                            aux_dir=program_dir,
+                            priority=pipeline_input.priority,
+                            queue=pipeline_input.queue,
+                            wait_until_complete=False,
+                            get_completion_validator=True,
+                        )
+                        completion_validators.append(completion_validator_path)
+                    else:
+                        program_to_exec.exec(
+                            program_exec_info["input_path"],
+                            program_exec_info["output_path"],
+                            additional_params=program_params,
+                        )
+
+        # wait for programs to finish
+        if pipeline_input.parallelize:
+            for validator in completion_validators:
+                if not os.path.exists(validator):
+                    time.sleep(5)
+
+        # parse programs outputs
+        for program_name in pipeline_input.programs:
+            program_instance = program_name_to_instance[program_name]
+            for fraction in self.samples_info:
+                for method_name in self.samples_info[fraction]:
+                    program_output_path = self.samples_info[fraction][method_name][
+                        "programs_performance"
+                    ][program_name.value]["output_path"]
+                    self.samples_info[fraction][method_name]["programs_performance"][
+                        program_name.value
+                    ]["result"] = program_instance.parse_output(program_output_path)
