@@ -2,7 +2,7 @@ FROM continuumio/miniconda3:4.9.2
 
 # install depndency programs
 RUN wget http://www.cibiv.at/software/pda/download/pda-1.0.3/pda-1.0.3-Linux.tar.gz \
-    && tar -xf pda-1.0.3-Linux.tar.gz \
+    && tar -xf pda-1.0.3-Linux.tar.gz
 RUN conda install -c bioconda cd-hit
 RUN conda install -c bioconda mafft
 RUN conda install -c bioconda prank
