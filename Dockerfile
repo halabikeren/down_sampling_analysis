@@ -18,7 +18,7 @@ RUN pip install -r /temp/requirements.txt
 
 # copy code and toy data
 WORKDIR /down_sampling_analysis
-COPY --chown=user:group . .
+COPY . .
 
 ENV BASH_ENV=~/.bashrc
 ENV PYTHONPATH=.

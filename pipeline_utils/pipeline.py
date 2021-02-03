@@ -16,7 +16,6 @@ from copy import deepcopy
 import subprocess
 from Bio import SeqIO, AlignIO
 import os
-from pydantic import FilePath
 from samplers import *
 
 import logging
@@ -68,13 +67,19 @@ class Pipeline:
         )
         if pipeline_input.aligned_sequence_data_path:
             subprocess.run(
-                f"cp -r {pipeline_input.aligned_sequence_data_path} {self.aligned_sequence_data_path}"
+                f"cp -r {pipeline_input.aligned_sequence_data_path} {self.aligned_sequence_data_path}",
+                shell=True,
+                capture_output=True,
             )
             logger.info(f"Aligned data saved at {self.aligned_sequence_data_path}")
 
         self.tree_path = f"{processed_data_dir}{dataset_name}_tree.nwk"
         if pipeline_input.tree_path:
-            subprocess.run(f"cp -r {pipeline_input.tree_path} {self.tree_path}")
+            subprocess.run(
+                f"cp -r {pipeline_input.tree_path} {self.tree_path}",
+                shell=True,
+                capture_output=True,
+            )
             logger.info(f"Tree saved at {self.tree_path}")
 
         # fill in available parameters
