@@ -41,7 +41,7 @@ class Pipeline:
         # set initial parameters
         dataset_name_regex = re.compile("(.*)\.")
         dataset_name = dataset_name_regex.search(
-            os.path.basename(pipeline_input.sequence_data_path)
+            os.path.basename(pipeline_input.unaligned_sequence_data_path)
         ).group(1)
         self.pipeline_dir = pipeline_input.pipeline_dir
         processed_data_dir = f"{self.pipeline_dir}/input_data/"
@@ -54,9 +54,24 @@ class Pipeline:
         self.unaligned_sequence_data_path = (
             f"{processed_data_dir}{dataset_name}_unaligned.fasta"
         )
+        subprocess.run(
+            f"cp -r {pipeline_input.unaligned_sequence_data_path} {self.unaligned_sequence_data_path}",
+            shell=True,
+            capture_output=True,
+        )
+        logger.info(
+            f"Unaligned sequence data saved at {self.unaligned_sequence_data_path}"
+        )
+
         self.aligned_sequence_data_path = (
             f"{processed_data_dir}{dataset_name}_aligned.fasta"
         )
+        if pipeline_input.aligned_sequence_data_path:
+            subprocess.run(
+                f"cp -r {pipeline_input.aligned_sequence_data_path} {self.aligned_sequence_data_path}"
+            )
+            logger.info(f"Aligned data saved at {self.aligned_sequence_data_path}")
+
         self.tree_path = f"{processed_data_dir}{dataset_name}_tree.nwk"
         if pipeline_input.tree_path:
             subprocess.run(f"cp -r {pipeline_input.tree_path} {self.tree_path}")
@@ -64,31 +79,9 @@ class Pipeline:
 
         # fill in available parameters
         self.sequence_data_type = pipeline_input.sequence_data_type
-        if Pipeline.is_aligned(pipeline_input.sequence_data_path):
-            subprocess.run(
-                f"cp -r {pipeline_input.sequence_data_path} {self.aligned_sequence_data_path}",
-                shell=True,
-                capture_output=True,
-            )
-            logger.info(
-                f"Sequence data is already aligned. Aligned sequence data saved at {self.aligned_sequence_data_path}"
-            )
-            Pipeline.un_align(
-                str(pipeline_input.sequence_data_path),
-                self.unaligned_sequence_data_path,
-            )
-            logger.info(
-                f"Unaligned sequence data saved at {self.unaligned_sequence_data_path}"
-            )
-        else:
-            subprocess.run(
-                f"cp -r {pipeline_input.sequence_data_path} {self.unaligned_sequence_data_path}",
-                shell=True,
-                capture_output=True,
-            )
-            logger.info(
-                f"Unaligned sequence data saved at {self.unaligned_sequence_data_path}"
-            )
+
+        # align, if needed
+        if not os.path.exists(self.aligned_sequence_data_path):
             self.aligned_sequence_data_path = Pipeline.align(
                 self.unaligned_sequence_data_path,
                 self.aligned_sequence_data_path,
@@ -107,6 +100,7 @@ class Pipeline:
             f"Processed sequence data of size {len(self.unaligned_sequence_data)}"
         )
 
+        # build tree, if needed
         if not os.path.exists(self.tree_path):
             self.build_tree(
                 self.aligned_sequence_data_path,
@@ -132,20 +126,6 @@ class Pipeline:
                     self.samples_info[fraction][method.value]["programs_performance"][
                         program_name.value
                     ] = {"input_path": None, "output_path": None, "result": None}
-
-    @staticmethod
-    def is_aligned(sequence_data: t.Union[FilePath, t.List[SeqIO.SeqRecord]]) -> bool:
-        """
-        :param sequence_data sequence data in the form of a filepath or sequence records
-        :return: a boolean indicating weather the records are aligned or not
-        """
-        if type(sequence_data) is not list:
-            sequence_data = list(SeqIO.parse(sequence_data, "fasta"))
-        global_len = len(sequence_data[0].seq)
-        for record in sequence_data:
-            if len(record.seq) != global_len:
-                return False
-        return True
 
     @staticmethod
     def translate(sequence_records: t.List[SeqIO.SeqRecord], output_path: str):
@@ -193,19 +173,6 @@ class Pipeline:
                 aa_index += 1
             aligned_codon_records.append(aligned_codon_record)
         SeqIO.write(aligned_codon_records, aligned_codon_path, "fasta")
-
-    @staticmethod
-    def un_align(input_data: t.Union[str, t.List[SeqIO.SeqRecord]], output_path: str):
-        """
-        :param input_data: either a path to a sequence data file or a list of sequence records
-        :param output_path: full path to write the unaligned data to
-        :return: None. writes unaligned data to the respective file
-        """
-        if type(input_data) is str:
-            input_data = list(SeqIO.parse(input_data, "fasta"))
-        for record in input_data:
-            record.seq = str(record.seq).replace("-", "")
-        SeqIO.write(input_data, output_path, "fasta")
 
     @staticmethod
     def align(

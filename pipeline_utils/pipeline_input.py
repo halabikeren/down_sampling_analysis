@@ -16,17 +16,19 @@ logger = logging.getLogger(__name__)
 class PipelineInput(BaseModel):
 
     pipeline_dir: DirectoryPath  # path in which the entire pipeline input and output will be placed
-    sequence_data_path: FilePath  # full path to a fasta file with sequence data that is either aligned or not aligned
+    unaligned_sequence_data_path: FilePath  # full path to a fasta file with sequence data that is either aligned or not aligned
+    aligned_sequence_data_path: t.Optional[
+        FilePath
+    ] = None  # full path to a fasta file with sequence data that is either aligned or not aligned
     sequence_data_type: SequenceDataType  # the type of provided sequence data in the form of SequenceDataType
     alignment_method: AlignmentMethod = (
         AlignmentMethod.MAFFT
     )  # the method that the alignment should be build with, in case that it is not provided
     alignment_params: t.Optional[
         t.Dict[str, t.Any]
-    ] = None  # the parameters that the alignment method should be executed with. The default ones are viewable in
-    # the method Pipeline.align()
+    ] = None  # the parameters that the alignment method should be executed with. The default ones are viewable in # the method Pipeline.align()
     tree_path: t.Optional[
-        str
+        FilePath
     ] = None  # a full path to a tree file in newick format. Should be provided only if the user wishes PDA to use it
     # during sampling
     tree_reconstruction_method: TreeReconstructionMethod = (

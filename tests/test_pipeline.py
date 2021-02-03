@@ -38,7 +38,7 @@ class TestPipeline(unittest.TestCase):
     def test_samples_generation(self):
         pipeline_input, pipeline = self.call_samples_generation()
         full_data_size = len(
-            list(SeqIO.parse(pipeline_input.sequence_data_path, "fasta"))
+            list(SeqIO.parse(pipeline_input.unaligned_sequence_data_path, "fasta"))
         )
         for fraction in pipeline_input.sampling_fractions:
             for method in pipeline_input.sampling_methods:
