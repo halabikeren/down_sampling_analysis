@@ -15,7 +15,7 @@ class Sampler:
     tree: Tree
     sequences: t.List[SeqIO.SeqRecord] = None
 
-    def get_sample(self, k: int) -> t.Union[str, t.List[SeqIO.SeqRecord]]:
+    def get_sample(self, k: int, **kwargs) -> t.Union[str, t.List[SeqIO.SeqRecord]]:
         """
         :param k: number of sequences to sample
         :return: either a path to the generated sample or a list of samples sequence names
@@ -27,14 +27,14 @@ class Sampler:
             )
         return self.sequences_path
 
-    def write_sample(self, k: int, output_path: str):
+    def write_sample(self, k: int, output_path: str, **kwargs):
         """
         writes the sampled data to an output file
         :param k required sample size
         :param output_path path to write the sample output to
         :return: None
         """
-        sample = self.get_sample(k)
+        sample = self.get_sample(k, **kwargs)
         if type(sample) is str:
             subprocess.run(
                 f"cp -r {sample} {output_path}", shell=True, capture_output=True

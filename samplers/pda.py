@@ -10,11 +10,6 @@ from dataclasses import dataclass
 from operator import itemgetter
 import os
 from samplers import Sampler
-
-from dotenv import load_dotenv
-
-load_dotenv()
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -211,7 +206,7 @@ class Pda(Sampler):
             weights_arg += f" -e {os.path.dirname(self.sequences_path)}/weights.txt"
 
         process = subprocess.run(
-            f"{os.getenv('PDA_EXE')} -g -k {k}{weights_arg} {self.aux_dir}/tree.nwk {self.aux_dir}/out.pda",
+            f"{os.getenv('pda')} -g -k {k}{weights_arg} {self.aux_dir}/tree.nwk {self.aux_dir}/out.pda",
             shell=True,
             capture_output=True,
         )

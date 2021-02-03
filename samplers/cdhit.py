@@ -119,7 +119,7 @@ class CdHit(Sampler):
         else:  # self.sample_size < middle_sample_size:
             return self.get_similarity_threshold(k, left_thr, middle_thr)
 
-    def get_sample(self, k: int) -> t.Union[str, t.List[SeqIO.SeqRecord]]:
+    def get_sample(self, k: int, **kwargs) -> t.Union[str, t.List[SeqIO.SeqRecord]]:
         """
         :param k: number of sequences to sample
         :return: either a path to the generated sample or a list of samples sequence names
