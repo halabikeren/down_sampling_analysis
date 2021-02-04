@@ -20,13 +20,7 @@ load_dotenv()
 def exec_pipeline(input_file: click.File):
 
     pipeline_json_input = json.load(input_file)
-    if not os.path.exists(pipeline_json_input["pipeline_dir"]):
-        subprocess.run(
-            f"mkdir -p {pipeline_json_input['pipeline_dir']}",
-            shell=True,
-            capture_output=True,
-        )
-
+    os.makedirs(pipeline_json_input["pipeline_dir"], exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
         filename=f"{pipeline_json_input['pipeline_dir']}pipeline.log",

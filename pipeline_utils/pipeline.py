@@ -122,7 +122,12 @@ class Pipeline:
                 for program_name in pipeline_input.programs:
                     self.samples_info[fraction][method.value]["programs_performance"][
                         program_name.value
-                    ] = {"input_path": None, "output_path": None, "result": None}
+                    ] = {
+                        "input_path": None,
+                        "output_path": None,
+                        "aux_dir": None,
+                        "result": None,
+                    }
 
     @staticmethod
     def translate(sequence_records: t.List[SeqIO.SeqRecord], output_path: str):
@@ -378,7 +383,7 @@ class Pipeline:
         # programs executions
         for program_name in pipeline_input.programs:
             program_dir = f"{programs_dir}{program_name.value}/"
-            subprocess.run(f"mkdir -p {program_dir}", shell=True, capture_output=True)
+            os.makedirs(program_dir, exist_ok=True)
             program_to_exec = program_to_callable[program_name.value]()
             program_name_to_instance[program_name] = program_to_exec
             for fraction in self.samples_info:
@@ -394,6 +399,9 @@ class Pipeline:
                     program_exec_info[
                         "output_path"
                     ] = f"{program_dir}fraction_{fraction}_sampling_method_{method_name}_output.txt"
+                    program_exec_info[
+                        "aux_dir"
+                    ] = f"{program_dir}fraction_{fraction}_sampling_method_{method_name}_aux/"
 
                     # execute the program - its the same issue as with the SamplingMethod enum. Here the enum is
                     # called ProgramName
@@ -409,6 +417,7 @@ class Pipeline:
                         completion_validator_path = program_to_exec.exec(
                             program_exec_info["input_path"],
                             program_exec_info["output_path"],
+                            program_exec_info["aux_dir"],
                             additional_params=program_params,
                             parallelize=pipeline_input.parallelize,
                             aux_dir=program_dir,
@@ -422,6 +431,7 @@ class Pipeline:
                         program_to_exec.exec(
                             program_exec_info["input_path"],
                             program_exec_info["output_path"],
+                            program_exec_info["aux_dir"],
                             additional_params=program_params,
                         )
 

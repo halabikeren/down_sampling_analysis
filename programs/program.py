@@ -33,12 +33,8 @@ class Job(BaseModel):
         """
         :return:
         """
-        if not os.path.exists(self.output_dir):
-            subprocess.run(
-                f"mkdir -p {self.output_dir}", shell=True, capture_output=True
-            )
-        if not os.path.exists(self.sh_dir):
-            subprocess.run(f"mkdir -p {self.sh_dir}", shell=True, capture_output=True)
+        os.makedirs(self.output_dir, exist_ok=True)
+        os.makedirs(self.sh_dir, exist_ok=True)
 
         with open(f"{self.sh_dir}{self.name}.sh", "w") as handle:
             handle.write(
@@ -83,9 +79,9 @@ class Program:
         self,
         input_path: str,
         output_path: str,
+        aux_dir: str,
         additional_params: t.Optional[t.Dict[str, str]] = None,
         parallelize: bool = False,
-        aux_dir: t.Optional[str] = None,
         priority: int = 0,
         queue: str = "itaym",
         wait_until_complete: bool = False,
@@ -103,8 +99,10 @@ class Program:
         :param get_completion_validator:
         :return:
         """
+        workdir = os.getcwd()
         input_str = f"{self.input_param_name} {input_path}"
         output_str = f"{self.output_param_name} {output_path}"
+
         additional_params_str = ""
         if additional_params:
             additional_params_str = " ".join(
@@ -115,21 +113,16 @@ class Program:
             )
         command = f"{self.program_exe} {input_str} {output_str} {additional_params_str}"
 
+        os.makedirs(aux_dir, exist_ok=True)
+        os.chdir(aux_dir)
+
         if not parallelize:
             process = subprocess.run(command, shell=True, capture_output=True)
             if process.returncode != 0:
                 raise ValueError(
                     f"command {command} failed to execute due to error {process.stderr}"
                 )
-
         else:
-            if not aux_dir:
-                raise ValueError(
-                    f"chosen option is parallelization, but no job directory was provided"
-                )
-            if not os.path.exists(aux_dir):
-                subprocess.run(f"mkdir -p {aux_dir}", shell=True, capture_output=True)
-
             commands = []
             if self.module_to_load:
                 commands.append(f"module load {self.module_to_load}")
@@ -148,6 +141,7 @@ class Program:
                 get_completion_validator=get_completion_validator,
             )
             return completion_validator
+        os.chdir(workdir)
 
     @staticmethod
     def parse_output(output_path: str) -> t.Dict[str, t.Any]:
@@ -167,8 +161,7 @@ class Program:
         :return:
         """
         output_dir = os.path.dirname(output_path)
-        if not os.path.exists(output_dir):
-            subprocess.run(f"mkdir -p {output_dir}", shell=True, capture_output=True)
+        os.makedirs(output_dir, exist_ok=True)
         result = Program.parse_output(input_path)
         with open(output_path, "w") as output:
             json.dump(result, output)

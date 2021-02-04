@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 from Bio import SeqIO
 import typing as t
@@ -126,13 +127,15 @@ class CdHit(Sampler):
         """
         sample = super(CdHit, self).get_sample(k)
         if k < len(self.sequences):
-            subprocess.run(f"mkdir -p {self.aux_dir}", shell=True, capture_output=True)
+            os.makedirs(self.aux_dir, exist_ok=True)
             thr = self.get_similarity_threshold(
                 k, 0.4, 1
             )  # the minimum threshold 0.4 is set based on experience
             sample = self.thr_to_sample[thr]
 
-            if self.aux_dir != os.path.dirname(os.path.realpath(self.sequences_path)):
-                subprocess.run(f"rm -r {self.aux_dir}", shell=True, capture_output=True)
+            if self.aux_dir != os.path.dirname(
+                os.path.realpath(self.sequences_path)
+            ) and os.path.exists(self.aux_dir):
+                shutil.rmtree(self.aux_dir)
 
         return sample

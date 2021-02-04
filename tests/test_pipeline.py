@@ -14,12 +14,7 @@ class TestPipeline(unittest.TestCase):
     def generate_pipeline_input(self) -> PipelineInput:
         with open(self.json_path, "r") as json_file:
             pipeline_json_input = json.load(json_file)
-        if not os.path.exists(pipeline_json_input["pipeline_dir"]):
-            subprocess.run(
-                f"mkdir -p {pipeline_json_input['pipeline_dir']}",
-                shell=True,
-                capture_output=True,
-            )
+        os.makedirs(pipeline_json_input["pipeline_dir"], exist_ok=True)
         pipeline_input = PipelineInput(**pipeline_json_input)
         return pipeline_input
 
@@ -65,7 +60,8 @@ class TestPipeline(unittest.TestCase):
     def tearDown(self):
         with open(TestPipeline.json_path, "r") as json_file:
             pipeline_json_input = json.load(json_file)
-        os.system(f"rm -r {pipeline_json_input['pipeline_dir']}")
+        if os.path.exists(pipeline_json_input["pipeline_dir"]):
+            shutil.rmtree(pipeline_json_input["pipeline_dir"])
 
 
 if __name__ == "__main__":

@@ -1,6 +1,5 @@
 import os
 import unittest
-import subprocess
 from programs import Rate4Site
 
 
@@ -8,7 +7,8 @@ class TestRate4ite(unittest.TestCase):
     input_path = (
         f"{os.path.dirname(os.path.realpath(__file__))}/data/aligned_seq_data.fas"
     )
-    output_path = f"{os.path.dirname(os.path.realpath(__file__))}/data/r4s.out"
+    output_path = "/app/r4s.out"
+    aux_dir = "/app/r4s_aux/"
 
     def test_creation(self):
         prog = Rate4Site()
@@ -18,6 +18,7 @@ class TestRate4ite(unittest.TestCase):
         prog.exec(
             input_path=self.input_path,
             output_path=self.output_path,
+            aux_dir=self.aux_dir,
             additional_params={"-zj": ""},
         )
         self.assertTrue(os.path.exists(self.output_path))
@@ -27,6 +28,7 @@ class TestRate4ite(unittest.TestCase):
         prog.exec(
             input_path=self.input_path,
             output_path=self.output_path,
+            aux_dir=self.aux_dir,
             additional_params={"-zj": ""},
         )
         result = prog.parse_output(self.output_path)
@@ -45,7 +47,8 @@ class TestRate4ite(unittest.TestCase):
         )
 
     def tearDown(self):
-        subprocess.run(f"rm -r {self.output_path}", shell=True, capture_output=True)
+        if os.path.exists(self.output_path):
+            os.remove(self.output_path)
 
 
 if __name__ == "__main__":

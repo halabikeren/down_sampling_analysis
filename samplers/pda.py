@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import subprocess
 import typing as t
 from collections import defaultdict
@@ -198,8 +199,7 @@ class Pda(Sampler):
                 i += 1
 
     def exec_external_pda(self, k: int, is_weighted: bool = False):
-        if not os.path.exists(self.aux_dir):
-            subprocess.run(f"mkdir -p {self.aux_dir}", shell=True, capture_output=True)
+        os.makedirs(self.aux_dir, exist_ok=True)
         self.tree.write(outfile=f"{self.aux_dir}/tree.nwk", format=5)
         weights_arg = ""
         if is_weighted:
@@ -236,8 +236,10 @@ class Pda(Sampler):
         self.sample_subtree = deepcopy(self.tree)
         self.sample_subtree.prune(sample_members)
 
-        if self.aux_dir != os.path.dirname(os.path.realpath(self.sequences_path)):
-            subprocess.run(f"rm -r {self.aux_dir}", shell=True, capture_output=True)
+        if self.aux_dir != os.path.dirname(
+            os.path.realpath(self.sequences_path)
+        ) and os.path.exists(self.aux_dir):
+            shutil.rmtree(self.aux_dir)
 
     def get_sample(
         self,

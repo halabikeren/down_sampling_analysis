@@ -7,7 +7,9 @@ import pandas as pd
 from programs import Program
 
 from dotenv import load_dotenv, find_dotenv
+
 load_dotenv(find_dotenv())
+
 
 @dataclass
 class Rate4Site(Program):

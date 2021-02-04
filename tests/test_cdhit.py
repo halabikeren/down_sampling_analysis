@@ -12,7 +12,7 @@ class TestCDHIT(unittest.TestCase):
     sequences_data_path = (
         f"{os.path.dirname(os.path.realpath(__file__))}/data/seq_data.fas"
     )
-    aux_dir = f"{os.path.dirname(os.path.realpath(__file__))}/aux/cdhit/"
+    aux_dir = "/app/aux_cdhit/"
     tree = Tree("((A:2,B:1):1,(C:1,(D:8,E:2):2):2);")
 
     def test_sample_one(self):

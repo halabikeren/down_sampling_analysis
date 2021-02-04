@@ -1,4 +1,4 @@
-FROM continuumio/miniconda3:4.9.2
+FROM continuumio/miniconda3:4.9.2 AS base
 
 # install depndency programs
 RUN wget http://www.cibiv.at/software/pda/download/pda-1.0.3/pda-1.0.3-Linux.tar.gz \
@@ -17,11 +17,20 @@ COPY requirements.txt /temp/requirements.txt
 RUN pip install -r /temp/requirements.txt
 
 # copy code and toy data
-WORKDIR /down_sampling_analysis
+WORKDIR /app/down_sampling_analysis
 COPY . .
 RUN chmod 777 /down_sampling_analysis/docker_aux/rate4site_doublerep
 
 ENV BASH_ENV=~/.bashrc
 ENV PYTHONPATH=.
 
+###########START NEW IMAGE : DEBUGGER ###################
+FROM base AS debug
+
 CMD ["python", "-m", "unittest", "discover", "./tests"]
+
+###########START NEW IMAGE: PRODUCTION ###################
+FROM base AS prod
+
+RUN mkdir /down_sampling_analysis/workdir
+
