@@ -19,7 +19,7 @@ RUN pip install -r /temp/requirements.txt
 # copy code and toy data
 WORKDIR /app/down_sampling_analysis
 COPY . .
-RUN chmod 777 /down_sampling_analysis/docker_aux/rate4site_doublerep
+RUN ["chmod", "777", "/app/down_sampling_analysis/docker_aux/rate4site_doublerep"]
 
 ENV BASH_ENV=~/.bashrc
 ENV PYTHONPATH=.
