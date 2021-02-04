@@ -99,7 +99,6 @@ class Program:
         :param get_completion_validator:
         :return:
         """
-        workdir = os.getcwd()
         input_str = f"{self.input_param_name} {input_path}"
         output_str = f"{self.output_param_name} {output_path}"
 
@@ -114,10 +113,11 @@ class Program:
         command = f"{self.program_exe} {input_str} {output_str} {additional_params_str}"
 
         os.makedirs(aux_dir, exist_ok=True)
-        os.chdir(aux_dir)
 
         if not parallelize:
-            process = subprocess.run(command, shell=True, capture_output=True)
+            process = subprocess.run(
+                command, cwd=aux_dir, shell=True, capture_output=True
+            )
             if process.returncode != 0:
                 raise ValueError(
                     f"command {command} failed to execute due to error {process.stderr}"
@@ -141,7 +141,6 @@ class Program:
                 get_completion_validator=get_completion_validator,
             )
             return completion_validator
-        os.chdir(workdir)
 
     @staticmethod
     def parse_output(output_path: str) -> t.Dict[str, t.Any]:

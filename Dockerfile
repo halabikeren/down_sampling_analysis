@@ -32,5 +32,6 @@ CMD ["python", "-m", "unittest", "discover", "./tests"]
 ###########START NEW IMAGE: PRODUCTION ###################
 FROM base AS prod
 
-RUN mkdir /down_sampling_analysis/workdir
-
+WORKDIR /app/down_sampling_analysis/workdir/
+#ENTRYPOINT ["python ../main.py"]
+#CMD ["--input_file=../tests/data/input.json"]

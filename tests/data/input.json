@@ -1,6 +1,6 @@
 {
   "pipeline_dir": "/app/pipeline_test/",
-  "unaligned_sequence_data_path": "./tests/data/seq_data.fas",
+  "unaligned_sequence_data_path": "/app/down_sampling_analysis/tests/data/seq_data.fas",
   "sequence_data_type": "nucleotide",
   "parallelize": 0
 }
