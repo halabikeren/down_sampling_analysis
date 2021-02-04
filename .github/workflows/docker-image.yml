@@ -24,9 +24,9 @@ jobs:
         with:
           push: true
           pull: true
-          tags: ghcr.io/halabikeren/down_sampling_analysis:latest
-          cache-from: type=registry,ref=ghcr.io/halabikeren/down_sampling_analysis:latest
+          tags: ghcr.io/halabikeren/down_sampling_analysis_debug:latest
+          cache-from: type=registry,ref=ghcr.io/halabikeren/down_sampling_analysis_debug:latest
           cache-to: type=inline
 
       - name: Unit tests
-        run:  docker run ghcr.io/halabikeren/down_sampling_analysis:latest
+        run:  docker run ghcr.io/halabikeren/down_sampling_analysis_debug:latest
