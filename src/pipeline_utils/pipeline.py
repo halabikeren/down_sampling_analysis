@@ -1,11 +1,11 @@
 import shutil
 import typing as t
-from pipeline_utils import (
+from .utils_types import (
     SequenceDataType,
     AlignmentMethod,
     TreeReconstructionMethod,
-    PipelineInput,
 )
+from .pipeline_input import PipelineInput
 from programs import *
 import re
 from dataclasses import dataclass
@@ -45,7 +45,7 @@ class Pipeline:
         ).group(1)
         self.pipeline_dir = pipeline_input.pipeline_dir
         processed_data_dir = f"{self.pipeline_dir}/input_data/"
-        os.makedirs(processed_data_dir)
+        os.makedirs(processed_data_dir, exist_ok=True)
         logger.info(f"Setting input for pipeline at {processed_data_dir}")
 
         self.unaligned_sequence_data_path = (

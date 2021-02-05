@@ -4,11 +4,9 @@ from programs import Rate4Site
 
 
 class TestRate4ite(unittest.TestCase):
-    input_path = (
-        f"{os.path.dirname(os.path.realpath(__file__))}/data/aligned_seq_data.fas"
-    )
-    output_path = "/app/r4s.out"
-    aux_dir = "/app/r4s_aux/"
+    input_path = f"../data/test/aligned_seq_data.fas"
+    output_path = "../data/test/r4s.out"
+    aux_dir = "../data/test/r4s_aux/"
 
     def test_creation(self):
         prog = Rate4Site()

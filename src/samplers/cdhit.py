@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 import os
 import logging
 
-from samplers import Sampler
+from .sampler import Sampler
 
 log = logging.getLogger(__name__)
 
@@ -136,6 +136,6 @@ class CdHit(Sampler):
             if self.aux_dir != os.path.dirname(
                 os.path.realpath(self.sequences_path)
             ) and os.path.exists(self.aux_dir):
-                shutil.rmtree(self.aux_dir)
+                os.system(f"rm -rf {self.aux_dir}")
 
         return sample

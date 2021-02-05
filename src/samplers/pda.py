@@ -11,7 +11,7 @@ from operator import itemgetter
 from Bio import SeqIO, AlignIO
 from ete3 import Tree
 
-from samplers import Sampler
+from .sampler import Sampler
 
 from dotenv import load_dotenv, find_dotenv
 
@@ -239,7 +239,7 @@ class Pda(Sampler):
         if self.aux_dir != os.path.dirname(
             os.path.realpath(self.sequences_path)
         ) and os.path.exists(self.aux_dir):
-            shutil.rmtree(self.aux_dir)
+            os.system(f"rm -rf {self.aux_dir}")
 
     def get_sample(
         self,

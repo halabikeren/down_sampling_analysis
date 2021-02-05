@@ -4,7 +4,7 @@ import os
 import re
 from io import StringIO
 import pandas as pd
-from programs import Program
+from .program import Program
 
 from dotenv import load_dotenv, find_dotenv
 

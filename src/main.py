@@ -2,7 +2,6 @@ import json
 import logging
 import os
 import click
-import subprocess
 from pipeline_utils import PipelineInput, Pipeline
 
 from dotenv import load_dotenv
@@ -12,14 +11,18 @@ load_dotenv()
 
 @click.command()
 @click.option(
-    "--input_file",
+    "--input_path",
     help="path to a json file with input parameters for down sampling pipeline",
-    type=click.File(mode="r"),
+    type=click.Path(exists=True, file_okay=True, readable=True),
     required=True,
 )
-def exec_pipeline(input_file: click.File):
+def exec_pipeline(input_path: click.Path):
 
-    pipeline_json_input = json.load(input_file)
+    json_dir = os.path.dirname(input_path)
+    os.chdir(json_dir)
+
+    with open(input_path, "r") as input_file:
+        pipeline_json_input = json.load(input_file)
     os.makedirs(pipeline_json_input["pipeline_dir"], exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,

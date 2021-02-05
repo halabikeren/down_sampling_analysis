@@ -2,7 +2,7 @@ from Bio import SeqIO
 import typing as t
 from dataclasses import dataclass
 import random
-from samplers import Sampler
+from .sampler import Sampler
 
 
 @dataclass

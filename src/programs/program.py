@@ -1,6 +1,6 @@
 import os
 import typing as t
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from time import sleep
 
 from pydantic import BaseModel
@@ -115,12 +115,13 @@ class Program:
         os.makedirs(aux_dir, exist_ok=True)
 
         if not parallelize:
-            process = subprocess.run(
-                command, cwd=aux_dir, shell=True, capture_output=True
-            )
-            if process.returncode != 0:
+            # process = P.run(
+            #     command, cwd=aux_dir, shell=True, capture_output=True
+            # )
+            res = os.system(f"{command}")
+            if res != 0:
                 raise ValueError(
-                    f"command {command} failed to execute due to error {process.stderr}"
+                    f"command {command} failed to execute due to error {}"
                 )
         else:
             commands = []

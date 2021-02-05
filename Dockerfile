@@ -8,30 +8,30 @@ RUN conda install -c bioconda mafft
 RUN conda install -c bioconda prank
 RUN conda install -c bioconda raxml
 
+# copy code and toy data
+COPY /docker_aux/rate4site_doublerep rate4site_doublerep
+RUN ["chmod", "777", "rate4site_doublerep"]
+
 # set aliases
-RUN echo 'alias pda="/pda-1.0.3-Linux/bin/pda"' >> ~/.bashrc
-RUN echo 'alias rate4site="/down_sampling_analysis/docker_aux/Rate4Site/3.0/bin/rate4site_doublerep"' >> ~/.bashrc
+RUN echo 'alias pda="~/pda-1.0.3-Linux/bin/pda"' >> ~/.bashrc
+RUN echo 'alias rate4site="~/rate4site_doublerep"' >> ~/.bashrc
 
 # install python packages
 COPY requirements.txt /temp/requirements.txt
 RUN pip install -r /temp/requirements.txt
 
-# copy code and toy data
-WORKDIR /app/down_sampling_analysis
-COPY . .
-RUN ["chmod", "777", "/app/down_sampling_analysis/docker_aux/rate4site_doublerep"]
-
 ENV BASH_ENV=~/.bashrc
-ENV PYTHONPATH=.
 
+WORKDIR /src
+COPY /src .
 ###########START NEW IMAGE : DEBUGGER ###################
 FROM base AS debug
 
 CMD ["python", "-m", "unittest", "discover", "./tests"]
 
 ###########START NEW IMAGE: PRODUCTION ###################
+
 FROM base AS prod
 
-WORKDIR /app/down_sampling_analysis/workdir/
-#ENTRYPOINT ["python ../main.py"]
-#CMD ["--input_file=../tests/data/input.json"]
+ENTRYPOINT ["python", "main.py"]
+CMD ["--input_path=input.json"]

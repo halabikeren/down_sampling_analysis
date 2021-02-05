@@ -3,13 +3,12 @@ import typing as t
 import os
 import unittest
 import json
-import subprocess
 from Bio import SeqIO
 from pipeline_utils import PipelineInput, Pipeline
 
 
 class TestPipeline(unittest.TestCase):
-    json_path = f"{os.path.dirname(os.path.realpath(__file__))}/data/input.json"
+    json_path = f"../data/test/input.json"
 
     def generate_pipeline_input(self) -> PipelineInput:
         with open(self.json_path, "r") as json_file:
@@ -61,7 +60,7 @@ class TestPipeline(unittest.TestCase):
         with open(TestPipeline.json_path, "r") as json_file:
             pipeline_json_input = json.load(json_file)
         if os.path.exists(pipeline_json_input["pipeline_dir"]):
-            shutil.rmtree(pipeline_json_input["pipeline_dir"])
+            os.system(f"rm -rf {pipeline_json_input['pipeline_dir']}")
 
 
 if __name__ == "__main__":

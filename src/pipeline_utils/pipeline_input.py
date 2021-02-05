@@ -1,5 +1,5 @@
 import typing as t
-from pipeline_utils import (
+from .utils_types import (
     SequenceDataType,
     AlignmentMethod,
     TreeReconstructionMethod,

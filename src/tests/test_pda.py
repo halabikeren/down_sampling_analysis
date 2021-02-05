@@ -9,10 +9,8 @@ from ete3 import Tree
 
 class TestPDA(unittest.TestCase):
 
-    sequences_data_path = (
-        f"{os.path.dirname(os.path.realpath(__file__))}/data/seq_data.fas"
-    )
-    aux_dir = "/app/aux_pda/"
+    sequences_data_path = "../data/test/seq_data.fas"
+    aux_dir = "../data/test/aux_pda/"
     tree = Tree("((A:2,B:1):1,(C:1,(D:8,E:2):2):2);")
 
     def test_unweighted_sample(self):
@@ -133,9 +131,7 @@ class TestPDA(unittest.TestCase):
             tree=self.tree,
             aux_dir=self.aux_dir,
         )
-        pda.compute_taxon_weights(
-            f"{os.path.dirname(os.path.realpath(__file__))}/data/aligned_seq_data.fas"
-        )
+        pda.compute_taxon_weights(f"../data/test/aligned_seq_data.fas")
         self.assertEqual(
             pda.taxon_to_weight,
             {
