@@ -1,4 +1,3 @@
-import shutil
 import subprocess
 from Bio import SeqIO
 import typing as t

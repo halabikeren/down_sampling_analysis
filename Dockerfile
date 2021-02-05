@@ -28,7 +28,7 @@ COPY /src .
 FROM base AS debug
 
 COPY /data/test /data/test
-CMD ["python main.py"]
+CMD ["python main_test.py"]
 
 ###########START NEW IMAGE: PRODUCTION ###################
 

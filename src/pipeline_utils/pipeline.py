@@ -24,6 +24,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+# noinspection SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection
 @dataclass
 class Pipeline:
     pipeline_dir: str
@@ -327,7 +328,8 @@ class Pipeline:
                     "unaligned_sequence_data_path"
                 ] = f"{fraction_to_samples_dir[fraction]}unaligned_method_{method.value}.fasta"
                 self.samples_info[fraction][method.value][
-                    "aux_dir"] = f"{fraction_to_samples_dir[fraction]}method_{method.value}_aux/"
+                    "aux_dir"
+                ] = f"{fraction_to_samples_dir[fraction]}method_{method.value}_aux/"
                 sample_size = int(fraction * len(self.unaligned_sequence_data))
                 logger.info(f"Sampling data of size {sample_size} using {method.value}")
                 try:
