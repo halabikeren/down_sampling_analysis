@@ -117,6 +117,7 @@ class Pipeline:
                 self.samples_info[fraction][method.value] = {
                     "unaligned_sequence_data_path": None,
                     "aligned_sequence_data_path": None,
+                    "aux_dir": None,
                     "programs_performance": dict(),
                 }
                 for program_name in pipeline_input.programs:
@@ -319,13 +320,14 @@ class Pipeline:
         for method in pipeline_input.sampling_methods:
             sampler_instance = method_to_callable[method.value](
                 sequences_path=self.unaligned_sequence_data_path,
-                aux_dir=f"{samples_dir}method_{method.value}_aux/",
                 tree=tree,
             )
             for fraction in pipeline_input.sampling_fractions:
                 self.samples_info[fraction][method.value][
                     "unaligned_sequence_data_path"
                 ] = f"{fraction_to_samples_dir[fraction]}unaligned_method_{method.value}.fasta"
+                self.samples_info[fraction][method.value][
+                    "aux_dir"] = f"{fraction_to_samples_dir[fraction]}method_{method.value}_aux/"
                 sample_size = int(fraction * len(self.unaligned_sequence_data))
                 logger.info(f"Sampling data of size {sample_size} using {method.value}")
                 try:
@@ -339,6 +341,7 @@ class Pipeline:
                         output_path=self.samples_info[fraction][method.value][
                             "unaligned_sequence_data_path"
                         ],
+                        aux_dir=self.samples_info[fraction][method.value]["aux_dir"],
                         is_weighted=pipeline_input.weight_pda,
                     )
                 except Exception as e:

@@ -15,10 +15,9 @@ class TestCDHIT(unittest.TestCase):
         cdhit = CdHit(
             sequences_path=self.sequences_data_path,
             tree=self.tree,
-            aux_dir=self.aux_dir,
         )
         expected_sample = {"A"}
-        accepted_sample = cdhit.get_sample(1)
+        accepted_sample = cdhit.get_sample(1, self.aux_dir)
         if type(accepted_sample) is str:
             accepted_sample = list(SeqIO.parse(accepted_sample, "fasta"))
         accepted_sample = set([record.id for record in accepted_sample])
@@ -28,9 +27,8 @@ class TestCDHIT(unittest.TestCase):
         cdhit = CdHit(
             sequences_path=self.sequences_data_path,
             tree=self.tree,
-            aux_dir=self.aux_dir,
         )
-        accepted_sample = cdhit.get_sample(8)
+        accepted_sample = cdhit.get_sample(8, self.aux_dir)
         if type(accepted_sample) is str:
             accepted_sample = list(SeqIO.parse(accepted_sample, "fasta"))
         accepted_sample = set([record.id for record in accepted_sample])
@@ -40,10 +38,9 @@ class TestCDHIT(unittest.TestCase):
         cdhit = CdHit(
             sequences_path=self.sequences_data_path,
             tree=self.tree,
-            aux_dir=self.aux_dir,
         )
         expected_sample = {"A", "C"}
-        accepted_sample = cdhit.get_sample(2)
+        accepted_sample = cdhit.get_sample(2, self.aux_dir)
         if type(accepted_sample) is str:
             accepted_sample = list(SeqIO.parse(accepted_sample, "fasta"))
         accepted_sample = set([record.id for record in accepted_sample])
@@ -53,9 +50,8 @@ class TestCDHIT(unittest.TestCase):
         cdhit = CdHit(
             sequences_path=self.sequences_data_path,
             tree=self.tree,
-            aux_dir=self.aux_dir,
         )
-        accepted_sample = cdhit.get_sample(6)
+        accepted_sample = cdhit.get_sample(6, self.aux_dir)
         if type(accepted_sample) is str:
             accepted_sample = list(SeqIO.parse(accepted_sample, "fasta"))
         accepted_sample = set([record.id for record in accepted_sample])

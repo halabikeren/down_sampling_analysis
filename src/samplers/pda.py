@@ -198,9 +198,9 @@ class Pda(Sampler):
                 node.name = "N" + str(i)
                 i += 1
 
-    def exec_external_pda(self, k: int, is_weighted: bool = False):
-        os.makedirs(self.aux_dir, exist_ok=True)
-        self.tree.write(outfile=f"{self.aux_dir}/tree.nwk", format=5)
+    def exec_external_pda(self, k: int, aux_dir: str, is_weighted: bool = False):
+        os.makedirs(aux_dir, exist_ok=True)
+        self.tree.write(outfile=f"{aux_dir}/tree.nwk", format=5)
         weights_arg = ""
         if is_weighted:
             with open(
@@ -212,7 +212,7 @@ class Pda(Sampler):
             weights_arg += f" -e {os.path.dirname(self.sequences_path)}/weights.txt"
 
         process = subprocess.run(
-            f"{os.environ['pda']} -g -k {k}{weights_arg} {self.aux_dir}/tree.nwk {self.aux_dir}/out.pda",
+            f"{os.environ['pda']} -g -k {k}{weights_arg} {aux_dir}/tree.nwk {aux_dir}/out.pda",
             shell=True,
             capture_output=True,
         )
@@ -226,7 +226,7 @@ class Pda(Sampler):
             "For k = \d* the optimal PD score is (\d*).*?The optimal PD set has \d* taxa\:(.*?)Corresponding",
             re.MULTILINE | re.DOTALL,
         )
-        with open(f"{self.aux_dir}/out.pda", "r") as result:
+        with open(f"{aux_dir}/out.pda", "r") as result:
             result_content = result.read()
             output = output_regex.search(result_content)
         self.pd_score = float(output.group(1))
@@ -236,14 +236,10 @@ class Pda(Sampler):
         self.sample_subtree = deepcopy(self.tree)
         self.sample_subtree.prune(sample_members)
 
-        if self.aux_dir != os.path.dirname(
-            os.path.realpath(self.sequences_path)
-        ) and os.path.exists(self.aux_dir):
-            os.system(f"rm -rf {self.aux_dir}")
-
     def get_sample(
         self,
         k: int,
+        aux_dir: str,
         is_weighted: bool = False,
         use_external=False,
     ) -> t.Union[str, t.List[SeqIO.SeqRecord]]:
@@ -251,6 +247,7 @@ class Pda(Sampler):
         computes the most phylogenetically diverse weighted sample based on the greedy algorithm of Steel (2005).
         for more details see https://academic.oup.com/sysbio/article-abstract/54/4/527/2842877
         :param k: required sample size
+        :param aux_dir directory to generate auxiliary files in
         :param is_weighted: indicates weather the computed PD should be weighted or not
         :param use_external: indicates weather the pda tool should be used or internally implemented code
         :return: list of names of chosen leaves
@@ -259,7 +256,7 @@ class Pda(Sampler):
             logger.error("Required sample size must be at least 2")
             raise ValueError("Required sample size must be at least 2")
 
-        sample = super(Pda, self).get_sample(k)
+        sample = super(Pda, self).get_sample(k, aux_dir)
         if k == len(self.sequences):
             self.sample_subtree = deepcopy(self.tree)
             self.pd_score = sum([node.dist for node in self.sample_subtree.traverse()])
@@ -278,7 +275,7 @@ class Pda(Sampler):
                 while len(self.sample_subtree.get_leaf_names()) < k:
                     self.do_pd_step(is_weighted=is_weighted)
             else:
-                self.exec_external_pda(k, is_weighted=is_weighted)
+                self.exec_external_pda(k, aux_dir, is_weighted=is_weighted)
 
             return [
                 record

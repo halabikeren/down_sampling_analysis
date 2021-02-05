@@ -115,13 +115,12 @@ class Program:
         os.makedirs(aux_dir, exist_ok=True)
 
         if not parallelize:
-            # process = P.run(
-            #     command, cwd=aux_dir, shell=True, capture_output=True
-            # )
-            res = os.system(f"{command}")
-            if res != 0:
+            process = subprocess.call(
+                command, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+            )
+            if process != 0:
                 raise ValueError(
-                    f"command {command} failed to execute due to error {}"
+                    f"command {command} failed to execute due to error {subprocess.PIPE}"
                 )
         else:
             commands = []
