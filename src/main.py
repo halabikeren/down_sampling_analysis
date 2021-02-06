@@ -20,17 +20,23 @@ load_dotenv()
 )
 def exec_pipeline(input_path: click.Path):
 
-    os.chdir(os.path.dirname(input_path))
+    json_dir = os.path.dirname(input_path)
+    os.chdir(json_dir)
     with open(input_path, "r") as input_file:
         pipeline_json_input = json.load(input_file)
-    os.makedirs(pipeline_json_input["pipeline_dir"], exist_ok=True)
+    os.makedirs(
+        os.path.join(os.path.dirname(input_path), pipeline_json_input["pipeline_dir"]),
+        exist_ok=True,
+    )
 
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(module)s %(funcName)s %(lineno)d %(message)s",
         handlers=[
             logging.StreamHandler(sys.stdout),
-            logging.FileHandler(f"{pipeline_json_input['pipeline_dir']}pipeline.log"),
+            logging.FileHandler(
+                f"{os.path.join(os.path.dirname(input_path), pipeline_json_input['pipeline_dir'])}pipeline.log"
+            ),
         ],
     )
     logger = logging.getLogger(__name__)
