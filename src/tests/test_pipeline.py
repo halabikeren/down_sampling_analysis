@@ -8,9 +8,10 @@ from pipeline_utils import PipelineInput, Pipeline
 
 
 class TestPipeline(unittest.TestCase):
-    json_path = f"../data/test/input.json"
+    json_path = "/data/test/input.json"
 
     def generate_pipeline_input(self) -> PipelineInput:
+        os.chdir(os.path.dirname(self.json_path))
         with open(self.json_path, "r") as json_file:
             pipeline_json_input = json.load(json_file)
         os.makedirs(pipeline_json_input["pipeline_dir"], exist_ok=True)

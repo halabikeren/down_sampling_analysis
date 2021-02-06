@@ -35,6 +35,7 @@ class Pipeline:
     samples_info: t.Dict[
         float, t.Dict[SamplingMethod, t.Dict[str, t.Any]]
     ]  # will map sample fractions to maps of sampling methods to their info (input path, output paths,
+
     # analysis results ect.)
 
     def __init__(self, pipeline_input: PipelineInput):
@@ -79,7 +80,10 @@ class Pipeline:
         self.sequence_data_type = pipeline_input.sequence_data_type
 
         # align, if needed
-        if not os.path.exists(self.aligned_sequence_data_path):
+        if not os.path.exists(self.aligned_sequence_data_path) or (
+            os.path.getsize(self.aligned_sequence_data_path)
+            < os.path.getsize(self.unaligned_sequence_data_path)
+        ):
             self.aligned_sequence_data_path = Pipeline.align(
                 self.unaligned_sequence_data_path,
                 self.aligned_sequence_data_path,
@@ -220,9 +224,10 @@ class Pipeline:
 
         cmd = ""
         if not alignment_method or alignment_method == AlignmentMethod.MAFFT:
-            cmd = f"mafft --localpair --maxiterate 1000 {alignment_input_path} > {alignment_output_path}"
+
+            cmd = f"mafft --localpair --maxiterate 1000 {input_path} > /{output_path}"
         elif alignment_method == AlignmentMethod.PRANK:
-            cmd = f"prank -d={alignment_input_path} -o={alignment_output_path} -f=fasta -support {'-codon' if sequence_data_type == SequenceDataType.CODON else ''} -iterate=100 -showtree "
+            cmd = f"prank -d={input_path} -o={output_path} -f=fasta -support {'-codon' if sequence_data_type == SequenceDataType.CODON else ''} -iterate=100 -showtree "
         if alignment_params:
             cmd += " ".join(
                 [
@@ -233,7 +238,7 @@ class Pipeline:
         process = subprocess.run(cmd, shell=True, capture_output=True)
         if process.returncode != 0:
             raise IOError(
-                f"failed to align {output_path} with {alignment_method.value} execution output is {process.stdout} "
+                f"failed to align {output_path} with {alignment_method.value} execution output is {process.stderr}"
             )
         if (
             alignment_method == AlignmentMethod.MAFFT
@@ -295,10 +300,12 @@ class Pipeline:
                 else 4
             )
             cmd = f"raxmlHPC -s {input_path} -n out -m {model} -c {num_of_categories}"
-            process = subprocess.run(cmd, shell=True, capture_output=True)
-            if process.returncode != 0:
+            process = subprocess.call(
+                cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+            )
+            if process != 0:
                 raise IOError(
-                    f"failed to reconstruct ML tree with raxml. Execution output is {process.stdout}"
+                    f"failed to reconstruct ML tree with raxml. Execution output is {subprocess.PIPE}"
                 )
             os.rename(f"{aux_dir}RAxML_bestTree.out", output_path)
             os.remove(aux_dir)

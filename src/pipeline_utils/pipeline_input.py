@@ -1,4 +1,7 @@
 import typing as t
+
+import os
+
 from .utils_types import (
     SequenceDataType,
     AlignmentMethod,
@@ -14,9 +17,9 @@ logger = logging.getLogger(__name__)
 
 
 class PipelineInput(BaseModel):
-
     pipeline_dir: DirectoryPath  # path in which the entire pipeline input and output will be placed
-    unaligned_sequence_data_path: FilePath  # full path to a fasta file with sequence data that is either aligned or not aligned
+    unaligned_sequence_data_path: FilePath  # full path to a fasta file with sequence data that is either aligned or
+    # not aligned
     aligned_sequence_data_path: t.Optional[
         FilePath
     ] = None  # full path to a fasta file with sequence data that is either aligned or not aligned
@@ -26,7 +29,8 @@ class PipelineInput(BaseModel):
     )  # the method that the alignment should be build with, in case that it is not provided
     alignment_params: t.Optional[
         t.Dict[str, t.Any]
-    ] = None  # the parameters that the alignment method should be executed with. The default ones are viewable in # the method Pipeline.align()
+    ] = None  # the parameters that the alignment method should be executed with. The default ones are viewable in #
+    # the method Pipeline.align()
     tree_path: t.Optional[
         FilePath
     ] = None  # a full path to a tree file in newick format. Should be provided only if the user wishes PDA to use it
@@ -62,3 +66,14 @@ class PipelineInput(BaseModel):
         0  # in case of parallelization, this parameter sets the priority of the jobs
     )
     queue: str = "itaym"  # in case of parallelization, this parameter sets the queue that jobs should be submitted to
+
+    def __init__(self, **data: t.Any):
+        for field in [
+            "pipeline_dir",
+            "unaligned_sequence_data_path",
+            "aligned_sequence_data_path",
+            "tree_path",
+        ]:
+            if field in data:
+                data[field] = os.path.join(os.getcwd(), data[field])
+        super().__init__(**data)

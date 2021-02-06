@@ -59,7 +59,12 @@ class Job(BaseModel):
         :return:
         """
         self.create_sh()
-        subprocess.run(f"qsub -p {self.priority} {self.sh_dir}{self.name}.sh")
+        subprocess.call(
+            f"qsub -p {self.priority} {self.sh_dir}{self.name}.sh",
+            shell=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+        )
         if wait_until_complete:
             while not os.path.exists(f"{self.output_dir}{self.name}.touch"):
                 sleep(5)

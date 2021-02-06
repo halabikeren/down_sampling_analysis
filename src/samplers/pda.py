@@ -211,15 +211,16 @@ class Pda(Sampler):
                     weights_file.write(f"{taxon}\t{self.taxon_to_weight[taxon]}\n")
             weights_arg += f" -e {os.path.dirname(self.sequences_path)}/weights.txt"
 
-        process = subprocess.run(
+        process = subprocess.call(
             f"{os.environ['pda']} -g -k {k}{weights_arg} {aux_dir}/tree.nwk {aux_dir}/out.pda",
             shell=True,
-            capture_output=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
         )
-        if process.returncode != 0:
+        if process != 0:
             raise RuntimeError(
                 f"PDA failed to properly execute and provide an output file. Execution "
-                f"output is {process.stderr}"
+                f"output is {subprocess.PIPE}"
             )
 
         output_regex = re.compile(

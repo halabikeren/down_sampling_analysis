@@ -34,14 +34,15 @@ class CdHit(Sampler):
             if threshold > 0.6
             else (3 if threshold > 0.5 else 2)
         )
-        process = subprocess.run(
+        process = subprocess.call(
             f"cd-hit -i {self.sequences_path} -o {output_file} -c {threshold} -n {word_len}",
             shell=True,
-            capture_output=True,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.PIPE,
         )
-        if process.returncode != 0:
+        if process != 0:
             raise RuntimeError(
-                f"CD-HIT failed to properly execute and provide an output file. Execution output is {process.stdout}"
+                f"CD-HIT failed to properly execute and provide an output file. Execution output is {subprocess.PIPE}"
             )
         return output_file
 
