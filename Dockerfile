@@ -34,5 +34,5 @@ CMD ["python", "main_test.py"]
 
 FROM base AS prod
 
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT ["python", "/src/main.py"]
 CMD ["--input_path=input.json"]
