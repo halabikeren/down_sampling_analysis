@@ -24,22 +24,16 @@ def exec_pipeline(input_path: click.Path):
     with open(input_path, "r") as input_file:
         pipeline_json_input = json.load(input_file)
     os.makedirs(pipeline_json_input["pipeline_dir"], exist_ok=True)
+
     logging.basicConfig(
         level=logging.INFO,
-        filename=f"{pipeline_json_input['pipeline_dir']}pipeline.log",
         format="%(asctime)s %(module)s %(funcName)s %(lineno)d %(message)s",
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(f"{pipeline_json_input['pipeline_dir']}pipeline.log"),
+        ],
     )
-    # formatter = logging.Formatter("%(asctime)s %(module)s %(funcName)s %(lineno)d %(message)s")
-    # root_logger = logging.getLogger()
-    # stdout_stream_handler = logging.StreamHandler()
-    # stdout_stream_handler.setFormatter(formatter)
-    # root_logger.addHandler(stdout_stream_handler)
-    # file_handler = logging.FileHandler(filename=f"{pipeline_json_input['pipeline_dir']}pipeline.log")
-    # file_handler.setFormatter(formatter)
-    #
-
     logger = logging.getLogger(__name__)
-
     logger.info(f"Json input has been successfully processed")
 
     pipeline_input = PipelineInput(**pipeline_json_input)
