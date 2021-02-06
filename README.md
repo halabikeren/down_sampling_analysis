@@ -18,7 +18,7 @@ docker run -v <path_to_input_filder>:/data/ dsap --input_path=/data/<json_filena
 ```
 
 
-# singularity hub
+# singularity usage
 ```
 singularity pull --name dsap.sif shub://halabikeren/down_sampling_analysis
 singularity run --bind <path_to_input_filder>:/data/ --writable-tmpfs dsap.sif --input_path=/data/<json_filename>
