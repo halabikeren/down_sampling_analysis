@@ -1,6 +1,6 @@
 ![unit tests](https://github.com/halabikeren/down_sampling_analysis/workflows/unit%20tests/badge.svg)
 
-[![https://img.shields.io/docker/pulls/halabikeren/down_sampling_analysis.svg](https://img.shields.io/docker/pulls/halabikeren/down_sampling_analysis.svg)](https://hub.docker.com/repository/docker/halabikeren/down_sampling_analysis)
+[![https://img.shields.io/docker/pulls/halabikeren/sap.svg](https://img.shields.io/docker/pulls/halabikeren/dsap.svg)](https://hub.docker.com/repository/docker/halabikeren/dsap)
  
 [![https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg](https://www.singularity-hub.org/static/img/hosted-singularity--hub-%23e32929.svg)](https://singularity-hub.org/collections/5160)
 
