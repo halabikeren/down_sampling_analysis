@@ -379,9 +379,7 @@ class Pipeline:
                 self.samples_info[fraction][method.value][
                     "aligned_sequence_data_path"
                 ] = f"{fraction_to_samples_dir[fraction]}aligned_method_{method.value}.fasta"
-                self.samples_info[fraction][method.value][
-                    "aligned_sequence_data_path"
-                ] = Pipeline.align(
+                Pipeline.align(
                     self.samples_info[fraction][method.value][
                         "unaligned_sequence_data_path"
                     ],
