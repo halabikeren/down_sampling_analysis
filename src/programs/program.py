@@ -9,6 +9,10 @@ from enum import Enum
 
 import subprocess
 
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
+
 
 class Queue(Enum):
     ITAYM = "itaym"
