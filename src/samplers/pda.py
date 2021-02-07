@@ -1,6 +1,5 @@
 import os
 import re
-import shutil
 import subprocess
 import typing as t
 from collections import defaultdict
