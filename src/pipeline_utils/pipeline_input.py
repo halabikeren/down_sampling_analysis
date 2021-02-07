@@ -61,7 +61,7 @@ class PipelineInput(BaseModel):
     weight_pda: bool = (
         False  # indicator weather when using PDA, weighting should be used or not
     )
-    parallelize: bool = True  # indicator weather execution of programs on the samples should be parallelized or not
+    parallelize: bool = False  # indicator weather execution of programs on the samples should be parallelized or not
     cluster_data_dir: t.Optional[str] = None
     priority: int = (
         0  # in case of parallelization, this parameter sets the priority of the jobs
@@ -85,3 +85,4 @@ class PipelineInput(BaseModel):
             raise ValueError(
                 "Cannot set parallelization without providing cluster data dir"
             )
+        return v
