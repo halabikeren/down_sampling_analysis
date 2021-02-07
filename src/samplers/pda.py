@@ -80,13 +80,13 @@ class Pda(Sampler):
             children_diameters.append(Pda.get_max_pd_pair(child, node_to_height))
             [child_height, child_farthest_leaf] = node_to_height[child.name]
             child_dist_from_node = child_height + child.dist
-            if child_dist_from_node > node_diameter_components[0][0]:
+            if child_dist_from_node >= node_diameter_components[0][0]:
                 node_diameter_components[1] = node_diameter_components[0]
                 node_diameter_components[0] = (
                     child_dist_from_node,
                     child_farthest_leaf,
                 )
-            elif child_dist_from_node > node_diameter_components[1][0]:
+            elif child_dist_from_node >= node_diameter_components[1][0]:
                 node_diameter_components[1] = (
                     child_dist_from_node,
                     child_farthest_leaf,
@@ -255,7 +255,7 @@ class Pda(Sampler):
         if k < 1:
             logger.error("Required sample size must be at least 2")
             raise ValueError("Required sample size must be at least 2")
-
+        self.add_internal_names()
         sample = super(Pda, self).get_sample(k, aux_dir)
         if k == len(self.sequences):
             self.sample_subtree = deepcopy(self.tree)
