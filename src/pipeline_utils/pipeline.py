@@ -80,20 +80,19 @@ class Pipeline:
         self.sequence_data_type = pipeline_input.sequence_data_type
 
         # align, if needed
-        if not os.path.exists(self.aligned_sequence_data_path) or (
-            os.path.getsize(self.aligned_sequence_data_path)
-            < os.path.getsize(self.unaligned_sequence_data_path)
-        ):
-            self.aligned_sequence_data_path = Pipeline.align(
-                self.unaligned_sequence_data_path,
-                self.aligned_sequence_data_path,
-                pipeline_input.sequence_data_type,
-                pipeline_input.alignment_method,
-                pipeline_input.alignment_params,
-            )
-            logger.info(
-                f"Alignment generated successfully using {pipeline_input.alignment_method.value}"
-            )
+        logger.info(
+            f"Aligning sequence data. Output will be saved to {self.aligned_sequence_data_path}"
+        )
+        Pipeline.align(
+            self.unaligned_sequence_data_path,
+            self.aligned_sequence_data_path,
+            pipeline_input.sequence_data_type,
+            pipeline_input.alignment_method,
+            pipeline_input.alignment_params,
+        )
+        logger.info(
+            f"Alignment generated successfully using {pipeline_input.alignment_method.value}"
+        )
 
         self.unaligned_sequence_data = list(
             SeqIO.parse(self.unaligned_sequence_data_path, "fasta")
@@ -103,16 +102,18 @@ class Pipeline:
         )
 
         # build tree, if needed
-        if not os.path.exists(self.tree_path):
-            self.build_tree(
-                self.aligned_sequence_data_path,
-                self.tree_path,
-                pipeline_input.tree_reconstruction_method,
-                pipeline_input.tree_reconstruction_params,
-            )
-            logger.info(
-                f"Tree reconstructed successfully at {self.tree_path} using {pipeline_input.tree_reconstruction_method.value}"
-            )
+        logger.info(
+            f"Reconstructing phylogenetic tree. Output will be saved to {self.tree_path}"
+        )
+        self.build_tree(
+            self.aligned_sequence_data_path,
+            self.tree_path,
+            pipeline_input.tree_reconstruction_method,
+            pipeline_input.tree_reconstruction_params,
+        )
+        logger.info(
+            f"Tree reconstructed successfully at {self.tree_path} using {pipeline_input.tree_reconstruction_method.value}"
+        )
 
         # set sampling info structure
         self.samples_info = dict()
@@ -189,7 +190,7 @@ class Pipeline:
         sequence_data_type: SequenceDataType,
         alignment_method: AlignmentMethod,
         alignment_params: t.Optional[t.Dict[str, t.Any]] = None,
-    ) -> str:
+    ):
         """
         Aligns sequence data according to given method
         input_path: unaligned sequence data path
@@ -198,15 +199,13 @@ class Pipeline:
         alignment_params: the parameters that the method should be run with
         :return:
         """
-        if os.path.exists(output_path):
-            alternative_alignment_path = output_path.replace(
-                ".fasta", f"_{time.time()}.fasta"
+        if os.path.exists(output_path) and (
+            os.path.getsize(output_path) > os.path.getsize(input_path)
+        ):
+            logger.info(
+                f"{output_path} already exists. The program will assume it is complete"
             )
-            logger.warning(
-                f"{output_path} already exists. The program will create the alignment in the "
-                f"alternative path {alternative_alignment_path} "
-            )
-            output_path = alternative_alignment_path
+            return
 
         sequence_records = list(SeqIO.parse(input_path, "fasta"))
         alignment_input_path = input_path
@@ -251,7 +250,6 @@ class Pipeline:
             )
             os.remove(alignment_input_path)
             os.remove(alignment_output_path)
-        return output_path
 
     @staticmethod
     def build_tree(
@@ -267,6 +265,12 @@ class Pipeline:
         :param tree_reconstruction_params: map of parameter names to parameter values
         :return: None
         """
+        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
+            logger.info(
+                f"{output_path} exists. The program will assume it is complete."
+            )
+            return
+
         if tree_reconstruction_method in [
             TreeReconstructionMethod.UPGMA,
             TreeReconstructionMethod.NJ,
