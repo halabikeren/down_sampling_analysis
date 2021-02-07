@@ -13,6 +13,10 @@ from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 class Queue(Enum):
     ITAYM = "itaym"
@@ -63,12 +67,8 @@ class Job(BaseModel):
         :return:
         """
         self.create_sh()
-        subprocess.call(
-            f"qsub -p {self.priority} {self.sh_dir}{self.name}.sh",
-            shell=True,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-        )
+        logger.info(f"submitting job {self.name}")
+        res = os.system(f"qsub -p {self.priority} {self.sh_dir}{self.name}.sh")
         if wait_until_complete:
             while not os.path.exists(f"{self.output_dir}{self.name}.touch"):
                 sleep(5)
@@ -114,7 +114,7 @@ class Program:
         program_input_path = (
             input_path
             if not parallelize
-            else output_path.replace(os.environ["container_data_dir"], cluster_data_dir)
+            else input_path.replace(os.environ["container_data_dir"], cluster_data_dir)
         )
         program_output_path = (
             output_path
@@ -152,7 +152,9 @@ class Program:
                     f"command {command} failed to execute due to error {subprocess.PIPE}"
                 )
         else:
-            commands = []
+            commands = [
+                f"cd {aux_dir.replace(os.environ['container_data_dir'], cluster_data_dir)}"
+            ]
             if self.module_to_load:
                 commands.append(f"module load {self.module_to_load}")
             commands.append(command)
