@@ -62,6 +62,9 @@ def exec_pipeline(input_path: click.Path):
         f"Generated samples successfully. Sample files are available at {samples_paths_description}"
     )
 
+    logger.info(
+        f"Executing programs {[prog.value for prog in pipeline_input.programs]}"
+    )
     pipeline.execute_programs(pipeline_input)
     logger.info(
         f"Executed program {[program_name.value for program_name in pipeline_input.programs]} on the generated "
