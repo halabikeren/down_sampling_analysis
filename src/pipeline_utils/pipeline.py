@@ -10,21 +10,22 @@ from programs import *
 import re
 from dataclasses import dataclass
 import time
-from Bio.Phylo import NewickIO
-from Bio.Phylo.TreeConstruction import DistanceCalculator, DistanceTreeConstructor
 from ete3 import Tree
 from copy import deepcopy
 import subprocess
-from Bio import SeqIO, AlignIO
+from Bio import SeqIO
 import os
 from samplers import *
+
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
 
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-# noinspection SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection,SpellCheckingInspection
 @dataclass
 class Pipeline:
     pipeline_dir: str
@@ -108,6 +109,7 @@ class Pipeline:
         self.build_tree(
             self.aligned_sequence_data_path,
             self.tree_path,
+            self.sequence_data_type,
             pipeline_input.tree_reconstruction_method,
             pipeline_input.tree_reconstruction_params,
         )
@@ -255,12 +257,14 @@ class Pipeline:
     def build_tree(
         input_path: str,
         output_path: str,
+        sequence_data_type: SequenceDataType,
         tree_reconstruction_method: TreeReconstructionMethod,
         tree_reconstruction_params: t.Optional[t.Dict[str, t.Any]] = None,
     ):
         """
         :param input_path path to aligned sequence data in a fasta format
         :param output_path path in which the tree should be written in newick format
+        :param sequence_data_type either nulceotide, amino_acid or codon
         :param tree_reconstruction_method: enum representing the tree reconstruction method
         :param tree_reconstruction_params: map of parameter names to parameter values
         :return: None
@@ -275,18 +279,24 @@ class Pipeline:
             TreeReconstructionMethod.UPGMA,
             TreeReconstructionMethod.NJ,
         ]:
-            alignment = list(AlignIO.parse(input_path, "fasta"))[0]
-            calculator = DistanceCalculator("identity")
-            dm = calculator.get_distance(alignment)
-            constructor = DistanceTreeConstructor()
-            if tree_reconstruction_method == TreeReconstructionMethod.UPGMA:
-                tree = constructor.upgma(dm)
-            else:
-                tree = constructor.nj(dm)
-            with open(output_path, "w") as output_handle:
-                NewickIO.write([tree], output_handle)
-            tree = Tree(output_path, format=1)
-            tree.write(outfile=output_path, format=5)
+            sequence_data_type_hyphy = (
+                "1"
+                if sequence_data_type in [SequenceDataType.NUC, SequenceDataType.AA]
+                else "2\\n1"
+            )
+            dist_method_hyphy = (
+                "4"
+                if sequence_data_type in [SequenceDataType.NUC, SequenceDataType.AA]
+                else "3\\n3"
+            )
+            cmd = f"printf '12\\n1\\n1\\n{sequence_data_type_hyphy}\\n{input_path}\\n1\\n{dist_method_hyphy}\\ny\\n{output_path}\\n' | hyphy"
+            process = subprocess.call(
+                cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+            )
+            if process != 0:
+                raise IOError(
+                    f"failed to reconstruct {tree_reconstruction_method.value} tree with hyphy. Execution output is {subprocess.PIPE}"
+                )
 
         elif tree_reconstruction_method == TreeReconstructionMethod.ML:
             output_dir, output_filename = os.path.split(output_path)
