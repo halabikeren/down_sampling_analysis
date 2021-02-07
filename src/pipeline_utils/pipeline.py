@@ -444,7 +444,7 @@ class Pipeline:
                             program_exec_info["aux_dir"],
                             additional_params=program_params,
                             parallelize=pipeline_input.parallelize,
-                            aux_dir=program_dir,
+                            cluster_data_dir=pipeline_input.cluster_data_dir,
                             priority=pipeline_input.priority,
                             queue=pipeline_input.queue,
                             wait_until_complete=False,

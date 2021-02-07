@@ -16,6 +16,7 @@ class Rate4Site(Program):
     def __init__(self):
         self.name = "rate4site"
         self.program_exe = os.environ["rate4site"]
+        self.cluster_program_exe = os.environ["cluster_rate4site"]
         self.input_param_name = "-s"
         self.output_param_name = "-o"
         self.module_to_load = "Rate4Site/Rate4Site-3.0"

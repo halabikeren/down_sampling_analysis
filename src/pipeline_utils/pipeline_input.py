@@ -8,7 +8,7 @@ from .utils_types import (
     TreeReconstructionMethod,
 )
 from programs import ProgramName
-from pydantic import BaseModel, FilePath, DirectoryPath, Field
+from pydantic import BaseModel, FilePath, DirectoryPath, Field, validator
 from samplers import SamplingMethod
 
 import logging
@@ -62,6 +62,7 @@ class PipelineInput(BaseModel):
         False  # indicator weather when using PDA, weighting should be used or not
     )
     parallelize: bool = True  # indicator weather execution of programs on the samples should be parallelized or not
+    cluster_data_dir: t.Optional[str] = None
     priority: int = (
         0  # in case of parallelization, this parameter sets the priority of the jobs
     )
@@ -77,3 +78,10 @@ class PipelineInput(BaseModel):
             if field in data:
                 data[field] = os.path.join(os.getcwd(), data[field])
         super().__init__(**data)
+
+    @validator("cluster_data_dir")
+    def given_if_parallelize(cls, v, values):
+        if not v and values["parallelize"]:
+            raise ValueError(
+                "Cannot set parallelization without providing cluster data dir"
+            )
