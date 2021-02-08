@@ -60,7 +60,7 @@ class Pda(Sampler):
                 pos_weight = 1 - pos_to_char_feq[pos]["-"]
                 weight += pos_weight * pos_to_char_feq[pos][seq_record.seq[pos]]
             self.taxon_to_weight[
-                seq_record.description if seq_record.description else seq_record.id
+                seq_record.name if seq_record.name else seq_record.id
             ] = (weight / alignment.get_alignment_length())
 
     @staticmethod
@@ -289,7 +289,5 @@ class Pda(Sampler):
                 )
 
             return [
-                record
-                for record in self.sequences
-                if record.description in sample_members
+                record for record in self.sequences if record.name in sample_members
             ]
