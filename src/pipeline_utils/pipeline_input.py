@@ -43,8 +43,8 @@ class PipelineInput(BaseModel):
     ] = None  # the parameters that the tree reconstruction method should be executed with. The default ones are
     # available in the method Pipeline.build_tree()
     sampling_fractions: t.List[float] = Field(
-        default_factory=lambda: [0.25, 0.5, 0.75, 1]
-    )  # the fractions of sampling that should be generated in the scope of the pipeline
+        default_factory=lambda: [0.25, 0.5, 0.75]
+    )  # the fractions of sampling that should be generated in the scope of the pipeline (must be > 0 and < 1)
     sampling_methods: t.List[SamplingMethod] = Field(
         default_factory=lambda: [m for m in SamplingMethod]
     )  # the methods of sampling that should be used in the scope of the pipeline
@@ -58,6 +58,9 @@ class PipelineInput(BaseModel):
     programs_params: t.Optional[
         t.Dict[str, t.Any]
     ] = None  # a map of programs to parameters it should be executed with
+    exec_on_full_data: bool = (
+        True  # indicates weather the program should be executed on the full dataset
+    )
     weight_pda: bool = (
         False  # indicator weather when using PDA, weighting should be used or not
     )
@@ -87,3 +90,11 @@ class PipelineInput(BaseModel):
                 "Cannot set parallelization without providing cluster data dir"
             )
         return v
+
+    @validator("sampling_fractions")
+    def between_zero_and_one(cls, v):
+        for item in v:
+            if v <= 0 or v >= 1:
+                raise ValueError(
+                    f"Sampling fraction {item} is invalid. A value must be between 0 and 1, excluded"
+                )

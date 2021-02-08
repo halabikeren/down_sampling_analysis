@@ -136,6 +136,7 @@ class Pipeline:
                         "output_path": None,
                         "aux_dir": None,
                         "result": None,
+                        "full_data_result": None,
                     }
 
     @staticmethod
@@ -359,6 +360,7 @@ class Pipeline:
                 logger.info(
                     f"Sampling data of fraction {fraction} and size {sample_size} using {method.value}"
                 )
+
                 if (
                     os.path.exists(
                         self.samples_info[fraction][method.value][
@@ -395,20 +397,38 @@ class Pipeline:
                 self.samples_info[fraction][method.value][
                     "aligned_sequence_data_path"
                 ] = f"{fraction_to_samples_dir[fraction]}aligned_method_{method.value}.fasta"
-                logger.info(
-                    f"Aligning the sampled data to {self.samples_info[fraction][method.value]['aligned_sequence_data_path']}"
-                )
-                Pipeline.align(
-                    self.samples_info[fraction][method.value][
-                        "unaligned_sequence_data_path"
-                    ],
+                if os.path.exists(
                     self.samples_info[fraction][method.value][
                         "aligned_sequence_data_path"
-                    ],
-                    pipeline_input.sequence_data_type,
-                    pipeline_input.samples_alignment_method,
-                    pipeline_input.samples_alignment_params,
-                )
+                    ]
+                ) and os.path.getsize(
+                    self.samples_info[fraction][method.value][
+                        "aligned_sequence_data_path"
+                    ]
+                ) >= os.path.getsize(
+                    self.samples_info[fraction][method.value][
+                        "unaligned_sequence_data_path"
+                    ]
+                ):
+                    logger.info(
+                        f"Alignment of sample of fraction {fraction} and size {sample_size} using method {method.value} already "
+                        f"exists. "
+                    )
+                else:
+                    logger.info(
+                        f"Aligning the sampled data to {self.samples_info[fraction][method.value]['aligned_sequence_data_path']}"
+                    )
+                    Pipeline.align(
+                        self.samples_info[fraction][method.value][
+                            "unaligned_sequence_data_path"
+                        ],
+                        self.samples_info[fraction][method.value][
+                            "aligned_sequence_data_path"
+                        ],
+                        pipeline_input.sequence_data_type,
+                        pipeline_input.samples_alignment_method,
+                        pipeline_input.samples_alignment_params,
+                    )
 
         logger.info("Completed samples generation")
 
@@ -424,14 +444,51 @@ class Pipeline:
             []
         )  # this list will hold paths to touch files that should be created upon completion of the jobs holding the
         # programs executions
+        if pipeline_input.exec_on_full_data:
+            program_to_full_data_output = dict()
         for program_name in pipeline_input.programs:
             program_dir = f"{programs_dir}{program_name.value}/"
             os.makedirs(program_dir, exist_ok=True)
             program_to_exec = program_to_callable[program_name.value]()
             program_name_to_instance[program_name] = program_to_exec
+            program_params = None
+            if (
+                pipeline_input.programs_params
+                and program_name.value in pipeline_input.programs_params
+            ):
+                program_params = pipeline_input.programs_params[program_name.value]
+
+            # execute on the full dataset
+            if pipeline_input.exec_on_full_data:
+                input_path = self.aligned_sequence_data_path
+                output_path = f"{program_dir}/full_data_{program_name.value}.out"
+                program_to_full_data_output[program_name.value] = output_path
+                aux_dir = f"{os.path.dirname(self.aligned_sequence_data_path)}/{program_name.value}_aux/"
+                if pipeline_input.parallelize:
+                    completion_validator_path = program_to_exec.exec(
+                        input_path,
+                        output_path,
+                        aux_dir,
+                        additional_params=program_params,
+                        parallelize=pipeline_input.parallelize,
+                        cluster_data_dir=pipeline_input.cluster_data_dir,
+                        priority=pipeline_input.priority,
+                        queue=pipeline_input.queue,
+                        wait_until_complete=False,
+                        get_completion_validator=True,
+                    )
+                    completion_validators.append(completion_validator_path)
+                else:
+                    program_to_exec.exec(
+                        input_path,
+                        output_path,
+                        aux_dir,
+                        additional_params=program_params,
+                    )
+
+            # execute program on each sample
             for fraction in self.samples_info:
                 for method_name in self.samples_info[fraction]:
-
                     # set input and output paths
                     program_exec_info = self.samples_info[fraction][method_name][
                         "programs_performance"
@@ -445,19 +502,6 @@ class Pipeline:
                     program_exec_info[
                         "aux_dir"
                     ] = f"{program_dir}fraction_{fraction}_sampling_method_{method_name}_aux/"
-
-                    # execute the program - its the same issue as with the SamplingMethod enum. Here the enum is
-                    # called ProgramName
-                    program_params = None
-                    if (
-                        pipeline_input.programs_params
-                        and program_name.value in pipeline_input.programs_params
-                    ):
-                        program_params = pipeline_input.programs_params[
-                            program_name.value
-                        ]
-
-                    # if fraction == 1 TO DO: add case that assures a single exec on sample fraction 1
 
                     if pipeline_input.parallelize:
                         completion_validator_path = program_to_exec.exec(
@@ -490,6 +534,11 @@ class Pipeline:
         # parse programs outputs
         for program_name in pipeline_input.programs:
             program_instance = program_name_to_instance[program_name]
+
+            # parse output of the full program
+            full_program_output = program_to_full_data_output[program_name.value]
+            full_data_result = program_instance.parse_output(full_program_output)
+
             for fraction in self.samples_info:
                 for method_name in self.samples_info[fraction]:
                     program_output_path = self.samples_info[fraction][method_name][
@@ -498,3 +547,6 @@ class Pipeline:
                     self.samples_info[fraction][method_name]["programs_performance"][
                         program_name.value
                     ]["result"] = program_instance.parse_output(program_output_path)
+                    self.samples_info[fraction][method_name]["programs_performance"][
+                        program_name.value
+                    ]["full_data_result"] = full_data_result
