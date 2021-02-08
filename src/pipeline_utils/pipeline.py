@@ -356,34 +356,48 @@ class Pipeline:
                     "aux_dir"
                 ] = f"{fraction_to_samples_dir[fraction]}method_{method.value}_aux/"
                 sample_size = int(fraction * len(self.unaligned_sequence_data))
-                logger.info(f"Sampling data of size {sample_size} using {method.value}")
-                # try:
-                if method.value == "pda" and pipeline_input.weight_pda:
-                    sampler_instance.compute_taxon_weights(
-                        self.aligned_sequence_data_path
-                    )
-
-                sampler_instance.write_sample(
-                    sample_size,
-                    output_path=self.samples_info[fraction][method.value][
-                        "unaligned_sequence_data_path"
-                    ],
-                    aux_dir=self.samples_info[fraction][method.value]["aux_dir"],
-                    is_weighted=pipeline_input.weight_pda,
-                    use_external=pipeline_input.use_external_pda,
+                logger.info(
+                    f"Sampling data of fraction {fraction} and size {sample_size} using {method.value}"
                 )
-                # except Exception as e:
-                #     logger.error(
-                #         f"Failed to sample {sample_size} sequences with {method.value} due to error {e}"
-                #     )
-                #     raise IOError(
-                #         f"Failed to sample {sample_size} sequences with {method.value} due to error {e}"
-                #     )
+                if (
+                    os.path.exists(
+                        self.samples_info[fraction][method.value][
+                            "unaligned_sequence_data_path"
+                        ]
+                    )
+                    and os.path.getsize(
+                        self.samples_info[fraction][method.value][
+                            "unaligned_sequence_data_path"
+                        ]
+                    )
+                    > 0
+                ):
+                    logger.info(
+                        f"Sample of fraction {fraction} and size {sample_size} using method {method.value} already "
+                        f"exists. "
+                    )
+                else:
+                    if method.value == "pda" and pipeline_input.weight_pda:
+                        sampler_instance.compute_taxon_weights(
+                            self.aligned_sequence_data_path
+                        )
+                    sampler_instance.write_sample(
+                        sample_size,
+                        output_path=self.samples_info[fraction][method.value][
+                            "unaligned_sequence_data_path"
+                        ],
+                        aux_dir=self.samples_info[fraction][method.value]["aux_dir"],
+                        is_weighted=pipeline_input.weight_pda,
+                        use_external=pipeline_input.use_external_pda,
+                    )
 
                 # align the sample
                 self.samples_info[fraction][method.value][
                     "aligned_sequence_data_path"
                 ] = f"{fraction_to_samples_dir[fraction]}aligned_method_{method.value}.fasta"
+                logger.info(
+                    f"Aligning the sampled data to {self.samples_info[fraction][method.value]['aligned_sequence_data_path']}"
+                )
                 Pipeline.align(
                     self.samples_info[fraction][method.value][
                         "unaligned_sequence_data_path"
@@ -442,6 +456,9 @@ class Pipeline:
                         program_params = pipeline_input.programs_params[
                             program_name.value
                         ]
+
+                    # if fraction == 1 TO DO: add case that assures a single exec on sample fraction 1
+
                     if pipeline_input.parallelize:
                         completion_validator_path = program_to_exec.exec(
                             program_exec_info["input_path"],
