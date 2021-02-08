@@ -31,7 +31,7 @@ def exec_pipeline(input_path: click.Path):
 
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s %(module)s %(funcName)s %(lineno)d %(message)s",
+        format="%(asctime)s module: %(module)s function: %(funcName)s line: %(lineno)d %(message)s",
         handlers=[
             logging.StreamHandler(sys.stdout),
             logging.FileHandler(
