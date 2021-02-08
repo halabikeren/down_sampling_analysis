@@ -30,9 +30,9 @@ class Pda(Sampler):
     taxon_to_weight: t.Dict[str, float] = None
     taxon_to_weight_filepath: str = None
     norm_factor: float = 1
-    sample_subtree: Tree = (
-        Tree()
-    )  # sample subtree is saved such that if later on, a larger sample is required, we can simply extend the current one rather than start over
+    sample_subtree: t.Optional[
+        Tree
+    ] = None  # sample subtree is saved such that if later on, a larger sample is required, we can simply extend the current one rather than start over
     pd_score: float = 0
 
     def compute_taxon_weights(self, aligned_sequences_path: str):
@@ -201,7 +201,15 @@ class Pda(Sampler):
                 node.name = "N" + str(i)
                 i += 1
 
-    def exec_external_pda(self, k: int, aux_dir: str, is_weighted: bool = False):
+    def exec_external_pda(
+        self, k: int, aux_dir: str, is_weighted: bool = False
+    ) -> t.List[str]:
+        """
+        :param k: sample size
+        :param aux_dir: directory for pda output
+        :param is_weighted: boolean indicating weather weighted pda or regular pda should be used
+        :return: a list of selected sequence names
+        """
         os.makedirs(aux_dir, exist_ok=True)
         self.tree.write(outfile=f"{aux_dir}/tree.nwk", format=5)
         weights_arg = ""
@@ -233,8 +241,7 @@ class Pda(Sampler):
         sample_members = [
             member for member in output.group(2).split("\n") if member != ""
         ]
-        self.sample_subtree = deepcopy(self.tree)
-        self.sample_subtree.prune(sample_members)
+        return sample_members
 
     def get_sample(
         self,
@@ -271,14 +278,18 @@ class Pda(Sampler):
 
         else:
             if not use_external:
+                self.sample_subtree = Tree()
                 self.add_internal_names()
                 while len(self.sample_subtree.get_leaf_names()) < k:
                     self.do_pd_step(is_weighted=is_weighted)
+                sample_members = self.sample_subtree.get_leaf_names()
             else:
-                self.exec_external_pda(k, aux_dir, is_weighted=is_weighted)
+                sample_members = self.exec_external_pda(
+                    k, aux_dir, is_weighted=is_weighted
+                )
 
             return [
                 record
                 for record in self.sequences
-                if record.description in self.sample_subtree.get_leaf_names()
+                if record.description in sample_members
             ]
