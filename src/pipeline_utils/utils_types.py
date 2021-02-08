@@ -14,5 +14,6 @@ class AlignmentMethod(Enum):
 
 class TreeReconstructionMethod(Enum):
     UPGMA = "upgma"
+    FASTTREE = "fasttree"
     NJ = "nj"
     ML = "ml"

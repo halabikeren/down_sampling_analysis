@@ -36,7 +36,7 @@ class PipelineInput(BaseModel):
     ] = None  # a full path to a tree file in newick format. Should be provided only if the user wishes PDA to use it
     # during sampling
     tree_reconstruction_method: TreeReconstructionMethod = (
-        TreeReconstructionMethod.UPGMA
+        TreeReconstructionMethod.FASTTREE
     )  # the method that the tree should be build with. Can be either UPGMA, NJ or ML (which uses RaxML)
     tree_reconstruction_params: t.Optional[
         t.Dict[str, str]

@@ -298,6 +298,16 @@ class Pipeline:
                     f"failed to reconstruct {tree_reconstruction_method.value} tree with hyphy. Execution output is {subprocess.PIPE}"
                 )
 
+        elif tree_reconstruction_method == TreeReconstructionMethod.FASTTREE:
+            cmd = f"fasttree {input_path} > {output_path}"
+            process = subprocess.call(
+                cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+            )
+            if process != 0:
+                raise IOError(
+                    f"failed to reconstruct {tree_reconstruction_method.value} tree with fasttree program. Execution output is {subprocess.PIPE}"
+                )
+
         elif tree_reconstruction_method == TreeReconstructionMethod.ML:
             output_dir, output_filename = os.path.split(output_path)
             aux_dir = f"{output_dir}/raxml_aux/"
