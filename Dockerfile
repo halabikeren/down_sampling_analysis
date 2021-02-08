@@ -8,6 +8,7 @@ RUN conda install -c bioconda mafft
 RUN conda install -c bioconda prank
 RUN conda install -c bioconda raxml
 RUN conda install -c bioconda hyphy
+RUN conda install -c bioconda fasttree
 
 # copy code and toy data
 COPY /docker_aux/rate4site_doublerep rate4site_doublerep
