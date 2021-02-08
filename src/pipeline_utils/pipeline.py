@@ -376,6 +376,7 @@ class Pipeline:
                         ],
                         aux_dir=self.samples_info[fraction][method.value]["aux_dir"],
                         is_weighted=pipeline_input.weight_pda,
+                        use_external=pipeline_input.use_external_pda,
                     )
                 except Exception as e:
                     logger.error(
