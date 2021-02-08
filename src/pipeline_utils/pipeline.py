@@ -290,9 +290,7 @@ class Pipeline:
                 else "3\\n3"
             )
             cmd = f"printf '12\\n1\\n1\\n{sequence_data_type_hyphy}\\n{input_path}\\n1\\n{dist_method_hyphy}\\ny\\n{output_path}\\n' | hyphy"
-            process = subprocess.call(
-                cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
-            )
+            process = os.system(cmd)
             if process != 0:
                 raise IOError(
                     f"failed to reconstruct {tree_reconstruction_method.value} tree with hyphy. Execution output is {subprocess.PIPE}"
@@ -300,9 +298,7 @@ class Pipeline:
 
         elif tree_reconstruction_method == TreeReconstructionMethod.FASTTREE:
             cmd = f"fasttree {input_path} > {output_path}"
-            process = subprocess.call(
-                cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
-            )
+            process = os.system(cmd)
             if process != 0:
                 raise IOError(
                     f"failed to reconstruct {tree_reconstruction_method.value} tree with fasttree program. Execution output is {subprocess.PIPE}"
@@ -324,9 +320,7 @@ class Pipeline:
                 else 4
             )
             cmd = f"raxmlHPC -s {input_path} -n out -m {model} -c {num_of_categories}"
-            process = subprocess.call(
-                cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
-            )
+            process = os.system(cmd)
             if process != 0:
                 raise IOError(
                     f"failed to reconstruct ML tree with raxml. Execution output is {subprocess.PIPE}"
@@ -363,28 +357,28 @@ class Pipeline:
                 ] = f"{fraction_to_samples_dir[fraction]}method_{method.value}_aux/"
                 sample_size = int(fraction * len(self.unaligned_sequence_data))
                 logger.info(f"Sampling data of size {sample_size} using {method.value}")
-                try:
-                    if method.value == "pda" and pipeline_input.weight_pda:
-                        sampler_instance.compute_taxon_weights(
-                            self.aligned_sequence_data_path
-                        )
+                # try:
+                if method.value == "pda" and pipeline_input.weight_pda:
+                    sampler_instance.compute_taxon_weights(
+                        self.aligned_sequence_data_path
+                    )
 
-                    sampler_instance.write_sample(
-                        sample_size,
-                        output_path=self.samples_info[fraction][method.value][
-                            "unaligned_sequence_data_path"
-                        ],
-                        aux_dir=self.samples_info[fraction][method.value]["aux_dir"],
-                        is_weighted=pipeline_input.weight_pda,
-                        use_external=pipeline_input.use_external_pda,
-                    )
-                except Exception as e:
-                    logger.error(
-                        f"Failed to sample {sample_size} sequences with {method.value} due to error {e}"
-                    )
-                    raise IOError(
-                        f"Failed to sample {sample_size} sequences with {method.value} due to error {e}"
-                    )
+                sampler_instance.write_sample(
+                    sample_size,
+                    output_path=self.samples_info[fraction][method.value][
+                        "unaligned_sequence_data_path"
+                    ],
+                    aux_dir=self.samples_info[fraction][method.value]["aux_dir"],
+                    is_weighted=pipeline_input.weight_pda,
+                    use_external=pipeline_input.use_external_pda,
+                )
+                # except Exception as e:
+                #     logger.error(
+                #         f"Failed to sample {sample_size} sequences with {method.value} due to error {e}"
+                #     )
+                #     raise IOError(
+                #         f"Failed to sample {sample_size} sequences with {method.value} due to error {e}"
+                #     )
 
                 # align the sample
                 self.samples_info[fraction][method.value][

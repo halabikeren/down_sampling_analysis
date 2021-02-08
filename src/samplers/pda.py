@@ -20,6 +20,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+import sys
+
+sys.setrecursionlimit(10000)
+
 
 @dataclass
 class Pda(Sampler):
@@ -209,12 +213,8 @@ class Pda(Sampler):
                 for taxon in self.taxon_to_weight:
                     weights_file.write(f"{taxon}\t{self.taxon_to_weight[taxon]}\n")
             weights_arg += f" -e {os.path.dirname(self.sequences_path)}/weights.txt"
-
-        process = subprocess.call(
-            f"{os.environ['pda']} -g -k {k}{weights_arg} {aux_dir}/tree.nwk {aux_dir}/out.pda",
-            shell=True,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
+        process = os.system(
+            f"{os.environ['pda']} -g -k {k}{weights_arg} {aux_dir}/tree.nwk {aux_dir}/out.pda"
         )
         if process != 0:
             raise RuntimeError(

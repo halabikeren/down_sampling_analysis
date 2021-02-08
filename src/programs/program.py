@@ -144,8 +144,8 @@ class Program:
         os.makedirs(aux_dir, exist_ok=True)
 
         if not parallelize:
-            process = subprocess.call(
-                command, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+            process = os.system(
+                command
             )
             if process != 0:
                 raise ValueError(

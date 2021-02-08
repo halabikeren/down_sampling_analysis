@@ -34,11 +34,8 @@ class CdHit(Sampler):
             if threshold > 0.6
             else (3 if threshold > 0.5 else 2)
         )
-        process = subprocess.call(
+        process = os.system(
             f"cd-hit -i {self.sequences_path} -o {output_file} -c {threshold} -n {word_len}",
-            shell=True,
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
         )
         if process != 0:
             raise RuntimeError(
