@@ -144,9 +144,7 @@ class Program:
         os.makedirs(aux_dir, exist_ok=True)
 
         if not parallelize:
-            process = os.system(
-                command
-            )
+            process = os.system(command)
             if process != 0:
                 raise ValueError(
                     f"command {command} failed to execute due to error {subprocess.PIPE}"
