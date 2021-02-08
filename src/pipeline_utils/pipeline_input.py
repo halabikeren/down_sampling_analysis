@@ -61,7 +61,7 @@ class PipelineInput(BaseModel):
     weight_pda: bool = (
         False  # indicator weather when using PDA, weighting should be used or not
     )
-    use_external_pda: bool = True  # indicator weather external pda
+    use_external_pda: bool = True  # indicator weather external pda should be used
     parallelize: bool = False  # indicator weather execution of programs on the samples should be parallelized or not
     cluster_data_dir: t.Optional[str] = None
     priority: int = (
