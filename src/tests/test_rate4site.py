@@ -30,8 +30,8 @@ class TestRate4ite(unittest.TestCase):
             additional_params={"-zj": ""},
         )
         result = prog.parse_output(self.output_path)
-        self.assertEqual(result["alpha"], 4.43237)
-        self.assertEqual(result["log_likelihood"], -156.342)
+        self.assertAlmostEqual(result["alpha"], 4.43237)
+        self.assertTrue(abs(result["log_likelihood"]-(-156.342)) < 0.1)
         rates_by_position = result["rate_by_position"]
         self.assertEqual(
             rates_by_position.loc[
@@ -39,9 +39,8 @@ class TestRate4ite(unittest.TestCase):
             ].values[0],
             "G",
         )
-        self.assertEqual(
-            rates_by_position.loc[rates_by_position["position"] == 4, "rate"].values[0],
-            0.7202,
+        self.assertTrue(
+            abs(rates_by_position.loc[rates_by_position["position"] == 4, "rate"].values[0]-0.7202) < 0.1,
         )
 
     def tearDown(self):

@@ -1,8 +1,7 @@
 from enum import Enum
-from samplers.sampler import Sampler
-from samplers.pda import Pda
-from samplers.cdhit import CdHit
-from samplers.random import Random
+from .pda import Pda
+from .cdhit import CdHit
+from .random import Random
 
 
 class SamplingMethod(Enum):

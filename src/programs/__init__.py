@@ -1,4 +1,5 @@
 from .rate4site import Rate4Site
+from .paml import PAML
 from .program import Program
 from enum import Enum
 

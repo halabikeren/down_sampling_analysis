@@ -2,7 +2,7 @@ import typing as t
 
 import os
 
-from .utils_types import (
+from utils import (
     SequenceDataType,
     AlignmentMethod,
     TreeReconstructionMethod,

@@ -34,12 +34,11 @@ class CdHit(Sampler):
             if threshold > 0.6
             else (3 if threshold > 0.5 else 2)
         )
-        process = os.system(
-            f"cd-hit -i {self.sequences_path} -o {output_file} -c {threshold} -n {word_len}",
-        )
-        if process != 0:
+        cmd = f"cd-hit -i {self.sequences_path} -o {output_file} -c {threshold} -n {word_len}"
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if len(process.stderr.read()) > 0:
             raise RuntimeError(
-                f"CD-HIT failed to properly execute and provide an output file. Execution output is {subprocess.PIPE}"
+                f"CD-HIT failed to properly execute and provide an output file with error {process.stderr.read()} and output is {process.stdout.read()}"
             )
         return output_file
 

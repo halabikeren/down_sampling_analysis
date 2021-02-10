@@ -221,15 +221,12 @@ class Pda(Sampler):
                 for taxon in self.taxon_to_weight:
                     weights_file.write(f"{taxon}\t{self.taxon_to_weight[taxon]}\n")
             weights_arg += f" -e {os.path.dirname(self.sequences_path)}/weights.txt"
-        process = os.system(
-            f"{os.environ['pda']} -g -k {k}{weights_arg} {aux_dir}/tree.nwk {aux_dir}/out.pda"
-        )
-        if process != 0:
+        cmd = f"{os.environ['pda']} -g -k {k}{weights_arg} {aux_dir}/tree.nwk {aux_dir}/out.pda"
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if len(process.stderr.read()) > 0:
             raise RuntimeError(
-                f"PDA failed to properly execute and provide an output file. Execution "
-                f"output is {subprocess.PIPE}"
+                f"PDA failed to properly execute and provide an output file with error {process.stderr.read()} and output is {process.stdout.read()}"
             )
-
         output_regex = re.compile(
             "For k = \d* the optimal PD score is (\d*).*?The optimal PD set has \d* taxa\:(.*?)Corresponding",
             re.MULTILINE | re.DOTALL,
@@ -248,7 +245,7 @@ class Pda(Sampler):
         k: int,
         aux_dir: str,
         is_weighted: bool = False,
-        use_external=False,
+        use_external: bool = False,
     ) -> t.Union[str, t.List[SeqIO.SeqRecord]]:
         """
         computes the most phylogenetically diverse weighted sample based on the greedy algorithm of Steel (2005).

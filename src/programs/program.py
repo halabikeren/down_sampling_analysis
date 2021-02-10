@@ -1,13 +1,9 @@
 import os
 import typing as t
 from dataclasses import dataclass
-from time import sleep
-
-from pydantic import BaseModel
+from time import time
+from utils import Job
 import json
-from enum import Enum
-
-import subprocess
 
 from dotenv import load_dotenv, find_dotenv
 
@@ -18,72 +14,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class Queue(Enum):
-    ITAYM = "itaym"
-    ITAYMAA = "itaymaa"
-    ITAYM1 = "itaym1"
-    ITAYM2 = "itaym2"
-    ITAYM3 = "itaym3"
-    ITAYM4 = "itaym4"
-
-
-class Job(BaseModel):
-    name: str
-    sh_dir: str
-    output_dir: str
-    commands: t.List[str]
-    cpus_number: int = 1
-    mem_alloc: int = 2  # memory allocation in gb
-    queue: Queue = Queue.ITAYM
-    priority: int = 0
-
-    def create_sh(self):
-        """
-        :return:
-        """
-        os.makedirs(self.output_dir, exist_ok=True)
-        os.makedirs(self.sh_dir, exist_ok=True)
-
-        with open(f"{self.sh_dir}{self.name}.sh", "w") as handle:
-            handle.write(
-                f"# !/bin/bash\n\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n#PBS -q {self.queue.value}\n"
-            )
-            handle.write("#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH\n")
-            handle.write(
-                f"#PBS -N {self.name}\n#PBS -e {self.output_dir}\n#PBS -o {self.output_dir}\n"
-            )
-            handle.write(
-                f"#PBS -l select=ncpus={self.cpus_number}:mem={self.mem_alloc}gb\n"
-            )
-            handle.write("\n".join(self.commands))
-            handle.write(f"touch {self.output_dir}{self.name}.touch")
-
-    def submit(
-        self, wait_until_complete: bool = False, get_completion_validator: bool = True
-    ) -> t.Optional[str]:
-        """
-        :param wait_until_complete:
-        :param get_completion_validator:
-        :return:
-        """
-        self.create_sh()
-        logger.info(f"submitting job {self.name}")
-        res = os.system(f"qsub -p {self.priority} {self.sh_dir}{self.name}.sh")
-        if wait_until_complete:
-            while not os.path.exists(f"{self.output_dir}{self.name}.touch"):
-                sleep(5)
-        if get_completion_validator:
-            return f"{self.output_dir}{self.name}.touch"
-
-
 @dataclass
 class Program:
     name: str
     program_exe: str
     cluster_program_exe: str
-    input_param_name: str
-    output_param_name: str  # maps parameter name to parameter value
-    module_to_load: t.Optional[str] = None
+    input_param_name: str = ""
+    output_param_name: str = ""  # maps parameter name to parameter value
+
+    def __init__(
+        self):  # set to allow inheriting classes to receive additional arguments for setting additional
+        pass
 
     def exec(
         self,
@@ -97,6 +38,7 @@ class Program:
         queue: str = "itaym",
         wait_until_complete: bool = False,
         get_completion_validator: bool = True,
+        **kwargs
     ) -> t.Optional[str]:
         """
         :param input_path: path to alignment file
@@ -111,51 +53,28 @@ class Program:
         :param get_completion_validator: boolean indicating weather a validator file should be generated upon job completion (recommended: True)
         :return:
         """
-        program_input_path = (
-            input_path
-            if not parallelize
-            else input_path.replace(os.environ["container_data_dir"], cluster_data_dir)
-        )
-        program_output_path = (
-            output_path
-            if not parallelize
-            else output_path.replace(os.environ["container_data_dir"], cluster_data_dir)
-        )
-        input_str = f"{self.input_param_name} {program_input_path}"
-        output_str = f"{self.output_param_name} {program_output_path}"
-
-        additional_params_str = ""
-        if additional_params:
-            for field in additional_params:
-                if "/" in additional_params[field]:
-                    additional_params[field] = (
-                        f"{os.environ['container_data_dir']}{additional_params[field]}"
-                        if not parallelize
-                        else f"{cluster_data_dir}{additional_params[field]}"
-                    )
-            additional_params_str = " ".join(
-                [
-                    f"{param_name} {additional_params[param_name]}"
-                    for param_name in additional_params
-                ]
-            )
-        command = f"{self.program_exe if not parallelize else self.cluster_program_exe} {input_str} {output_str} {additional_params_str} "
-
+        command = self.set_command(
+            input_path=input_path, output_path=output_path, additional_params=additional_params, parallelize=parallelize, cluster_data_dir=cluster_data_dir, **kwargs)
         os.makedirs(aux_dir, exist_ok=True)
 
         if not parallelize:
-            process = os.system(command)
-            if process != 0:
-                raise ValueError(
-                    f"command {command} failed to execute due to error {subprocess.PIPE}"
+            start_time = time()
+            os.chdir(aux_dir)  # move to aux dir as rate4site generates extra files in current running directory
+            res = os.system(f"{command} > /dev/null 2>&1")  # for some reason, rate4 prints some logs into the stderr,
+            # making the typical test (raise error i=f stderr > 0) invalid in this case
+            if res != 0:
+                raise RuntimeError(
+                    f"command {command} failed to execute."
                 )
+            end_time = time()
+            return end_time - start_time
         else:
             commands = [
-                f"cd {aux_dir.replace(os.environ['container_data_dir'], cluster_data_dir)}"
+                f"cd {aux_dir.replace(os.environ['container_data_dir'], cluster_data_dir)}",
+                '"date +" % s"',
+                command,
+                '"date +" % s"',
             ]
-            if self.module_to_load:
-                commands.append(f"module load {self.module_to_load}")
-            commands.append(command)
 
             job = Job(
                 name=self.name,
@@ -193,3 +112,73 @@ class Program:
         result = Program.parse_output(input_path)
         with open(output_path, "w") as output:
             json.dump(result, output)
+
+    @staticmethod
+    def set_additional_params(
+        additional_params: t.Dict[str, str],
+        parallelize: bool,
+        cluster_data_dir: str,
+        return_as_str: bool = True,
+    ) -> t.Optional[str]:
+        """
+        :param additional_params: dictionary mapping names to values f additional parameters for the program
+        :param parallelize: indicates weather the execution
+        of the program should be parallelized. In such case, any additional parameter whose value is a directory will
+        be translated ot an absolute cluster directory
+        :param cluster_data_dir the cluster data directory that should convert the container or relative directories of
+        paths to absolute ones in the cluster
+        :param return_as_str: indicates weather the additional parameters should be returned as a string
+        :return: if the addition of parameters is expressed via the command line, a string that should be added to it
+        will be returned
+        """
+        for field in additional_params:
+            if "/" in additional_params[field]:
+                additional_params[field] = (
+                    f"{os.environ['container_data_dir']}{additional_params[field]}"
+                    if not parallelize
+                    else f"{cluster_data_dir}{additional_params[field]}"
+                )
+            additional_params_str = " ".join(
+                [
+                    f"{param_name} {additional_params[param_name]}"
+                    for param_name in additional_params
+                ]
+            )
+            if return_as_str:
+                return additional_params_str
+
+    def set_command(
+        self,
+        input_path: str,
+        output_path: str,
+        additional_params: t.Optional[t.Dict[str, str]],
+        parallelize: bool,
+        cluster_data_dir: str,
+        **kwargs,
+    ) -> str:
+        """
+        :param input_path: path to the input of the program
+        :param output_path: path to the output of the program
+        :param additional_params: additional parameters to run the program with (maps parameter name to value)
+        :param parallelize: boolean indicating weather program execution should be parallelized
+        :param cluster_data_dir: directory to concat to directory arguments in case of parallelization on the cluster
+        :return: a string representing the command
+        """
+        program_input_path = (
+            input_path
+            if not parallelize
+            else input_path.replace(os.environ["container_data_dir"], cluster_data_dir)
+        )
+        program_output_path = (
+            output_path
+            if not parallelize
+            else output_path.replace(os.environ["container_data_dir"], cluster_data_dir)
+        )
+        input_str = f"{self.input_param_name} {program_input_path}"
+        output_str = f"{self.output_param_name} {program_output_path}"
+        additional_params_str = ""
+        if additional_params:
+            self.set_additional_params(additional_params, additional_params_str, cluster_data_dir)
+        command = f"{self.program_exe if not parallelize else self.cluster_program_exe} {input_str} {output_str} {additional_params_str} "
+        return command
+

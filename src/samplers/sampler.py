@@ -1,8 +1,5 @@
-import os
 import shutil
 import typing as t
-
-import subprocess
 from Bio import SeqIO
 from dataclasses import dataclass
 

@@ -1,21 +1,15 @@
 import shutil
 import typing as t
-from .utils_types import (
-    SequenceDataType,
-    AlignmentMethod,
-    TreeReconstructionMethod,
-)
 from .pipeline_input import PipelineInput
 from programs import *
 import re
 from dataclasses import dataclass
 import time
 from ete3 import Tree
-from copy import deepcopy
-import subprocess
 from Bio import SeqIO
 import os
 from samplers import *
+from utils import BaseTools
 
 from dotenv import load_dotenv, find_dotenv
 
@@ -84,7 +78,7 @@ class Pipeline:
         logger.info(
             f"Aligning sequence data. Output will be saved to {self.aligned_sequence_data_path}"
         )
-        Pipeline.align(
+        BaseTools.align(
             self.unaligned_sequence_data_path,
             self.aligned_sequence_data_path,
             pipeline_input.sequence_data_type,
@@ -106,7 +100,7 @@ class Pipeline:
         logger.info(
             f"Reconstructing phylogenetic tree. Output will be saved to {self.tree_path}"
         )
-        self.build_tree(
+        BaseTools.build_tree(
             self.aligned_sequence_data_path,
             self.tree_path,
             self.sequence_data_type,
@@ -138,196 +132,6 @@ class Pipeline:
                         "result": None,
                         "full_data_result": None,
                     }
-
-    @staticmethod
-    def translate(sequence_records: t.List[SeqIO.SeqRecord], output_path: str):
-        """
-        :param sequence_records: list of coding sequence records
-        :param output_path: the output path to which the translated sequences corresponding to the coding sequence
-        records will be written to in fasta format
-        :return: None
-        """
-        aa_records = deepcopy(sequence_records)
-        for aa_record in aa_records:
-            aa_record.seq = aa_record.seq.translate(table=1)
-        SeqIO.write(aa_records, output_path, "fasta")
-
-    @staticmethod
-    def reverse_translate(
-        unaligned_codon_path: str, aligned_aa_path: str, aligned_codon_path: str
-    ):
-        """
-        :param unaligned_codon_path: path to non-aligned coding sequences
-        :param aligned_aa_path: path to the aligned corresponding translated sequences
-        :param aligned_codon_path: path to write the aligned coding sequences to
-        :return: None
-        """
-        unaligned_codon_records = list(SeqIO.parse(unaligned_codon_path, "fasta"))
-        aligned_aa_records = list(SeqIO.parse(aligned_aa_path, "fasta"))
-        aligned_codon_records = []
-        for aligned_aa_record in aligned_aa_records:
-            unaligned_codon_record = [
-                sequence_record
-                for sequence_record in unaligned_codon_records
-                if sequence_record.description == aligned_aa_record.description
-            ][0]
-            aligned_codon_record = deepcopy(unaligned_codon_record)
-            aa_index = 0
-            codon_index = 0
-            while aa_index < len(aligned_aa_record.seq):
-                if aligned_aa_record.seq[aa_index] != "-":
-                    aligned_codon_record.seq += unaligned_codon_record.seq[
-                        codon_index * 3 : codon_index * 3 + 3
-                    ]
-                    codon_index += 1
-                else:
-                    aligned_codon_record.seq += "---"
-                aa_index += 1
-            aligned_codon_records.append(aligned_codon_record)
-        SeqIO.write(aligned_codon_records, aligned_codon_path, "fasta")
-
-    @staticmethod
-    def align(
-        input_path: str,
-        output_path: str,
-        sequence_data_type: SequenceDataType,
-        alignment_method: AlignmentMethod,
-        alignment_params: t.Optional[t.Dict[str, t.Any]] = None,
-    ):
-        """
-        Aligns sequence data according to given method
-        input_path: unaligned sequence data path
-        output_path: the path to write the alignment to
-        alignment_method: the method that the sequence data should be aligned with
-        alignment_params: the parameters that the method should be run with
-        :return:
-        """
-        if os.path.exists(output_path) and (
-            os.path.getsize(output_path) > os.path.getsize(input_path)
-        ):
-            logger.info(
-                f"{output_path} already exists. The program will assume it is complete"
-            )
-            return
-
-        sequence_records = list(SeqIO.parse(input_path, "fasta"))
-        alignment_input_path = input_path
-        alignment_output_path = output_path
-        if (
-            sequence_data_type == SequenceDataType.CODON
-            and alignment_method == AlignmentMethod.MAFFT
-        ):
-            alignment_input_path = output_path.replace(".fasta", "_translated.fasta")
-            Pipeline.translate(
-                sequence_records,
-                input_path.replace(".fasta", "_translated.fasta"),
-            )
-            alignment_output_path = output_path.replace(".fasta", "_translated.fasta")
-
-        cmd = ""
-        if not alignment_method or alignment_method == AlignmentMethod.MAFFT:
-
-            cmd = f"mafft --localpair --maxiterate 1000 {input_path} > /{output_path}"
-        elif alignment_method == AlignmentMethod.PRANK:
-            cmd = f"prank -d={input_path} -o={output_path} -f=fasta -support {'-codon' if sequence_data_type == SequenceDataType.CODON else ''} -iterate=100 -showtree "
-        if alignment_params:
-            cmd += " ".join(
-                [
-                    f"{param_name} {alignment_params[param_name]}"
-                    for param_name in alignment_params
-                ]
-            )
-        process = subprocess.run(cmd, shell=True, capture_output=True)
-        if process.returncode != 0:
-            raise IOError(
-                f"failed to align {output_path} with {alignment_method.value} execution output is {process.stderr}"
-            )
-        if (
-            alignment_method == AlignmentMethod.MAFFT
-            and sequence_data_type == SequenceDataType.CODON
-        ):
-            Pipeline.reverse_translate(
-                input_path,
-                alignment_output_path,
-                output_path,
-            )
-            os.remove(alignment_input_path)
-            os.remove(alignment_output_path)
-
-    @staticmethod
-    def build_tree(
-        input_path: str,
-        output_path: str,
-        sequence_data_type: SequenceDataType,
-        tree_reconstruction_method: TreeReconstructionMethod,
-        tree_reconstruction_params: t.Optional[t.Dict[str, t.Any]] = None,
-    ):
-        """
-        :param input_path path to aligned sequence data in a fasta format
-        :param output_path path in which the tree should be written in newick format
-        :param sequence_data_type either nulceotide, amino_acid or codon
-        :param tree_reconstruction_method: enum representing the tree reconstruction method
-        :param tree_reconstruction_params: map of parameter names to parameter values
-        :return: None
-        """
-        if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-            logger.info(
-                f"{output_path} exists. The program will assume it is complete."
-            )
-            return
-
-        if tree_reconstruction_method in [
-            TreeReconstructionMethod.UPGMA,
-            TreeReconstructionMethod.NJ,
-        ]:
-            sequence_data_type_hyphy = (
-                "1"
-                if sequence_data_type in [SequenceDataType.NUC, SequenceDataType.AA]
-                else "2\\n1"
-            )
-            dist_method_hyphy = (
-                "4"
-                if sequence_data_type in [SequenceDataType.NUC, SequenceDataType.AA]
-                else "3\\n3"
-            )
-            cmd = f"printf '12\\n1\\n1\\n{sequence_data_type_hyphy}\\n{input_path}\\n1\\n{dist_method_hyphy}\\ny\\n{output_path}\\n' | hyphy"
-            process = os.system(cmd)
-            if process != 0:
-                raise IOError(
-                    f"failed to reconstruct {tree_reconstruction_method.value} tree with hyphy. Execution output is {subprocess.PIPE}"
-                )
-
-        elif tree_reconstruction_method == TreeReconstructionMethod.FASTTREE:
-            cmd = f"fasttree {input_path} > {output_path}"
-            process = os.system(cmd)
-            if process != 0:
-                raise IOError(
-                    f"failed to reconstruct {tree_reconstruction_method.value} tree with fasttree program. Execution output is {subprocess.PIPE}"
-                )
-
-        elif tree_reconstruction_method == TreeReconstructionMethod.ML:
-            output_dir, output_filename = os.path.split(output_path)
-            aux_dir = f"{output_dir}/raxml_aux/"
-            os.mkdir(aux_dir)
-            os.chdir(aux_dir)
-            model = (
-                tree_reconstruction_params["-m"]
-                if tree_reconstruction_params and "-m" in tree_reconstruction_params
-                else "GTRGAMMA"
-            )
-            num_of_categories = (
-                tree_reconstruction_params["-n"]
-                if tree_reconstruction_params and "-n" in tree_reconstruction_params
-                else 4
-            )
-            cmd = f"raxmlHPC -s {input_path} -n out -m {model} -c {num_of_categories}"
-            process = os.system(cmd)
-            if process != 0:
-                raise IOError(
-                    f"failed to reconstruct ML tree with raxml. Execution output is {subprocess.PIPE}"
-                )
-            os.rename(f"{aux_dir}RAxML_bestTree.out", output_path)
-            os.remove(aux_dir)
 
     def generate_samples(self, pipeline_input: PipelineInput):
         """
@@ -362,17 +166,17 @@ class Pipeline:
                 )
 
                 if (
-                    os.path.exists(
-                        self.samples_info[fraction][method.value][
-                            "unaligned_sequence_data_path"
-                        ]
-                    )
-                    and os.path.getsize(
-                        self.samples_info[fraction][method.value][
-                            "unaligned_sequence_data_path"
-                        ]
-                    )
-                    > 0
+                        os.path.exists(
+                            self.samples_info[fraction][method.value][
+                                "unaligned_sequence_data_path"
+                            ]
+                        )
+                        and os.path.getsize(
+                    self.samples_info[fraction][method.value][
+                        "unaligned_sequence_data_path"
+                    ]
+                )
+                        > 0
                 ):
                     logger.info(
                         f"Sample of fraction {fraction} and size {sample_size} using method {method.value} already "
@@ -398,9 +202,9 @@ class Pipeline:
                     "aligned_sequence_data_path"
                 ] = f"{fraction_to_samples_dir[fraction]}aligned_method_{method.value}.fasta"
                 if os.path.exists(
-                    self.samples_info[fraction][method.value][
-                        "aligned_sequence_data_path"
-                    ]
+                        self.samples_info[fraction][method.value][
+                            "aligned_sequence_data_path"
+                        ]
                 ) and os.path.getsize(
                     self.samples_info[fraction][method.value][
                         "aligned_sequence_data_path"
@@ -418,7 +222,7 @@ class Pipeline:
                     logger.info(
                         f"Aligning the sampled data to {self.samples_info[fraction][method.value]['aligned_sequence_data_path']}"
                     )
-                    Pipeline.align(
+                    BaseTools.align(
                         self.samples_info[fraction][method.value][
                             "unaligned_sequence_data_path"
                         ],
@@ -440,21 +244,21 @@ class Pipeline:
         """
         programs_dir = f"{self.pipeline_dir}/programs_results/"
         program_name_to_instance = dict()
-        completion_validators = (
-            []
-        )  # this list will hold paths to touch files that should be created upon completion of the jobs holding the
+        completion_validators = []  # this list will hold paths to touch files that should be created upon completion of the jobs holding the
+
         # programs executions
-        if pipeline_input.exec_on_full_data:
-            program_to_full_data_output = dict()
+        program_to_full_data_output = dict()
         for program_name in pipeline_input.programs:
             program_dir = f"{programs_dir}{program_name.value}/"
             os.makedirs(program_dir, exist_ok=True)
+            program_aux_dir = f"{program_dir}/aux/"
+            os.makedirs(program_aux_dir, exist_ok=True)
             program_to_exec = program_to_callable[program_name.value]()
             program_name_to_instance[program_name] = program_to_exec
             program_params = None
             if (
-                pipeline_input.programs_params
-                and program_name.value in pipeline_input.programs_params
+                    pipeline_input.programs_params
+                    and program_name.value in pipeline_input.programs_params
             ):
                 program_params = pipeline_input.programs_params[program_name.value]
 
@@ -476,14 +280,18 @@ class Pipeline:
                         queue=pipeline_input.queue,
                         wait_until_complete=False,
                         get_completion_validator=True,
+                        control_file_path=f"{aux_dir}/input.ctl",
+                        input_tree_path=f"{aux_dir}/tree.nwk"
                     )
                     completion_validators.append(completion_validator_path)
                 else:
                     program_to_exec.exec(
-                        input_path,
-                        output_path,
-                        aux_dir,
+                        input_path=input_path,
+                        output_path=output_path,
+                        aux_dir=aux_dir,
                         additional_params=program_params,
+                        control_file_path=f"{aux_dir}/input.ctl",
+                        input_tree_path=f"{aux_dir}/tree.nwk"
                     )
 
             # execute program on each sample
