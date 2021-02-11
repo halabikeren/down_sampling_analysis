@@ -8,7 +8,7 @@ This project compares the performance of several down-samplnig methods in aim of
 
 # Input
 
-A folder with a json file and a sequence data file. See example [here](https://github.com/halabikeren/down_sampling_analysis/tree/master/data/test).
+A folder with a json file and a sequence data file. See example [here](https://github.com/halabikeren/down_sampling_analysis/tree/master/data/test). For additional documentation on the available input parameters, go [here](https://github.com/halabikeren/down_sampling_analysis/blob/master/data/input_json_parameters.txt).
 
 # Docker usage
 ```
