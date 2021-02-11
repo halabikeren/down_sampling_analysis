@@ -94,7 +94,7 @@ class PipelineInput(BaseModel):
     @validator("sampling_fractions")
     def between_zero_and_one(cls, v):
         for item in v:
-            if v <= 0 or v >= 1:
+            if item <= 0 or item >= 1:
                 raise ValueError(
                     f"Sampling fraction {item} is invalid. A value must be between 0 and 1, excluded"
                 )
