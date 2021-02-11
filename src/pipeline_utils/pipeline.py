@@ -10,6 +10,7 @@ from Bio import SeqIO
 import os
 from samplers import *
 from utils import BaseTools
+import numpy as np
 
 from dotenv import load_dotenv, find_dotenv
 
@@ -129,7 +130,7 @@ class Pipeline:
                         "input_path": None,
                         "output_path": None,
                         "aux_dir": None,
-                        "result": None,
+                        "result": dict(),
                         "full_data_result": None,
                     }
 
@@ -248,6 +249,7 @@ class Pipeline:
 
         # programs executions
         program_to_full_data_output = dict()
+        full_data_duration = np.nan
         for program_name in pipeline_input.programs:
             program_dir = f"{programs_dir}{program_name.value}/"
             os.makedirs(program_dir, exist_ok=True)
@@ -268,6 +270,7 @@ class Pipeline:
                 output_path = f"{program_dir}/full_data_{program_name.value}.out"
                 program_to_full_data_output[program_name.value] = output_path
                 aux_dir = f"{os.path.dirname(self.aligned_sequence_data_path)}/{program_name.value}_aux/"
+
                 if pipeline_input.parallelize:
                     completion_validator_path = program_to_exec.exec(
                         input_path,
@@ -285,7 +288,7 @@ class Pipeline:
                     )
                     completion_validators.append(completion_validator_path)
                 else:
-                    program_to_exec.exec(
+                    full_data_duration = program_to_exec.exec(
                         input_path=input_path,
                         output_path=output_path,
                         aux_dir=aux_dir,
@@ -326,12 +329,13 @@ class Pipeline:
                         )
                         completion_validators.append(completion_validator_path)
                     else:
-                        program_to_exec.exec(
+                        duration = program_to_exec.exec(
                             program_exec_info["input_path"],
                             program_exec_info["output_path"],
                             program_exec_info["aux_dir"],
                             additional_params=program_params,
                         )
+                        self.samples_info[fraction][method_name]["programs_performance"][program_name.value]["result"].update({"duration(minutes)": duration / 60})
 
         # wait for programs to finish
         if pipeline_input.parallelize:
@@ -346,6 +350,8 @@ class Pipeline:
             # parse output of the full program
             full_program_output = program_to_full_data_output[program_name.value]
             full_data_result = program_instance.parse_output(full_program_output)
+            if not "duration(minutes)" in full_data_result:
+                full_data_result["duration(minutes)"] = full_data_duration / 60
 
             for fraction in self.samples_info:
                 for method_name in self.samples_info[fraction]:
@@ -354,7 +360,12 @@ class Pipeline:
                     ][program_name.value]["output_path"]
                     self.samples_info[fraction][method_name]["programs_performance"][
                         program_name.value
-                    ]["result"] = program_instance.parse_output(program_output_path)
+                    ]["result"].update(program_instance.parse_output(program_output_path))
                     self.samples_info[fraction][method_name]["programs_performance"][
                         program_name.value
                     ]["full_data_result"] = full_data_result
+
+
+    def write_results(self, output_path: str):
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            self.samples_info
