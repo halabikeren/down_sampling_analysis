@@ -17,7 +17,7 @@ class Job(BaseModel):
     output_dir: str
     commands: t.List[str]
     cpus_number: int = 1
-    mem_alloc: int = 2  # memory allocation in gb
+    mem_alloc: int = 8  # memory allocation in gb
     queue: Queue = Queue.ITAYM
     priority: int = 0
 
