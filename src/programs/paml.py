@@ -145,7 +145,7 @@ class PAML(Program):
     @staticmethod
     def parse_positive_selection_analysis(
         data: str, data_regex: re, column_names
-    ) -> pd.DataFrame:
+    ) -> t.Dict[t.Any, t.Any]:
         """
         :param data: string or the output file content
         :param data_regex: regex to catch the result of the analysis of interest
@@ -162,7 +162,7 @@ class PAML(Program):
         df = pd.read_csv(f, names=column_names, delimiter=r"\s+")
         df["is_significant"] = df["p(w>1)"].apply(lambda x: "*" in str(x))
         df["p(w>1)"] = df["p(w>1)"].apply(lambda x: float(str(x).replace("*", "")))
-        return df
+        return df.to_dict()
 
     @staticmethod
     def parse_output(output_path: str, job_output_dir: t.Optional[str] = None) -> t.Dict[str, t.Any]:
@@ -187,30 +187,32 @@ class PAML(Program):
             neb_positive_selection_regex,
             column_names=["position", "sequence", "p(w>1)", "mean(w)"],
         )
-        beb_positive_selection_regex = re.compile(
-            ".*Naive Empirical Bayes \(NEB\) analysis.*?Pr\(w>1\).*?for w\n\n(.*?)\n\n",
-            re.MULTILINE | re.DOTALL,
-        )
+        try:
+            beb_positive_selection_regex = re.compile(
+                ".*Bayes Empirical Bayes \(BEB\) analysis.*?Pr\(w>1\).*?for w\n\n(.*?)\n\n",
+                re.MULTILINE | re.DOTALL,
+            )
+            result[
+                "BEB_positive_selection_analysis"
+            ] = PAML.parse_positive_selection_analysis(
+                content,
+                beb_positive_selection_regex,
+                column_names=[
+                    "position",
+                    "sequence",
+                    "p(w>1)",
+                    "mean(w)",
+                    "sign",
+                    "standard_error",
+                ],
+            )
+        except Exception as e:  # no bayes empirical bayes analysis is available
+            pass
 
-        result[
-            "BEB_positive_selection_analysis"
-        ] = PAML.parse_positive_selection_analysis(
-            content,
-            beb_positive_selection_regex,
-            column_names=[
-                "position",
-                "sequence",
-                "p(w>1)",
-                "mean(w)",
-                "sign",
-                "standard_error",
-            ],
-        )
         inferred_w_regex = re.compile(
             "MLEs of dN/dS \(w\) for site classes.*?\n\n(.*?)\n\n",
             re.MULTILINE | re.DOTALL,
         )
-
         inferred_w_content = inferred_w_regex.search(content).group(1)
         [props, ws] = [res.split("  ")[1:] for res in inferred_w_content.split("\n")]
         result["ws_inference"] = {

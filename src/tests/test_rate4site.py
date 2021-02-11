@@ -1,6 +1,7 @@
 import os
 import unittest
 from programs import Rate4Site
+import pandas as pd
 
 
 class TestRate4ite(unittest.TestCase):
@@ -32,7 +33,7 @@ class TestRate4ite(unittest.TestCase):
         result = prog.parse_output(self.output_path)
         self.assertAlmostEqual(result["alpha"], 4.43237)
         self.assertTrue(abs(result["log_likelihood"]-(-156.342)) < 0.1)
-        rates_by_position = result["rate_by_position"]
+        rates_by_position = pd.DataFrame.from_dict(result["rate_by_position"])
         self.assertEqual(
             rates_by_position.loc[
                 rates_by_position["position"] == 4, "sequence"

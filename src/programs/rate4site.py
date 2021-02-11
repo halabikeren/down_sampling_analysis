@@ -24,7 +24,7 @@ class Rate4Site(Program):
         self.module_to_load = "Rate4Site/Rate4Site-3.0"
 
     @staticmethod
-    def parse_rates(rates_content: str) -> pd.DataFrame:
+    def parse_rates(rates_content: str) -> t.Dict[t.Any, t.Any]:
         """
         :param rates_content: a string given from rate4site output file
         :return: a parsed rates content in the form of a json
@@ -37,7 +37,7 @@ class Rate4Site(Program):
             names=["position", "sequence", "rate", "qq_interval", "std", "msa_data"],
             delimiter=r"\s+",
         )
-        return rates_df
+        return rates_df.to_dict()
 
     @staticmethod
     def parse_output(

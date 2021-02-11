@@ -125,7 +125,7 @@ class Program:
         :param queue: queue to submit the jobs to
         :param wait_until_complete: indicator weather the main program should wait until completion of all jobs (recommended: True)
         :param get_completion_validator: boolean indicating weather a validator file should be generated upon job completion (recommended: True)
-        :return: either the duration of the command, if no parallelization was selected, or the path to the touch file that is used for validation of job completion in case of parallelization
+        :return: either the duration of the command in minutes, if no parallelization was selected, or the path to the touch file that is used for validation of job completion in case of parallelization
         """
         command = self.set_command(
             input_path=input_path, output_path=output_path, additional_params=additional_params, parallelize=parallelize, cluster_data_dir=cluster_data_dir, **kwargs)
@@ -145,7 +145,7 @@ class Program:
                     f"command {command} failed to execute."
                 )
             end_time = time()
-            return end_time - start_time
+            return (end_time - start_time) / 60
         else:
             commands = [
                 f"cd {aux_dir.replace(os.environ['container_data_dir'], cluster_data_dir)}",
@@ -183,7 +183,7 @@ class Program:
         with open(output_path, "r") as out:
             output_content = out.read()
 
-        result = {"row_output": output_content}
+        result = {"raw_output": output_content}
 
         if job_output_dir:
             timestamp_regex = re.compile("(\d*\:\d*\:\d*)")

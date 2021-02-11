@@ -1,6 +1,7 @@
 import os
 import unittest
 from programs import PAML
+import pandas as pd
 
 
 class TestPAML(unittest.TestCase):
@@ -36,15 +37,16 @@ class TestPAML(unittest.TestCase):
             control_file_path=self.control_filepath
         )
         result = prog.parse_output(self.output_path)
-        self.assertTrue(result['BEB_positive_selection_analysis'].loc[result['NEB_positive_selection_analysis']["position"] == 50, "is_significant"].values[0])
-        self.assertTrue(abs(result['BEB_positive_selection_analysis'].loc[
-                            result['BEB_positive_selection_analysis']["position"] == 50, "mean(w)"].values[0]-4.705) < 0.1)
-
-        self.assertTrue(not result['BEB_positive_selection_analysis'].loc[result['BEB_positive_selection_analysis']["position"] == 15, "is_significant"].values[0])
-        self.assertTrue(abs(result['BEB_positive_selection_analysis'].loc[
-                                result['BEB_positive_selection_analysis']["position"] == 15, "p(w>1)"].values[
-                                0] - 0.913) < 0.1)
+        NEB_positive_selection_analysis = pd.DataFrame.from_dict(result["NEB_positive_selection_analysis"])
+        self.assertTrue(NEB_positive_selection_analysis.loc[NEB_positive_selection_analysis["position"] == 50, "is_significant"].values[0])
+        self.assertTrue(abs(NEB_positive_selection_analysis.loc[NEB_positive_selection_analysis["position"] == 50, "mean(w)"].values[0]-4.705) < 0.1)
+        self.assertTrue(not NEB_positive_selection_analysis.loc[NEB_positive_selection_analysis["position"] == 15, "is_significant"].values[0])
+        self.assertTrue(abs(NEB_positive_selection_analysis.loc[NEB_positive_selection_analysis["position"] == 15, "p(w>1)"].values[0] - 0.913) < 0.1)
         self.assertTrue(result["ws_inference"][1]["prop"] <= 1)
         self.assertTrue(result["ws_inference"][1]["w"] < 0.4)
         self.assertTrue(int(result["duration(minutes)"]) < 2)
+
+    def tearDown(self):
+        if os.path.exists(self.output_path):
+            os.remove(self.output_path)
 
