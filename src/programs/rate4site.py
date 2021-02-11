@@ -41,11 +41,14 @@ class Rate4Site(Program):
 
     @staticmethod
     def parse_output(
-        output_path: str, aux_dir: t.Optional[str] = None
+        output_path: str, job_output_dir: t.Optional[str] = None
     ) -> t.Dict[str, t.Any]:
         """
+        :param output_path
+        :param job_output_dir
         :return: None. parses the output file into a json form and saves it into self.result
         """
+        result = super(Rate4Site, Rate4Site).parse_output(output_path=output_path, job_output_dir=job_output_dir)
         with open(output_path, "r") as output_file:
             output_content = output_file.read()
         output_regex = re.compile(
@@ -53,15 +56,7 @@ class Rate4Site(Program):
             re.MULTILINE | re.DOTALL,
         )
         output_match = output_regex.search(output_content)
-        result = dict()
         result["alpha"] = float(output_match.group(1))
         result["log_likelihood"] = float(output_match.group(2))
         result["rate_by_position"] = Rate4Site.parse_rates(output_match.group(3))
-        if aux_dir:
-            job_path = [jpath for jpath in os.listdir(aux_dir) if ".OU" in jpath][0]
-            with open(job_path, "r") as outfile:
-                job_content = outfile.readlines()
-                start_time = float(job_content[0])
-                end_time = float(job_content[-1])
-                result["duration"] = end_time - start_time
         return result

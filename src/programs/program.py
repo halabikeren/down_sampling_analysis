@@ -1,7 +1,11 @@
 import os
 import typing as t
 from dataclasses import dataclass
+from datetime import datetime
 from time import time
+
+import re
+
 from utils import Job
 import json
 
@@ -109,7 +113,7 @@ class Program:
         wait_until_complete: bool = False,
         get_completion_validator: bool = True,
         **kwargs
-    ) -> t.Optional[str]:
+    ) -> t.Union[float, str]:
         """
         :param input_path: path to alignment file
         :param output_path: path in which the program should write its output
@@ -121,7 +125,7 @@ class Program:
         :param queue: queue to submit the jobs to
         :param wait_until_complete: indicator weather the main program should wait until completion of all jobs (recommended: True)
         :param get_completion_validator: boolean indicating weather a validator file should be generated upon job completion (recommended: True)
-        :return:
+        :return: either the duration of the command, if no parallelization was selected, or the path to the touch file that is used for validation of job completion in case of parallelization
         """
         command = self.set_command(
             input_path=input_path, output_path=output_path, additional_params=additional_params, parallelize=parallelize, cluster_data_dir=cluster_data_dir, **kwargs)
@@ -145,9 +149,12 @@ class Program:
         else:
             commands = [
                 f"cd {aux_dir.replace(os.environ['container_data_dir'], cluster_data_dir)}",
-                '"date +" % s"',
+                '''timestamp() {
+                      date +"%T" # current time
+                    }
+                    timestamp''',
                 command,
-                '"date +" % s"',
+                'timestamp',
             ]
 
             job = Job(
@@ -165,25 +172,43 @@ class Program:
             return completion_validator
 
     @staticmethod
-    def parse_output(output_path: str) -> t.Dict[str, t.Any]:
+    def parse_output(output_path: str, job_output_dir: t.Optional[str] = None) -> t.Dict[str, t.Any]:
+        """
+        :param output_path: path holding the output of the program
+        :param job_output_dir: directory holding the output of the job, in case parallelization was chosen
+        :return: a dictionary holding the parsed result of the program execution
+        """
         if not os.path.exists(output_path):
             raise ValueError(f"output path {output_path} does not exist")
         with open(output_path, "r") as out:
             output_content = out.read()
 
         result = {"row_output": output_content}
+
+        if job_output_dir:
+            timestamp_regex = re.compile("(\d*\:\d*\:\d*)")
+            job_output_path = [path for path in os.listdir(job_output_dir) if ".OU" in path][0]
+            with open(job_output_path, "r") as job_output_file:
+                content = job_output_file.read()
+            times = [match.group(1) for match in timestamp_regex.finditer(content)]
+            start_time = datetime.strptime(times[0], "%H:%M:%S")
+            end_time = datetime.strptime(times[-1], "%H:%M:%S")
+            duration = (end_time-start_time).total_seconds()/60
+            result["duration(minutes)"] = duration
+
         return result
 
     @staticmethod
-    def write_result_json(input_path: str, output_path: str):
+    def write_result_json(input_path: str, job_output_dir: t.Optional[str], output_path: str):
         """
         :param input_path: path to file with the raw program results
+        :param job_output_dir: path to the job's output which holds duration measures in case of parallelization
         :param output_path: path ot write the json file to
         :return:
         """
         output_dir = os.path.dirname(output_path)
         os.makedirs(output_dir, exist_ok=True)
-        result = Program.parse_output(input_path)
+        result = Program.parse_output(input_path=input_path, job_output_dir=job_output_dir)
         with open(output_path, "w") as output:
             json.dump(result, output)
 

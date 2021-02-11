@@ -6,6 +6,7 @@ from io import StringIO
 import pandas as pd
 
 from utils import SequenceDataType, TreeReconstructionMethod, BaseTools
+from . import Rate4Site
 from .program import Program
 
 from dotenv import load_dotenv, find_dotenv
@@ -164,13 +165,14 @@ class PAML(Program):
         return df
 
     @staticmethod
-    def parse_output(output_path: str) -> t.Dict[str, t.Any]:
+    def parse_output(output_path: str, job_output_dir: t.Optional[str] = None) -> t.Dict[str, t.Any]:
         """
         the parser is currently compatible only with site-models
         :param output_path:
+        :param job_output_dir:
         :return:
         """
-        result = dict()
+        result = super(PAML, PAML).parse_output(output_path=output_path, job_output_dir=job_output_dir)
         with open(output_path, "r") as outfile:
             content = outfile.read()
 
