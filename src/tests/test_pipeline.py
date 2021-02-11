@@ -1,4 +1,3 @@
-import shutil
 import typing as t
 import os
 import unittest
@@ -68,7 +67,6 @@ class TestPipeline(unittest.TestCase):
         self.assertTrue(os.path.exists(self.output_path))
         with open(self.output_path, "r") as results_file:
             result = json.load(results_file)
-
 
     def tearDown(self):
         with open(TestPipeline.json_path, "r") as json_file:

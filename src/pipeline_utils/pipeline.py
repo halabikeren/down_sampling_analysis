@@ -362,10 +362,12 @@ class Pipeline:
                     program_output_path = self.samples_info[fraction][method_name][
                         "programs_performance"
                     ][program_name.value]["output_path"]
-                    job_output_dir = self.samples_info[fraction][method_name]["programs_performance"][program_name.value]["aux_dir"]
+                    job_output_dir = \
+                        self.samples_info[fraction][method_name]["programs_performance"][program_name.value]["aux_dir"]
                     self.samples_info[fraction][method_name]["programs_performance"][
                         program_name.value
-                    ]["result"].update(program_instance.parse_output(output_path=program_output_path, job_output_dir = job_output_dir if pipeline_input.parallelize else None))
+                    ]["result"].update(program_instance.parse_output(output_path=program_output_path,
+                                                                     job_output_dir=job_output_dir if pipeline_input.parallelize else None))
                     if pipeline_input.exec_on_full_data:
                         self.samples_info[fraction][method_name]["programs_performance"][
                             program_name.value

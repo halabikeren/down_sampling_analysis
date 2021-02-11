@@ -81,8 +81,8 @@ class Paml(Program):
         )
         return f"{self.program_exe} {control_file_path}"
 
+    @staticmethod
     def set_control_file(
-        self,
         input_aln_path: str,
         input_tree_path: str,
         output_path: str,
@@ -91,8 +91,8 @@ class Paml(Program):
         sequence_data_type: SequenceDataType = SequenceDataType.CODON,
     ):
         """
-        :param input_path: alignment path
-        :paeam input_tree_path: tree path
+        :param input_aln_path: alignment path
+        :param input_tree_path: tree path
         :param output_path: program output path
         :param control_file_path: path in which the control file will be generated
         :param additional_params: additional parameters for PAML's control file

@@ -65,7 +65,7 @@ class Pda(Sampler):
 
     @staticmethod
     def get_max_pd_pair(
-        node: Tree, node_to_height: t.Dict[str, t.Tuple[float, str]]
+            node: Tree, node_to_height: t.Dict[str, t.Tuple[float, str]]
     ) -> t.Tuple[t.List[str], float]:
         """
         :param node: node under which to two farthest leaves need to be detected
@@ -124,7 +124,7 @@ class Pda(Sampler):
         max_pd_leaves = ["", ""]
         for (leaf_1, leaf_2) in pairs:
             pd_score = self.norm_factor * self.tree.get_distance(leaf_1, leaf_2) + (
-                self.taxon_to_weight[leaf_1.name] + self.taxon_to_weight[leaf_2.name]
+                    self.taxon_to_weight[leaf_1.name] + self.taxon_to_weight[leaf_2.name]
             )
             if pd_score > max_pd_score:
                 max_pd_score = pd_score
@@ -202,7 +202,7 @@ class Pda(Sampler):
                 i += 1
 
     def exec_external_pda(
-        self, k: int, aux_dir: str, is_weighted: bool = False
+            self, k: int, aux_dir: str, is_weighted: bool = False
     ) -> t.List[str]:
         """
         :param k: sample size
@@ -215,7 +215,7 @@ class Pda(Sampler):
         weights_arg = ""
         if is_weighted:
             with open(
-                f"{os.path.dirname(self.sequences_path)}/weights.txt", "w"
+                    f"{os.path.dirname(self.sequences_path)}/weights.txt", "w"
             ) as weights_file:
                 weights_file.write(f"{self.norm_factor}\n")
                 for taxon in self.taxon_to_weight:
@@ -241,11 +241,11 @@ class Pda(Sampler):
         return sample_members
 
     def get_sample(
-        self,
-        k: int,
-        aux_dir: str,
-        is_weighted: bool = False,
-        use_external: bool = False,
+            self,
+            k: int,
+            aux_dir: str,
+            is_weighted: bool = False,
+            use_external: bool = False,
     ) -> t.Union[str, t.List[SeqIO.SeqRecord]]:
         """
         computes the most phylogenetically diverse weighted sample based on the greedy algorithm of Steel (2005).

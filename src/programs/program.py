@@ -27,15 +27,15 @@ class Program:
     output_param_name: str = ""  # maps parameter name to parameter value
 
     def __init__(
-        self):  # set to allow inheriting classes to receive additional arguments for setting additional
+            self):  # set to allow inheriting classes to receive additional arguments for setting additional
         pass
 
     @staticmethod
     def set_additional_params(
-        additional_params: t.Dict[str, str],
-        parallelize: bool,
-        cluster_data_dir: str,
-        return_as_str: bool = True,
+            additional_params: t.Dict[str, str],
+            parallelize: bool,
+            cluster_data_dir: str,
+            return_as_str: bool = True,
     ) -> t.Optional[str]:
         """
         :param additional_params: dictionary mapping names to values f additional parameters for the program
@@ -65,13 +65,13 @@ class Program:
                 return additional_params_str
 
     def set_command(
-        self,
-        input_path: str,
-        output_path: str,
-        additional_params: t.Optional[t.Dict[str, str]],
-        parallelize: bool,
-        cluster_data_dir: str,
-        **kwargs,
+            self,
+            input_path: str,
+            output_path: str,
+            additional_params: t.Optional[t.Dict[str, str]],
+            parallelize: bool,
+            cluster_data_dir: str,
+            **kwargs,
     ) -> str:
         """
         :param input_path: path to the input of the program
@@ -99,20 +99,19 @@ class Program:
         command = f"{self.program_exe if not parallelize else self.cluster_program_exe} {input_str} {output_str} {additional_params_str} "
         return command
 
-
     def exec(
-        self,
-        input_path: str,
-        output_path: str,
-        aux_dir: str,
-        additional_params: t.Optional[t.Dict[str, str]] = None,
-        parallelize: bool = False,
-        cluster_data_dir: t.Optional[str] = None,
-        priority: int = 0,
-        queue: str = "itaym",
-        wait_until_complete: bool = False,
-        get_completion_validator: bool = True,
-        **kwargs
+            self,
+            input_path: str,
+            output_path: str,
+            aux_dir: str,
+            additional_params: t.Optional[t.Dict[str, str]] = None,
+            parallelize: bool = False,
+            cluster_data_dir: t.Optional[str] = None,
+            priority: int = 0,
+            queue: str = "itaym",
+            wait_until_complete: bool = False,
+            get_completion_validator: bool = True,
+            **kwargs
     ) -> t.Union[float, str]:
         """
         :param input_path: path to alignment file
@@ -128,7 +127,8 @@ class Program:
         :return: either the duration of the command in minutes, if no parallelization was selected, or the path to the touch file that is used for validation of job completion in case of parallelization
         """
         command = self.set_command(
-            input_path=input_path, output_path=output_path, additional_params=additional_params, parallelize=parallelize, cluster_data_dir=cluster_data_dir, **kwargs)
+            input_path=input_path, output_path=output_path, additional_params=additional_params,
+            parallelize=parallelize, cluster_data_dir=cluster_data_dir, **kwargs)
         os.makedirs(aux_dir, exist_ok=True)
 
         if os.path.exists(output_path):
@@ -193,7 +193,7 @@ class Program:
             times = [match.group(1) for match in timestamp_regex.finditer(content)]
             start_time = datetime.strptime(times[0], "%H:%M:%S")
             end_time = datetime.strptime(times[-1], "%H:%M:%S")
-            duration = (end_time-start_time).total_seconds()/60
+            duration = (end_time - start_time).total_seconds() / 60
             result["duration(minutes)"] = duration
 
         return result
@@ -211,4 +211,3 @@ class Program:
         result = Program.parse_output(input_path=input_path, job_output_dir=job_output_dir)
         with open(output_path, "w") as output:
             json.dump(result, output)
-

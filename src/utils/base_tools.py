@@ -101,7 +101,7 @@ class BaseTools:
                 and alignment_method == AlignmentMethod.MAFFT
         ):
             alignment_input_path = output_path.replace(".fasta", "_translated.fasta")
-            Utils.translate(
+            BaseTools.translate(
                 sequence_records,
                 input_path.replace(".fasta", "_translated.fasta"),
             )
@@ -129,7 +129,7 @@ class BaseTools:
                 alignment_method == AlignmentMethod.MAFFT
                 and sequence_data_type == SequenceDataType.CODON
         ):
-            Utils.reverse_translate(
+            BaseTools.reverse_translate(
                 input_path,
                 alignment_output_path,
                 output_path,
