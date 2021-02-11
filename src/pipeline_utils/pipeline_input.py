@@ -48,6 +48,10 @@ class PipelineInput(BaseModel):
     sampling_methods: t.List[SamplingMethod] = Field(
         default_factory=lambda: [m for m in SamplingMethod]
     )  # the methods of sampling that should be used in the scope of the pipeline
+    weight_pda: bool = (
+        False  # indicator weather when using PDA, weighting should be used or not
+    )
+    use_external_pda: bool = True  # indicator weather external pda should be used
     samples_alignment_method: AlignmentMethod = (
         AlignmentMethod.MAFFT
     )  # the method that the alignment should be build with, in case that it is not provided
@@ -61,10 +65,6 @@ class PipelineInput(BaseModel):
     exec_on_full_data: bool = (
         True  # indicates weather the program should be executed on the full dataset
     )
-    weight_pda: bool = (
-        False  # indicator weather when using PDA, weighting should be used or not
-    )
-    use_external_pda: bool = True  # indicator weather external pda should be used
     parallelize: bool = False  # indicator weather execution of programs on the samples should be parallelized or not
     cluster_data_dir: t.Optional[str] = None
     priority: int = (

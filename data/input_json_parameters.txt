@@ -1,0 +1,74 @@
+# if running via container, paths to files should be placed in the same folder as the input json file and the paths should be relative (i.e., consists only of the file name)
+
+pipeline_dir                 # directory in which the pipeline will generate output. mandatory.
+
+unaligned_sequence_data_path # path to unaligned sequence data to be down-sampled.
+                             # mandatory
+
+aligned_sequence_data_path   # path to aligned sequence data to be down-sampled.
+                             # not mandatory. if provided, the sequence data will not be aligned.
+
+sequence_data_type           # type of sequence data. options are: "nucleotide", "codon", "amino_acid".
+                             # mandatory.
+
+alignment_method             # the method with which the full sequence data should be aligned. options are: "mafft", "prank"
+                             # not mandatory. "mafft" by default.
+
+alignment_params             # additional parameters to be passed to the alignment program in the form of a dictionary that maps parameter name to value
+                             # not mandatory. None by default.
+
+tree_path                    # pth to a tree of the full sequences, which will be used by PDA sampler.
+                             # not mandatory. if provided, a tree based on the full data will not be reconstructed.
+
+tree_reconstruction_method   # the method with which the tree based on full sequence data should be built. options are: "fasttree", "nj", "upgma", "ml"
+                             # not mandatory. "fasttree" by default.
+
+tree_reconstruction_params   # additional parameters to be passed to the tree reconstruction program in the form of a dictionary that maps parameter name to value
+                             # not mandatory. None by default.
+
+sampling_fractions           # fractions by which the data should be down sampled. a list of numbers between 0 and 1, excluded.
+                             # not mandatory. [0.25, 0.5, 0.75] by default.
+
+sampling_methods             # methods with which the data should be down sampled. options are: "pda", "cdhit", "random"
+                             # not mandatory. ["pda", "cdhit", "random"] by default.
+
+weight_pda                   # boolean indicating weather pda should be used with weights that are based on sequence informativity or not.
+                             # not mandatory. 0 by default.
+
+use_external_pda             # boolean indicating weather pda should be run based on http://www.cibiv.at/software/pda/ or with an internal implementation. 1 for external, 0 for internal.
+                             # not mandatory. 1 by default.
+
+samples_alignment_method     # the method with which the the sampled sequence data should be aligned. options are: "mafft", "prank"
+                             # not mandatory. "mafft" by default.
+
+samples_alignment_params     # additional parameters to be passed to the alignment program in the form of a dictionary that maps parameter name to value
+                             # not mandatory. None by default.
+
+programs                     # a list of programs to execute the pipeline with, options are: "rate4site", "paml"
+                             # rate4 site can run on all sequence data types. paml can run only on codon data.
+                             # not mandatory. ["rate4site", "paml"] by default.
+
+programs_params              # dictionary mapping each program name to additional parameters to execute it with. the additional parameters are set as as a map of parameter name to parameter value.
+                             # not mandatory. None by default.
+
+exec_on_full_data            # boolean indicating weather the pipeline should run on the full intial data as well (when set to 1) or not (when set to 0)
+                             # not mandatory. 1 by default
+
+parallelize                  # boolean indicating weather the pipeline should run in parallel (when set to 1) or not (when set to 0)
+                             # parallelization is only possible via HPC (currently adjusted to power8, queues of Itay Mayrose's lab)
+                             # not mandatory. 0 by default.
+
+cluster_data_dir             # absolute path to the directory holding the json input file and initial sequence data file.
+                             # will be used only if parallelization is set 1 and the program is run on HPC.
+                             # not mandatory. None by default.
+
+priority                     # the priority with which jobs submitted via the pipeline sold be executed with.
+                             # will be used only if parallelization is set 1 and the program is run on HPC.
+                             # not mandatory. 0 by default.
+
+queue                        # the queue on which jobs submitted via the pipeline sold be executed. options are: itaym, itaym1, itaym2, itaym3, itaym4, itaymaa
+                             # will be used only if parallelization is set 1 and the program is run on HPC.
+                             # not mandatory. itaym by default.
+
+
+
