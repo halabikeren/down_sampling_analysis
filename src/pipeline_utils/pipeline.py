@@ -1,3 +1,4 @@
+import json
 import shutil
 import typing as t
 from .pipeline_input import PipelineInput
@@ -269,13 +270,13 @@ class Pipeline:
                 input_path = self.aligned_sequence_data_path
                 output_path = f"{program_dir}/full_data_{program_name.value}.out"
                 program_to_full_data_output[program_name.value] = output_path
-                aux_dir = f"{os.path.dirname(self.aligned_sequence_data_path)}/{program_name.value}_aux/"
+                full_data_program_aux_dir = f"{os.path.dirname(self.aligned_sequence_data_path)}/{program_name.value}_aux/"
 
                 if pipeline_input.parallelize:
                     completion_validator_path = program_to_exec.exec(
-                        input_path,
-                        output_path,
-                        aux_dir,
+                        input_path=input_path,
+                        output_path=output_path,
+                        aux_dir=full_data_program_aux_dir,
                         additional_params=program_params,
                         parallelize=pipeline_input.parallelize,
                         cluster_data_dir=pipeline_input.cluster_data_dir,
@@ -283,18 +284,18 @@ class Pipeline:
                         queue=pipeline_input.queue,
                         wait_until_complete=False,
                         get_completion_validator=True,
-                        control_file_path=f"{aux_dir}/input.ctl",
-                        input_tree_path=f"{aux_dir}/tree.nwk"
+                        control_file_path=f"{full_data_program_aux_dir}/input.ctl",
+                        input_tree_path=f"{full_data_program_aux_dir}/tree.nwk"
                     )
                     completion_validators.append(completion_validator_path)
                 else:
                     full_data_duration = program_to_exec.exec(
                         input_path=input_path,
                         output_path=output_path,
-                        aux_dir=aux_dir,
+                        aux_dir=full_data_program_aux_dir,
                         additional_params=program_params,
-                        control_file_path=f"{aux_dir}/input.ctl",
-                        input_tree_path=f"{aux_dir}/tree.nwk"
+                        control_file_path=f"{full_data_program_aux_dir}/input.ctl",
+                        input_tree_path=f"{full_data_program_aux_dir}/tree.nwk"
                     )
 
             # execute program on each sample
@@ -335,7 +336,8 @@ class Pipeline:
                             program_exec_info["aux_dir"],
                             additional_params=program_params,
                         )
-                        self.samples_info[fraction][method_name]["programs_performance"][program_name.value]["result"].update({"duration(minutes)": duration / 60})
+                        self.samples_info[fraction][method_name]["programs_performance"][program_name.value][
+                            "result"].update({"duration(minutes)": duration})
 
         # wait for programs to finish
         if pipeline_input.parallelize:
@@ -348,24 +350,28 @@ class Pipeline:
             program_instance = program_name_to_instance[program_name]
 
             # parse output of the full program
-            full_program_output = program_to_full_data_output[program_name.value]
-            full_data_result = program_instance.parse_output(full_program_output)
-            if not "duration(minutes)" in full_data_result:
-                full_data_result["duration(minutes)"] = full_data_duration / 60
+            if pipeline_input.exec_on_full_data:
+                full_program_output = program_to_full_data_output[program_name.value]
+                full_data_result = program_instance.parse_output(output_path=full_program_output, job_output_dir=(
+                    full_data_program_aux_dir if pipeline_input.parallelize else None))
+                if "duration(minutes)" not in full_data_result:
+                    full_data_result["duration(minutes)"] = full_data_duration
 
             for fraction in self.samples_info:
                 for method_name in self.samples_info[fraction]:
                     program_output_path = self.samples_info[fraction][method_name][
                         "programs_performance"
                     ][program_name.value]["output_path"]
+                    job_output_dir = self.samples_info[fraction][method_name]["programs_performance"][program_name.value]["aux_dir"]
                     self.samples_info[fraction][method_name]["programs_performance"][
                         program_name.value
-                    ]["result"].update(program_instance.parse_output(program_output_path))
-                    self.samples_info[fraction][method_name]["programs_performance"][
-                        program_name.value
-                    ]["full_data_result"] = full_data_result
-
+                    ]["result"].update(program_instance.parse_output(output_path=program_output_path, job_output_dir = job_output_dir if pipeline_input.parallelize else None))
+                    if pipeline_input.exec_on_full_data:
+                        self.samples_info[fraction][method_name]["programs_performance"][
+                            program_name.value
+                        ]["full_data_result"] = full_data_result
 
     def write_results(self, output_path: str):
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            self.samples_info
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        with open(output_path, "w") as outfile:
+            json.dump(self.samples_info, outfile)

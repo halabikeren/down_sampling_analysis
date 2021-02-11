@@ -9,11 +9,14 @@ from pipeline_utils import PipelineInput, Pipeline
 
 class TestPipeline(unittest.TestCase):
     json_path = "/data/test/input.json"
+    output_path = "/data/test/pipeline_output.json"
 
     def generate_pipeline_input(self) -> PipelineInput:
         os.chdir(os.path.dirname(self.json_path))
         with open(self.json_path, "r") as json_file:
             pipeline_json_input = json.load(json_file)
+        if os.path.exists(pipeline_json_input["pipeline_dir"]):
+            os.system(f"rm -rf {pipeline_json_input['pipeline_dir']}")
         os.makedirs(pipeline_json_input["pipeline_dir"], exist_ok=True)
         pipeline_input = PipelineInput(**pipeline_json_input)
         return pipeline_input
@@ -32,6 +35,7 @@ class TestPipeline(unittest.TestCase):
         return pipeline_input, pipeline
 
     def test_samples_generation(self):
+
         pipeline_input, pipeline = self.call_samples_generation()
         full_data_size = len(
             list(SeqIO.parse(pipeline_input.unaligned_sequence_data_path, "fasta"))
@@ -56,6 +60,15 @@ class TestPipeline(unittest.TestCase):
                         "programs_performance"
                     ][program_name.value]
                     self.assertIsInstance(program_info["result"], dict)
+
+    def test_program_write_output(self):
+        pipeline_input, pipeline = self.call_samples_generation()
+        pipeline.execute_programs(pipeline_input)
+        pipeline.write_results(self.output_path)
+        self.assertTrue(os.path.exists(self.output_path))
+        with open(self.output_path, "r") as results_file:
+            result = json.load(results_file)
+
 
     def tearDown(self):
         with open(TestPipeline.json_path, "r") as json_file:
