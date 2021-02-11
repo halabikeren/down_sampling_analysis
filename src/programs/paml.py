@@ -6,7 +6,6 @@ from io import StringIO
 import pandas as pd
 
 from utils import SequenceDataType, TreeReconstructionMethod, BaseTools
-from . import Rate4Site
 from .program import Program
 
 from dotenv import load_dotenv, find_dotenv
@@ -15,7 +14,7 @@ load_dotenv(find_dotenv())
 
 
 @dataclass
-class PAML(Program):
+class Paml(Program):
 
     def __init__(
         self):
@@ -172,7 +171,7 @@ class PAML(Program):
         :param job_output_dir:
         :return:
         """
-        result = super(PAML, PAML).parse_output(output_path=output_path, job_output_dir=job_output_dir)
+        result = super(Paml, Paml).parse_output(output_path=output_path, job_output_dir=job_output_dir)
         with open(output_path, "r") as outfile:
             content = outfile.read()
 
@@ -182,7 +181,7 @@ class PAML(Program):
         )
         result[
             "NEB_positive_selection_analysis"
-        ] = PAML.parse_positive_selection_analysis(
+        ] = Paml.parse_positive_selection_analysis(
             content,
             neb_positive_selection_regex,
             column_names=["position", "sequence", "p(w>1)", "mean(w)"],
@@ -194,7 +193,7 @@ class PAML(Program):
             )
             result[
                 "BEB_positive_selection_analysis"
-            ] = PAML.parse_positive_selection_analysis(
+            ] = Paml.parse_positive_selection_analysis(
                 content,
                 beb_positive_selection_regex,
                 column_names=[

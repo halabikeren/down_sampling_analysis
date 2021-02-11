@@ -1,6 +1,6 @@
 import os
 import unittest
-from programs import PAML
+from programs import Paml
 import pandas as pd
 
 
@@ -12,10 +12,10 @@ class TestPAML(unittest.TestCase):
     control_filepath = "/data/test/paml.ctl"
 
     def test_creation(self):
-        prog = PAML()
+        prog = Paml()
 
     def test_exec(self):
-        prog = PAML()
+        prog = Paml()
         prog.exec(
             input_path=self.input_path,
             output_path=self.output_path,
@@ -27,7 +27,7 @@ class TestPAML(unittest.TestCase):
         self.assertTrue(os.path.exists(self.output_path))
 
     def test_parse_output(self):
-        prog = PAML()
+        prog = Paml()
         prog.exec(
             input_path=self.input_path,
             output_path=self.output_path,
