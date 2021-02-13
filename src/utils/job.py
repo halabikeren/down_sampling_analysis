@@ -40,7 +40,7 @@ class Job(BaseModel):
                 f"#PBS -l select=ncpus={self.cpus_number}:mem={self.mem_alloc}gb\n"
             )
             handle.write("\n".join(self.commands))
-            handle.write(f"touch {self.output_dir}{self.name}.touch")
+            handle.write(f"\ntouch {self.output_dir}{self.name}.touch")
 
     def submit(
         self, wait_until_complete: bool = False, get_completion_validator: bool = True
