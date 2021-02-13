@@ -109,10 +109,9 @@ class BaseTools:
 
         cmd = ""
         if not alignment_method or alignment_method == AlignmentMethod.MAFFT:
-
-            cmd = f"mafft --localpair --maxiterate 1000 {input_path} > /{output_path}"
+            cmd = f"mafft --localpair --maxiterate 1000 {alignment_input_path} > /{alignment_output_path}"
         elif alignment_method == AlignmentMethod.PRANK:
-            cmd = f"prank -d={input_path} -o={output_path} -f=fasta -support {'-codon' if sequence_data_type == SequenceDataType.CODON else ''} -iterate=100 -showtree "
+            cmd = f"prank -d={alignment_input_path} -o={alignment_output_path} -f=fasta -support {'-codon' if sequence_data_type == SequenceDataType.CODON else ''} -iterate=100 -showtree "
         if alignment_params:
             cmd += " ".join(
                 [
@@ -181,7 +180,7 @@ class BaseTools:
                 )
 
         elif tree_reconstruction_method == TreeReconstructionMethod.FASTTREE:
-            cmd = f"(fasttree {input_path} > {output_path})  > /dev/null 2>&1"
+            cmd = f"(fasttree {input_path} > {output_path})" #  > /dev/null 2>&1"
             res = os.system(cmd)  # need to find another way to swalloe strdout here because fasttree doesn't like ">"
             if res:  # inconsistent bug here
                 raise IOError(
