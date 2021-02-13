@@ -100,7 +100,7 @@ class BaseTools:
                 sequence_data_type == SequenceDataType.CODON
                 and alignment_method == AlignmentMethod.MAFFT
         ):
-            alignment_input_path = output_path.replace(".fasta", "_translated.fasta")
+            alignment_input_path = input_path.replace(".fasta", "_translated.fasta")
             BaseTools.translate(
                 sequence_records,
                 input_path.replace(".fasta", "_translated.fasta"),
@@ -109,9 +109,9 @@ class BaseTools:
 
         cmd = ""
         if not alignment_method or alignment_method == AlignmentMethod.MAFFT:
-            cmd = f"mafft --localpair --maxiterate 1000 {alignment_input_path} > /{alignment_output_path}"
+            cmd = f"(mafft --localpair --maxiterate 1000 {alignment_input_path} > {alignment_output_path}) > /dev/null 2>&1"
         elif alignment_method == AlignmentMethod.PRANK:
-            cmd = f"prank -d={alignment_input_path} -o={alignment_output_path} -f=fasta -support {'-codon' if sequence_data_type == SequenceDataType.CODON else ''} -iterate=100 -showtree "
+            cmd = f"(prank -d={alignment_input_path} -o={alignment_output_path} -f=fasta -support {'-codon' if sequence_data_type == SequenceDataType.CODON else ''} -iterate=100 -showtree) > /dev/null 2>&1"
         if alignment_params:
             cmd += " ".join(
                 [
@@ -119,11 +119,11 @@ class BaseTools:
                     for param_name in alignment_params
                 ]
             )
-        process = subprocess.run(cmd, shell=True, capture_output=True)
-        if process.returncode != 0:
+        process = os.system(cmd)
+        if process != 0:
             raise IOError(
-                f"failed to align {output_path} with {alignment_method.value} execution output is {process.stderr}"
-            )
+                    f"failed to align {alignment_output_path} with {alignment_method.value}"
+                )
         if (
                 alignment_method == AlignmentMethod.MAFFT
                 and sequence_data_type == SequenceDataType.CODON
@@ -180,7 +180,7 @@ class BaseTools:
                 )
 
         elif tree_reconstruction_method == TreeReconstructionMethod.FASTTREE:
-            cmd = f"(fasttree {input_path} > {output_path})" #  > /dev/null 2>&1"
+            cmd = f"(fasttree {input_path} > {output_path}) > /dev/null 2>&1"
             res = os.system(cmd)  # need to find another way to swalloe strdout here because fasttree doesn't like ">"
             if res:  # inconsistent bug here
                 raise IOError(
