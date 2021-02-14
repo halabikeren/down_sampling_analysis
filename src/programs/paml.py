@@ -20,7 +20,7 @@ class Paml(Program):
         self):
         super().__init__()
         self.name = "paml"
-        self.program_exe = "codeml"
+        self.program_exe = os.environ["paml"]
         self.cluster_program_exe = os.environ["cluster_paml"]
         self.tree_reconstruction_method: TreeReconstructionMethod = (
             TreeReconstructionMethod.FASTTREE
@@ -63,13 +63,16 @@ class Paml(Program):
             additional_params, parallelize, cluster_data_dir, return_as_str=False
         )
 
-        BaseTools.build_tree(
-            input_path,
-            input_tree_path,
-            sequence_data_type,
-            self.tree_reconstruction_method,
-            self.tree_reconstruction_prams,
-        )
+        if additional_params and "input_tree_path" in additional_params:
+            input_tree_path = additional_params["input_tree_path"]
+        else:
+            BaseTools.build_tree(
+                input_path,
+                input_tree_path,
+                sequence_data_type,
+                self.tree_reconstruction_method,
+                self.tree_reconstruction_prams,
+            )
 
         self.set_control_file(
             program_input_path,
