@@ -187,7 +187,7 @@ class Program:
 
         if job_output_dir:
             timestamp_regex = re.compile("(\d*\:\d*\:\d*)")
-            job_output_path = [path for path in os.listdir(job_output_dir) if ".OU" in path][0]
+            job_output_path = [job_output_dir+path for path in os.listdir(job_output_dir) if ".OU" in path][0]
             with open(job_output_path, "r") as job_output_file:
                 content = job_output_file.read()
             times = [match.group(1) for match in timestamp_regex.finditer(content)]
