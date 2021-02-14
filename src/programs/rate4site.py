@@ -31,6 +31,8 @@ class Rate4Site(Program):
         """
         rates_content = rates_content.lstrip()
         rates_content = re.sub(",\s*", ",", rates_content)
+        rates_content = re.sub("\[\s*", "[", rates_content)
+        rates_content = re.sub("\s*\]", "]", rates_content)
         f = StringIO(rates_content)
         rates_df = pd.read_csv(
             f,
@@ -60,3 +62,40 @@ class Rate4Site(Program):
         result["log_likelihood"] = float(output_match.group(2))
         result["rate_by_position"] = Rate4Site.parse_rates(output_match.group(3))
         return result
+
+    @staticmethod
+    def correct_rates_data(data: t.Dict[str, t.Any]) -> pd.DataFrame: # temp function for correcting parsing bug
+        output_regex = re.compile(
+            "#POS\s*SEQ\s*SCORE\s*QQ-INTERVAL\s*STD\s*MSA DATA.*?The alpha parameter (.\d*\.?\d*).*?LL=(-?\d*\.?\d*)(.*?)#Average",
+            re.MULTILINE | re.DOTALL,
+        )
+        output_match = output_regex.search(data["raw_output"])
+        data["rate_by_position"] = Rate4Site.parse_rates(output_match.group(3))
+        df = pd.DataFrame.from_dict(data["rate_by_position"])
+        return df
+
+    @staticmethod
+    def get_accuracy(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any]) -> pd.Series:
+        """
+        :param reference_data: reference data to compute results by reference to
+        :param test_data: test data to compare to the reference data
+        :return: the output of pd series with indices as the members for which accuracy it assessed (be it positions in a sequence of sequences) and the values are the accuracy values computed for them
+        """
+        reference_df = pd.DataFrame.from_dict(reference_data["rate_by_position"])
+        test_df = pd.DataFrame.from_dict(test_data["rate_by_position"])
+        try:
+            reference_df["std"].astype(float)
+        except:
+            reference_df = Rate4Site.correct_rates_data(data=reference_data)
+        try:
+            test_df["std"].astype(float)
+        except:
+            test_df = Rate4Site.correct_rates_data(data=test_data)
+        test_positions = list(test_df.dropna()["position"].values)
+        reference_df = reference_df.loc[reference_df["position"].isin(test_positions)]
+        absolute_error = abs(reference_df["rate"]-test_df["rate"])
+        denominator = abs(reference_df["rate"]) + abs(test_df["rate"])
+        relative_error = absolute_error/denominator
+        penalized_error_by_std = relative_error * (abs(reference_df["std"]-test_df["std"])/test_df["std"])  # will punish error with low test std more than one without
+        penalized_accuracy_by_std = 1-penalized_error_by_std
+        return penalized_accuracy_by_std
