@@ -342,8 +342,9 @@ class Pipeline:
         # wait for programs to finish
         if pipeline_input.parallelize:
             for validator in completion_validators:
-                while not os.path.exists(validator):
-                    time.sleep(5)
+                if validator:
+                    while not os.path.exists(validator):
+                        time.sleep(5)
 
         # parse programs outputs
         for program_name in pipeline_input.programs:
