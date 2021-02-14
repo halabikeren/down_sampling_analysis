@@ -1,4 +1,5 @@
 import json
+import pickle
 import shutil
 import typing as t
 from .pipeline_input import PipelineInput
@@ -12,7 +13,7 @@ import os
 from samplers import *
 from utils import BaseTools
 import numpy as np
-
+import pandas as pd
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -29,6 +30,7 @@ class Pipeline:
     unaligned_sequence_data: t.List[SeqIO.SeqRecord]
     aligned_sequence_data_path: str
     tree_path: str
+    new_to_orig_names_map: t.Dict[str, str]
     samples_info: t.Dict[
         float, t.Dict[SamplingMethod, t.Dict[str, t.Any]]
     ]  # will map sample fractions to maps of sampling methods to their info (input path, output paths,
@@ -57,6 +59,12 @@ class Pipeline:
         logger.info(
             f"Unaligned sequence data saved at {self.unaligned_sequence_data_path}"
         )
+
+        # simplify input sequences names
+        self.new_to_orig_names_map = BaseTools.simplify_names(input_path=self.unaligned_sequence_data_path, output_path=self.unaligned_sequence_data_path)
+        new_to_orig_names_map_path = f"{pipeline_input.pipeline_dir}/new_to_orig_names_map.pickle"
+        with open(new_to_orig_names_map_path, "wb") as outfile:
+            pickle.dump(self.new_to_orig_names_map, outfile)
 
         self.aligned_sequence_data_path = (
             f"{processed_data_dir}{dataset_name}_aligned.fasta"
@@ -378,3 +386,30 @@ class Pipeline:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, "w") as outfile:
             json.dump(self.samples_info, outfile)
+
+    def analyze_results(self, pipeline_input: PipelineInput, output_dir: str):
+        """
+        :param output_dir: directory to write the output figures to
+        :return: nothing. analyses programs outputs and writes figures with the result to output dir
+        """
+        os.makedirs(output_dir, exist_ok=True)
+        programs = pipeline_input.programs
+        sampling_methods = pipeline_input.sampling_methods
+        sampling_fractions = pipeline_input.sampling_fractions
+        for program_name in programs:
+            figure_path = f"{output_dir}/{program_name.value}.svg"
+            accuracy_dfs = []
+            for fraction in sampling_fractions:
+                for method in sampling_methods:
+                    result_data = self.samples_info[fraction][method.value]["programs_performance"][program_name.value]
+                    full_data_result = result_data["full_data_result"]
+                    sampled_data_result = result_data["result"]
+                    comparison_df = pd.DataFrame(columns=["sampling_fraction", "sampling_method", "accuracy"])
+                    comparison_df["accuracy"] = program_to_callable[program_name.value].get_accuracy(reference_data=full_data_result, test_data=sampled_data_result)
+                    comparison_df["sampling_fraction"] = fraction
+                    comparison_df["sampling_method"] = method.value
+                    accuracy_dfs.append(comparison_df)
+            accuracy_df = pd.concat(accuracy_dfs)
+
+
+
