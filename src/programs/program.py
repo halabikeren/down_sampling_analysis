@@ -3,9 +3,7 @@ import typing as t
 from dataclasses import dataclass
 from datetime import datetime
 from time import time
-
-import re
-
+import pandas as pd
 from utils import Job
 import json
 
@@ -32,7 +30,7 @@ class Program:
 
     @staticmethod
     def set_additional_params(
-            additional_params: t.Dict[str, str],
+            additional_params: t.Optional[t.Dict[str, str]],
             parallelize: bool,
             cluster_data_dir: str,
             return_as_str: bool = True,
@@ -48,19 +46,21 @@ class Program:
         :return: if the addition of parameters is expressed via the command line, a string that should be added to it
         will be returned
         """
-        for field in additional_params:
-            if "/" in additional_params[field]:
-                additional_params[field] = (
-                    f"{os.environ['container_data_dir']}{additional_params[field]}"
-                    if not parallelize
-                    else f"{cluster_data_dir}{additional_params[field]}"
+        additional_params_str = ""
+        if additional_params:
+            for field in additional_params:
+                if "/" in additional_params[field]:
+                    additional_params[field] = (
+                        f"{os.environ['container_data_dir']}{additional_params[field]}"
+                        if not parallelize
+                        else f"{cluster_data_dir}{additional_params[field]}"
+                    )
+                additional_params_str = " ".join(
+                    [
+                        f"{param_name} {additional_params[param_name]}"
+                        for param_name in additional_params
+                    ]
                 )
-            additional_params_str = " ".join(
-                [
-                    f"{param_name} {additional_params[param_name]}"
-                    for param_name in additional_params
-                ]
-            )
             if return_as_str:
                 return additional_params_str
 
@@ -210,3 +210,12 @@ class Program:
         result = Program.parse_output(input_path=input_path, job_output_dir=job_output_dir)
         with open(output_path, "w") as output:
             json.dump(result, output)
+
+    @staticmethod
+    def get_accuracy(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any]) -> pd.Series:
+        """
+        :param reference_data: reference data to compute results by reference to
+        :param test_data: test data to compare to the reference data
+        :return: the output of pd series with indices as the members for which accuracy it assessed (be it positions in a sequence of sequences) and the values are the accuracy values computed for them
+        """
+        pass  # is overloaded by implementations n the inherited classes

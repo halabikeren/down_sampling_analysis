@@ -7,7 +7,7 @@ from ete3 import Tree
 import os
 
 from Bio import SeqIO
-
+from Bio.Seq import Seq
 from .types import TreeReconstructionMethod, SequenceDataType, AlignmentMethod
 
 from dotenv import load_dotenv, find_dotenv
@@ -21,6 +21,19 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class BaseTools:
+
+    @staticmethod
+    def simplify_names(input_path: str, output_path: str) -> t.Dict[str, str]:
+        seq_records = list(SeqIO.parse(input_path, "fasta"))
+        s = 1
+        new_to_orig_name = dict()
+        for record in seq_records:
+            new_to_orig_name[f"S{s}"] = record.description
+            record.description = f"S{s}"
+            record.id = record.name = f"S{s}"
+            s += 1
+        SeqIO.write(seq_records, output_path, "fasta")
+        return new_to_orig_name
 
     @staticmethod
     def translate(sequence_records: t.List[SeqIO.SeqRecord], output_path: str):
@@ -55,17 +68,19 @@ class BaseTools:
                 if sequence_record.description == aligned_aa_record.description
             ][0]
             aligned_codon_record = deepcopy(unaligned_codon_record)
+            aligned_codon_record_seq = ""
             aa_index = 0
             codon_index = 0
             while aa_index < len(aligned_aa_record.seq):
                 if aligned_aa_record.seq[aa_index] != "-":
-                    aligned_codon_record.seq += unaligned_codon_record.seq[
+                    aligned_codon_record_seq += str(unaligned_codon_record.seq[
                                                 codon_index * 3: codon_index * 3 + 3
-                                                ]
+                                                ])
                     codon_index += 1
                 else:
-                    aligned_codon_record.seq += "---"
+                    aligned_codon_record_seq += "---"
                 aa_index += 1
+            aligned_codon_record.seq = Seq(aligned_codon_record_seq)
             aligned_codon_records.append(aligned_codon_record)
         SeqIO.write(aligned_codon_records, aligned_codon_path, "fasta")
 
@@ -109,9 +124,9 @@ class BaseTools:
 
         cmd = ""
         if not alignment_method or alignment_method == AlignmentMethod.MAFFT:
-            cmd = f"(mafft --localpair --maxiterate 1000 {alignment_input_path} > {alignment_output_path})" # > /dev/null 2>&1"
+            cmd = f"(mafft --localpair --maxiterate 1000 {alignment_input_path} > {alignment_output_path}) > /dev/null 2>&1"
         elif alignment_method == AlignmentMethod.PRANK:
-            cmd = f"(prank -d={alignment_input_path} -o={alignment_output_path} -f=fasta -support {'-codon' if sequence_data_type == SequenceDataType.CODON else ''} -iterate=100 -showtree)" # > /dev/null 2>&1"
+            cmd = f"(prank -d={alignment_input_path} -o={alignment_output_path} -f=fasta -support {'-codon' if sequence_data_type == SequenceDataType.CODON else ''} -iterate=100 -showtree) > /dev/null 2>&1"
         if alignment_params:
             cmd += " ".join(
                 [
@@ -119,11 +134,16 @@ class BaseTools:
                     for param_name in alignment_params
                 ]
             )
-        process = os.system(cmd)
-        if process != 0:
-            raise IOError(
-                    f"failed to align {alignment_output_path} with {alignment_method.value}"
-                )
+        if os.path.exists(alignment_output_path) and (
+                os.path.getsize(alignment_output_path) > os.path.getsize(alignment_input_path)
+        ):
+            logger.info(f"Temporary alignment {alignment_output_path} already exists and will not be recreated.")
+        else:
+            process = os.system(cmd)
+            if process != 0:
+                raise IOError(
+                        f"failed to align {alignment_output_path} with {alignment_method.value}"
+                    )
         if (
                 alignment_method == AlignmentMethod.MAFFT
                 and sequence_data_type == SequenceDataType.CODON
