@@ -34,7 +34,7 @@
           <DockerVolumeBindingImpl>
             <option name="containerPath" value="/data" />
             <option name="editable" value="true" />
-            <option name="hostPath" value="/c/Users/ItayMNB7/Dropbox/DownSamplingAnalysis/real_data" />
+            <option name="hostPath" value="/c/Users/ItayMNB7/Dropbox/DownSamplingAnalysis/real_data/paml_flavivirus_ns5_codon/reduced" />
             <option name="readOnly" value="false" />
           </DockerVolumeBindingImpl>
           <DockerVolumeBindingImpl>

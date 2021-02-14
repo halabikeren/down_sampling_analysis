@@ -12,6 +12,7 @@ from Bio import SeqIO
 import os
 from samplers import *
 from utils import BaseTools
+from copy import deepcopy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -87,19 +88,20 @@ class Pipeline:
         self.sequence_data_type = pipeline_input.sequence_data_type
 
         # align, if needed
-        logger.info(
-            f"Aligning sequence data. Output will be saved to {self.aligned_sequence_data_path}"
-        )
-        BaseTools.align(
-            self.unaligned_sequence_data_path,
-            self.aligned_sequence_data_path,
-            pipeline_input.sequence_data_type,
-            pipeline_input.alignment_method,
-            pipeline_input.alignment_params,
-        )
-        logger.info(
-            f"Alignment generated successfully using {pipeline_input.alignment_method.value}"
-        )
+        if not os.path.exists(self.aligned_sequence_data_path) or os.path.getsize(self.aligned_sequence_data_path) < os.path.getsize(self.unaligned_sequence_data_path):
+            logger.info(
+                f"Aligning sequence data. Output will be saved to {self.aligned_sequence_data_path}"
+            )
+            BaseTools.align(
+                self.unaligned_sequence_data_path,
+                self.aligned_sequence_data_path,
+                pipeline_input.sequence_data_type,
+                pipeline_input.alignment_method,
+                pipeline_input.alignment_params,
+            )
+            logger.info(
+                f"Alignment generated successfully using {pipeline_input.alignment_method.value}"
+            )
 
         self.unaligned_sequence_data = list(
             SeqIO.parse(self.unaligned_sequence_data_path, "fasta")
@@ -109,19 +111,20 @@ class Pipeline:
         )
 
         # build tree, if needed
-        logger.info(
-            f"Reconstructing phylogenetic tree. Output will be saved to {self.tree_path}"
-        )
-        BaseTools.build_tree(
-            self.aligned_sequence_data_path,
-            self.tree_path,
-            self.sequence_data_type,
-            pipeline_input.tree_reconstruction_method,
-            pipeline_input.tree_reconstruction_params,
-        )
-        logger.info(
-            f"Tree reconstructed successfully at {self.tree_path} using {pipeline_input.tree_reconstruction_method.value}"
-        )
+        if not os.path.exists(self.tree_path) or os.path.getsize(self.tree_path) == 0:
+            logger.info(
+                f"Reconstructing phylogenetic tree. Output will be saved to {self.tree_path}"
+            )
+            BaseTools.build_tree(
+                self.aligned_sequence_data_path,
+                self.tree_path,
+                self.sequence_data_type,
+                pipeline_input.tree_reconstruction_method,
+                pipeline_input.tree_reconstruction_params,
+            )
+            logger.info(
+                f"Tree reconstructed successfully at {self.tree_path} using {pipeline_input.tree_reconstruction_method.value}"
+            )
 
         # set sampling info structure
         self.samples_info = dict()
@@ -281,13 +284,17 @@ class Pipeline:
                 output_path = f"{program_dir}/full_data_{program_name.value}.out"
                 program_to_full_data_output[program_name.value] = output_path
                 full_data_program_aux_dir = f"{os.path.dirname(self.aligned_sequence_data_path)}/{program_name.value}_aux/"
+                full_data_program_params = dict()
+                if program_params:
+                    full_data_program_params = deepcopy(program_params)
+                full_data_program_params["input_tree_path"] = self.tree_path
 
                 if pipeline_input.parallelize:
                     completion_validator_path = program_to_exec.exec(
                         input_path=input_path,
                         output_path=output_path,
                         aux_dir=full_data_program_aux_dir,
-                        additional_params=program_params,
+                        additional_params=full_data_program_params,
                         parallelize=pipeline_input.parallelize,
                         cluster_data_dir=pipeline_input.cluster_data_dir,
                         priority=pipeline_input.priority,
@@ -303,7 +310,7 @@ class Pipeline:
                         input_path=input_path,
                         output_path=output_path,
                         aux_dir=full_data_program_aux_dir,
-                        additional_params=program_params,
+                        additional_params=full_data_program_params,
                         control_file_path=f"{full_data_program_aux_dir}/input.ctl",
                         input_tree_path=f"{full_data_program_aux_dir}/tree.nwk"
                     )

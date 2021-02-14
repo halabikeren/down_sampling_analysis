@@ -3,13 +3,13 @@ import typing as t
 from copy import deepcopy
 from dataclasses import dataclass
 from ete3 import Tree
-
+import socket
 import os
-
+import re
+import json
 from Bio import SeqIO
 from Bio.Seq import Seq
-from .types import TreeReconstructionMethod, SequenceDataType, AlignmentMethod
-
+from .types import SequenceDataType, TreeReconstructionMethod, AlignmentMethod
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -21,6 +21,78 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class BaseTools:
+
+    @staticmethod
+    def simulate(simulation_params: t.Dict[str, t.Any]) -> t.List[str]:
+        """
+        :param simulation_params: parameters to simulate data with
+        :return: a list of paths to json input files corresponding to the input jsons for executing the pipeline on the simulated datasets
+        """
+        number_of_repeats = simulation_params["nrep"]
+        simulation_output_dir = simulation_params["simulations_output_dir"]
+        os.makedirs(simulation_output_dir, exist_ok=True)
+        pipeline_input_paths = []
+        for n in range(1, number_of_repeats+1):
+            # create control file
+            output_dir = f"{simulation_output_dir}/rep_{n}/"
+            os.makedirs(os.path.dirname(output_dir), exist_ok=True)
+            sequence_data_type = SequenceDataType(simulation_params["sequence_data_type"])
+            control_content = f"""[TYPE] {'NUCLEOTIDE' if sequence_data_type == SequenceDataType.NUC else ('CODON' if sequence_data_type == SequenceDataType.CODON else 'AMINOACID')} 1
+                                [SETTINGS]
+                                    [ancestralprint]    NEW
+                                    [fastaextension]    fasta
+                                    [output]          	FASTA
+                                    [fileperrep]      	TRUE
+                                    [printrates]        TRUE
+    
+                                [MODEL]    model
+                                  [submodel]  {simulation_params["substitution_model"]} {' '.join([str(p) for p in simulation_params["substitution_model_params"]])}
+                                  [statefreq] {' '.join([str(p) for p in simulation_params["states_frequencies"]])}
+                                  [rates]     {simulation_params['pinv']} {simulation_params['alpha']} {simulation_params['ngamcat']}
+      
+                                [TREE] tree
+                                  {'[rooted]' if simulation_params['tree_rooted'] else '[unrooted]'} {simulation_params['ntaxa']} {simulation_params['birth_rate']} {simulation_params['death_rate']} {simulation_params['sample_rate']}  {simulation_params['mutation_rate']}
+      
+                                [PARTITIONS] basic_partition [tree model {simulation_params["seq_len"]}]
+    
+                                [EVOLVE]     basic_partition  1  seq_data
+            """
+            with open(f"{output_dir}/control.txt", "w") as control_file:
+                control_file.write(control_content)
+            # simulate
+            os.chdir(output_dir)
+            cmd = f"{os.environ['cluster_indelible'] if 'tau.ac.il' in socket.gethostname() else os.environ['indelible']}"
+            process = subprocess.Popen(
+                cmd,
+                shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if len(process.stderr.read()) > 0:
+                raise RuntimeError(
+                    f"INDELible failed to properly execute and provide an output file with error {process.stderr.read()} and output is {process.stdout.read()}"
+                )
+            # prepare pipeline input
+            tree_regex = re.compile("TREE STRING.*?(\(.*?\;)", re.MULTILINE | re.DOTALL)
+            pipeline_json_input = deepcopy(simulation_params)
+            pipeline_json_input["pipeline_dir"] = "pipeline_dir/"
+            pipeline_json_input["unaligned_sequence_data_path"] = f"{output_dir}/seq_data_1.fasta"
+            if simulation_params["use_simulated_alignment"]:
+                pipeline_json_input["aligned_sequence_data_path"] = f"{output_dir}/seq_data_TRUE_1.fasta"
+            if simulation_params["use_simulated_tree"]:
+                tree_path = f"{output_dir}/simulated_tree.nwk"
+                with open(f"{output_dir}/trees.txt", "r") as trees_file:
+                    tree_str = tree_regex.search(trees_file.read()).group(1)
+                    tree = Tree(tree_str, format=1)
+                    tree.write(outfile=tree_path, format=1)
+                pipeline_json_input["tree_path"] = tree_path
+            pipeline_json_input["reference_data_paths"] = {"rate4site": f"{output_dir}/seq_data_RATES.txt",
+                                                           "paml": f"{output_dir}/seq_data_RATES.txt",
+                                                           "fastml": f"{output_dir}/seq_data_ANCESTRAL_1.fasta"}
+            json_path = f"{output_dir}/input.json"
+            with open(json_path, "w") as json_file:
+                json.dump(pipeline_json_input, json_file)
+            pipeline_input_paths.append(json_path)
+        return pipeline_input_paths
+
+        # create json input file
 
     @staticmethod
     def simplify_names(input_path: str, output_path: str) -> t.Dict[str, str]:
@@ -74,8 +146,8 @@ class BaseTools:
             while aa_index < len(aligned_aa_record.seq):
                 if aligned_aa_record.seq[aa_index] != "-":
                     aligned_codon_record_seq += str(unaligned_codon_record.seq[
-                                                codon_index * 3: codon_index * 3 + 3
-                                                ])
+                                                    codon_index * 3: codon_index * 3 + 3
+                                                    ])
                     codon_index += 1
                 else:
                     aligned_codon_record_seq += "---"
@@ -142,8 +214,8 @@ class BaseTools:
             process = os.system(cmd)
             if process != 0:
                 raise IOError(
-                        f"failed to align {alignment_output_path} with {alignment_method.value}"
-                    )
+                    f"failed to align {alignment_output_path} with {alignment_method.value}"
+                )
         if (
                 alignment_method == AlignmentMethod.MAFFT
                 and sequence_data_type == SequenceDataType.CODON
@@ -200,9 +272,9 @@ class BaseTools:
                 )
 
         elif tree_reconstruction_method == TreeReconstructionMethod.FASTTREE:
-            cmd = f"(fasttree {input_path} > {output_path})" # > /dev/null 2>&1"
-            res = os.system(cmd)  # need to find another way to swalloe strdout here because fasttree doesn't like ">"
-            if res:  # inconsistent bug here
+            cmd = f"(fasttree {input_path} > {output_path}) > /dev/null 2>&1"
+            res = os.system(cmd)
+            if res:
                 raise IOError(
                     f"failed to reconstruct {tree_reconstruction_method.value} tree with fasttree program."
                 )

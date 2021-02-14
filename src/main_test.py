@@ -1,7 +1,7 @@
 import unittest
-from tests import TestPipeline, TestPDA, TestCDHIT, TestRate4ite, TestRandom, TestPAML
+from tests import TestPDA, TestCDHIT, TestRate4ite, TestRandom, TestPAML, TestPipeline, TestSimulationPipeline
 
-TESTS = [TestCDHIT, TestPDA, TestRandom, TestRate4ite, TestPAML, TestPipeline]
+TESTS = [TestCDHIT, TestPDA, TestRandom, TestRate4ite, TestPAML, TestPipeline, TestSimulationPipeline]
 
 suite = unittest.TestSuite()
 loader = unittest.TestLoader()
