@@ -63,7 +63,12 @@ def exec_pipeline(input_path: click.Path):
     pipeline_output_path = f"{pipeline_input.pipeline_dir}/pipeline_output.json"
     logger.info(f"Writing pipeline output to {pipeline_output_path}")
     pipeline.write_results(pipeline_output_path)
-    logger.info(f"Written pipeline output successfully.\nPipeline is complete.")
+    logger.info(f"Written pipeline output successfully.")
+
+    logger.info(f"Plotting results")
+    pipeline.analyze_results(pipeline_input)
+    logger.info(f"Plotted pipeline output successfully.\nPipeline is complete.")
+
 
 
 if __name__ == "__main__":

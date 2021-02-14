@@ -14,6 +14,8 @@ from samplers import *
 from utils import BaseTools
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -383,21 +385,27 @@ class Pipeline:
                         ]["full_data_result"] = full_data_result
 
     def write_results(self, output_path: str):
+        if os.path.exists(output_path):
+            logger.info(f"written output already exists at {output_path}")
+            return
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, "w") as outfile:
             json.dump(self.samples_info, outfile)
 
-    def analyze_results(self, pipeline_input: PipelineInput, output_dir: str):
+    def analyze_results(self, pipeline_input: PipelineInput):
         """
-        :param output_dir: directory to write the output figures to
+        :param pipeline_input: pipeline input instance
         :return: nothing. analyses programs outputs and writes figures with the result to output dir
         """
+        output_dir = f"{pipeline_input.pipeline_dir}/figures"
         os.makedirs(output_dir, exist_ok=True)
         programs = pipeline_input.programs
         sampling_methods = pipeline_input.sampling_methods
         sampling_fractions = pipeline_input.sampling_fractions
         for program_name in programs:
             figure_path = f"{output_dir}/{program_name.value}.svg"
+            plt.grid(False)
+            fig = plt.figure(figsize=[1 * 8.5 + 2, 1 * 7.58 + 2], frameon=True)
             accuracy_dfs = []
             for fraction in sampling_fractions:
                 for method in sampling_methods:
@@ -410,6 +418,12 @@ class Pipeline:
                     comparison_df["sampling_method"] = method.value
                     accuracy_dfs.append(comparison_df)
             accuracy_df = pd.concat(accuracy_dfs)
+            sns.boxplot(y="accuracy", x="sampling_fraction", data=accuracy_df, palette="colorblind", hue="sampling_method")
+            fig.subplots_adjust()
+            fig.tight_layout()
+            plt.savefig(figure_path, bbox_inches="tight", transparent=True)
+            plt.clf()
+
 
 
 
