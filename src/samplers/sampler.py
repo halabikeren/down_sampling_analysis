@@ -22,7 +22,7 @@ class Sampler:
         self.sequences.remove(self.saved_sequence)
         self.sequences_path = sequence_data_path.replace(".", f"_without_reference_{self.saved_sequence.name}.")
         SeqIO.write(self.sequences, self.sequences_path, "fasta")
-        self.tree = Tree(tree_path, format=5)
+        self.tree = Tree(tree_path, format=1)
 
     def get_sample(
         self, k: int, aux_dir: str, **kwargs
