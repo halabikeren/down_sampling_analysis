@@ -48,50 +48,40 @@ class Pipeline:
             os.path.basename(pipeline_input.unaligned_sequence_data_path)
         ).group(1)
         self.pipeline_dir = pipeline_input.pipeline_dir
+        self.sequence_data_type = pipeline_input.sequence_data_type
+
+        # prepare input for pipeline
         processed_data_dir = f"{self.pipeline_dir}/input_data/"
         os.makedirs(processed_data_dir, exist_ok=True)
         logger.info(f"Setting input for pipeline at {processed_data_dir}")
 
+        # save unaligned sequence data
         self.unaligned_sequence_data_path = (
             f"{processed_data_dir}{dataset_name}_unaligned.fasta"
         )
-        shutil.copyfile(
-            pipeline_input.unaligned_sequence_data_path,
-            self.unaligned_sequence_data_path,
-        )
-        logger.info(
-            f"Unaligned sequence data saved at {self.unaligned_sequence_data_path}"
-        )
-
         # simplify input sequences names
-        self.new_to_orig_names_map = BaseTools.simplify_names(input_path=self.unaligned_sequence_data_path, output_path=self.unaligned_sequence_data_path)
+        self.new_to_orig_names_map = BaseTools.simplify_names(input_path=pipeline_input.unaligned_sequence_data_path, output_path=self.unaligned_sequence_data_path)
         new_to_orig_names_map_path = f"{pipeline_input.pipeline_dir}/new_to_orig_names_map.pickle"
         with open(new_to_orig_names_map_path, "wb") as outfile:
             pickle.dump(self.new_to_orig_names_map, outfile)
+        logger.info(
+            f"Unaligned sequence data saved at {self.unaligned_sequence_data_path}"
+        )
+        self.unaligned_sequence_data = list(
+            SeqIO.parse(self.unaligned_sequence_data_path, "fasta")
+        )
+        logger.info(
+            f"Processed sequence data of size {len(self.unaligned_sequence_data)}"
+        )
 
+        # save aligned sequence data
         self.aligned_sequence_data_path = (
             f"{processed_data_dir}{dataset_name}_aligned.fasta"
         )
         if pipeline_input.aligned_sequence_data_path:
-            shutil.copyfile(
-                pipeline_input.aligned_sequence_data_path,
-                self.aligned_sequence_data_path,
-            )
+            BaseTools.simplify_names(pipeline_input.aligned_sequence_data_path, self.aligned_sequence_data_path, self.new_to_orig_names_map)
             logger.info(f"Aligned data saved at {self.aligned_sequence_data_path}")
-
-        self.tree_path = f"{processed_data_dir}{dataset_name}_tree.nwk"
-        if pipeline_input.tree_path:
-            shutil.copyfile(pipeline_input.tree_path, self.tree_path)
-            logger.info(f"Tree saved at {self.tree_path}")
-
-        # fill in available parameters
-        self.sequence_data_type = pipeline_input.sequence_data_type
-
-        # align, if needed
-        if not os.path.exists(self.aligned_sequence_data_path) or os.path.getsize(self.aligned_sequence_data_path) < os.path.getsize(self.unaligned_sequence_data_path):
-            logger.info(
-                f"Aligning sequence data. Output will be saved to {self.aligned_sequence_data_path}"
-            )
+        else:
             BaseTools.align(
                 self.unaligned_sequence_data_path,
                 self.aligned_sequence_data_path,
@@ -103,18 +93,12 @@ class Pipeline:
                 f"Alignment generated successfully using {pipeline_input.alignment_method.value}"
             )
 
-        self.unaligned_sequence_data = list(
-            SeqIO.parse(self.unaligned_sequence_data_path, "fasta")
-        )
-        logger.info(
-            f"Processed sequence data of size {len(self.unaligned_sequence_data)}"
-        )
-
-        # build tree, if needed
-        if not os.path.exists(self.tree_path) or os.path.getsize(self.tree_path) == 0:
-            logger.info(
-                f"Reconstructing phylogenetic tree. Output will be saved to {self.tree_path}"
-            )
+        # save tree
+        self.tree_path = f"{processed_data_dir}{dataset_name}_tree.nwk"
+        if pipeline_input.tree_path:
+            BaseTools.simplify_names(pipeline_input.tree_path, self.tree_path, self.new_to_orig_names_map)
+            logger.info(f"Tree saved at {self.tree_path}")
+        else:
             BaseTools.build_tree(
                 self.aligned_sequence_data_path,
                 self.tree_path,
@@ -134,6 +118,7 @@ class Pipeline:
                 self.samples_info[fraction][method.value] = {
                     "unaligned_sequence_data_path": None,
                     "aligned_sequence_data_path": None,
+                    "tree_path": None,
                     "aux_dir": None,
                     "programs_performance": dict(),
                 }
@@ -146,7 +131,97 @@ class Pipeline:
                         "aux_dir": None,
                         "result": dict(),
                         "full_data_result": None,
+                        "reference_data": None
                     }
+
+    def align_sampled_data(self, pipeline_input: PipelineInput, fraction: float, method: SamplingMethod, fraction_to_samples_dir: t.Dict[t.Any, t.Any], sample_member_names: t.List[str]):
+        self.samples_info[fraction][method.value][
+            "aligned_sequence_data_path"
+        ] = f"{fraction_to_samples_dir[fraction]}aligned_method_{method.value}.fasta"
+        if os.path.exists(
+                self.samples_info[fraction][method.value][
+                    "aligned_sequence_data_path"
+                ]
+        ) and os.path.getsize(
+            self.samples_info[fraction][method.value][
+                "aligned_sequence_data_path"
+            ]
+        ) >= os.path.getsize(
+            self.samples_info[fraction][method.value][
+                "unaligned_sequence_data_path"
+            ]
+        ):
+            logger.info(
+                f"Alignment of sample of fraction {fraction} using method {method.value} already exists."
+            )
+        else:
+            if pipeline_input.use_full_alignment_in_sample:
+                logger.info("Trimming full alignment to include only the sampled sequences")
+
+                all_aligned_sequence_records = list(SeqIO.parse(self.aligned_sequence_data_path, "fasta"))
+                sampled_aligned_sequence_records = [record for record in all_aligned_sequence_records if
+                                                    record.name in sample_member_names]
+                SeqIO.write(sampled_aligned_sequence_records, self.samples_info[fraction][method.value][
+                    "aligned_sequence_data_path"
+                ], "fasta")
+            else:
+                logger.info(
+                    f"Aligning the sampled data to {self.samples_info[fraction][method.value]['aligned_sequence_data_path']}"
+                )
+                BaseTools.align(
+                    self.samples_info[fraction][method.value][
+                        "unaligned_sequence_data_path"
+                    ],
+                    self.samples_info[fraction][method.value][
+                        "aligned_sequence_data_path"
+                    ],
+                    pipeline_input.sequence_data_type,
+                    pipeline_input.samples_alignment_method,
+                    pipeline_input.samples_alignment_params,
+                )
+                logger.info(
+                    f"Aligned sample records written to {self.samples_info[fraction][method.value]['aligned_sequence_data_path']}"
+                )
+
+    def build_sampled_tree(self, pipeline_input: PipelineInput, fraction: float, method: SamplingMethod, fraction_to_samples_dir: t.Dict[t.Any, t.Any], sample_member_names: t.List[str]):
+        self.samples_info[fraction][method.value][
+            "tree_path"
+        ] = f"{fraction_to_samples_dir[fraction]}method_{method.value}_tree.nwk"
+        if os.path.exists(
+                self.samples_info[fraction][method.value][
+                    "tree_path"
+                ]
+        ) and os.path.getsize(
+            self.samples_info[fraction][method.value][
+                "tree_path"
+            ]) > 0:
+            logger.info(
+                f"Tree of sample of fraction {fraction} using method {method.value} already exists."
+            )
+        else:
+            if pipeline_input.use_full_tree_in_sample:
+                logger.info("Pruning full tree to include only the sampled sequences")
+                full_tree = Tree(self.tree_path)
+                full_tree.prune(sample_member_names)
+                full_tree.write(outfile=self.samples_info[fraction][method.value]["tree_path"])
+            else:
+                logger.info(
+                    f"Bulding tree based sampled data to {self.samples_info[fraction][method.value]['tree_path']}"
+                )
+                BaseTools.build_tree(
+                    self.samples_info[fraction][method.value][
+                        "aligned_sequence_data_path"
+                    ],
+                    self.samples_info[fraction][method.value][
+                        "tree_path"
+                    ],
+                    pipeline_input.sequence_data_type,
+                    pipeline_input.tree_reconstruction_method,
+                    pipeline_input.tree_reconstruction_params,
+                )
+                logger.info(
+                    f"Tree of sample records written to {self.samples_info[fraction][method.value]['tree_path']}"
+                )
 
     def generate_samples(self, pipeline_input: PipelineInput):
         """
@@ -167,6 +242,7 @@ class Pipeline:
             sampler_instance = method_to_callable[method.value](
                 sequences_path=self.unaligned_sequence_data_path,
                 tree=tree,
+                sequences=self.unaligned_sequence_data,
             )
             for fraction in pipeline_input.sampling_fractions:
                 self.samples_info[fraction][method.value][
@@ -179,7 +255,6 @@ class Pipeline:
                 logger.info(
                     f"Sampling data of fraction {fraction} and size {sample_size} using {method.value}"
                 )
-
                 if (
                         os.path.exists(
                             self.samples_info[fraction][method.value][
@@ -202,7 +277,7 @@ class Pipeline:
                         sampler_instance.compute_taxon_weights(
                             self.aligned_sequence_data_path
                         )
-                    sampler_instance.write_sample(
+                    sample = sampler_instance.write_sample(
                         sample_size,
                         output_path=self.samples_info[fraction][method.value][
                             "unaligned_sequence_data_path"
@@ -211,43 +286,15 @@ class Pipeline:
                         is_weighted=pipeline_input.weight_pda,
                         use_external=pipeline_input.use_external_pda,
                     )
+                    if type(sample) is str:
+                        sample = list(SeqIO.parse(sample, "fasta"))
+                    sample_members_names = [record.name for record in sample]
 
                 # align the sample
-                self.samples_info[fraction][method.value][
-                    "aligned_sequence_data_path"
-                ] = f"{fraction_to_samples_dir[fraction]}aligned_method_{method.value}.fasta"
-                if os.path.exists(
-                        self.samples_info[fraction][method.value][
-                            "aligned_sequence_data_path"
-                        ]
-                ) and os.path.getsize(
-                    self.samples_info[fraction][method.value][
-                        "aligned_sequence_data_path"
-                    ]
-                ) >= os.path.getsize(
-                    self.samples_info[fraction][method.value][
-                        "unaligned_sequence_data_path"
-                    ]
-                ):
-                    logger.info(
-                        f"Alignment of sample of fraction {fraction} and size {sample_size} using method {method.value} already "
-                        f"exists. "
-                    )
-                else:
-                    logger.info(
-                        f"Aligning the sampled data to {self.samples_info[fraction][method.value]['aligned_sequence_data_path']}"
-                    )
-                    BaseTools.align(
-                        self.samples_info[fraction][method.value][
-                            "unaligned_sequence_data_path"
-                        ],
-                        self.samples_info[fraction][method.value][
-                            "aligned_sequence_data_path"
-                        ],
-                        pipeline_input.sequence_data_type,
-                        pipeline_input.samples_alignment_method,
-                        pipeline_input.samples_alignment_params,
-                    )
+                self.align_sampled_data(pipeline_input=pipeline_input, fraction=fraction, method=method, fraction_to_samples_dir=fraction_to_samples_dir, sample_member_names=sample_members_names)
+
+                # write the tree
+                self.build_sampled_tree(pipeline_input=pipeline_input, fraction=fraction, method=method, fraction_to_samples_dir=fraction_to_samples_dir, sample_member_names=sample_members_names)
 
         logger.info("Completed samples generation")
 

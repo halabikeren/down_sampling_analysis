@@ -62,6 +62,8 @@ class PipelineInput(BaseModel):
     programs_params: t.Optional[
         t.Dict[str, t.Any]
     ] = None  # a map of programs to parameters it should be executed with
+    use_full_alignment_in_sample: bool = False  # indicates weather the full alignment should be trimmed ot create an alignment for the sampled, or if alignment should be reconstructed for the sample from scratch
+    use_full_tree_in_sample: bool = False  # indicates weather the full alignment should be trimmed ot create an alignment for the sampled, or if alignment should be reconstructed for the sample from scratch
     exec_on_full_data: bool = (
         True  # indicates weather the program should be executed on the full dataset
     )
