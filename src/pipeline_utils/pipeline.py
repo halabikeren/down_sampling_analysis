@@ -335,7 +335,8 @@ class Pipeline:
                 full_data_program_params = dict()
                 if program_params:
                     full_data_program_params = deepcopy(program_params)
-                full_data_program_params["input_tree_path"] = self.tree_path
+                if program_name.value == "paml":
+                    full_data_program_params["input_tree_path"] = self.tree_path
 
                 if pipeline_input.parallelize:
                     completion_validator_path = program_to_exec.exec(

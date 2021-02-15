@@ -93,9 +93,10 @@ class Program:
         )
         input_str = f"{self.input_param_name} {program_input_path}"
         output_str = f"{self.output_param_name} {program_output_path}"
-        additional_params_str = ""
         if additional_params:
-            self.set_additional_params(additional_params, additional_params_str, cluster_data_dir)
+            additional_params_str = self.set_additional_params(additional_params=additional_params, parallelize=parallelize, cluster_data_dir=cluster_data_dir, return_as_str=True)
+        else:
+            additional_params_str = ""
         command = f"{self.program_exe if not parallelize else self.cluster_program_exe} {input_str} {output_str} {additional_params_str} "
         return command
 
