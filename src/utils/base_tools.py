@@ -52,6 +52,7 @@ class BaseTools:
       
                                 [TREE] tree
                                   {'[rooted]' if simulation_params['tree_rooted'] else '[unrooted]'} {simulation_params['ntaxa']} {simulation_params['birth_rate']} {simulation_params['death_rate']} {simulation_params['sample_rate']}  {simulation_params['mutation_rate']}
+                                   [treelength] {simulation_params['tree_length']}
       
                                 [PARTITIONS] basic_partition [tree model {simulation_params["seq_len"]}]
     
@@ -95,17 +96,48 @@ class BaseTools:
         # create json input file
 
     @staticmethod
-    def simplify_names(input_path: str, output_path: str) -> t.Dict[str, str]:
-        seq_records = list(SeqIO.parse(input_path, "fasta"))
-        s = 1
-        new_to_orig_name = dict()
-        for record in seq_records:
-            new_to_orig_name[f"S{s}"] = record.description
-            record.description = f"S{s}"
-            record.id = record.name = f"S{s}"
-            s += 1
-        SeqIO.write(seq_records, output_path, "fasta")
-        return new_to_orig_name
+    def simplify_names(input_path: str, output_path: str, names_translator: t.Optional[t.Dict[str, str]]= None) -> t.Optional[t.Dict[str, str]]:
+        """
+        :param input_path: path with the original sequence names
+        :param output_path:  path to which the sequences with the new names will be written
+        :param names_translator: translator of new to old names. if not provided, simple names will be generated and returned
+        :return:
+        """
+        if ".nwk" in str(input_path):
+            input_is_tree = True
+        if not input_is_tree:
+            seq_records = list(SeqIO.parse(input_path, "fasta"))
+            if not names_translator:
+                s = 1
+                new_to_orig_name = dict()
+                for record in seq_records:
+                    new_to_orig_name[f"S{s}"] = record.description
+                    record.description = record.id = record.name = f"S{s}"
+                    s += 1
+                SeqIO.write(seq_records, output_path, "fasta")
+                return new_to_orig_name
+            else:
+                reversed_names_translator = {names_translator[key]: key for key in names_translator}
+                for record in seq_records:
+                    record.description = record.name = record.id = reversed_names_translator[record.description]
+                SeqIO.write(seq_records, output_path, "fasta")
+        else:
+            tree = Tree(input_path)
+            tree_leaves = tree.get_leaves()
+            if not names_translator:
+                s = 1
+                new_to_orig_name = dict()
+                for leaf in tree_leaves:
+                    new_to_orig_name[f"S{s}"] = leaf.name
+                    leaf.name = f"S{s}"
+                    s += 1
+                tree.write(outfile=output_path)
+                return new_to_orig_name
+            else:
+                reversed_names_translator = {names_translator[key]: key for key in names_translator}
+                for leaf in tree_leaves:
+                    leaf.name = reversed_names_translator[leaf.name]
+                tree.write(outfile=output_path)
 
     @staticmethod
     def translate(sequence_records: t.List[SeqIO.SeqRecord], output_path: str):
