@@ -51,7 +51,13 @@ programs                     # a list of programs to execute the pipeline with, 
 programs_params              # dictionary mapping each program name to additional parameters to execute it with. the additional parameters are set as as a map of parameter name to parameter value.
                              # not mandatory. None by default.
 
-exec_on_full_data            # boolean indicating weather the pipeline should run on the full intial data as well (when set to 1) or not (when set to 0)
+use_full_alignment_in_sample # indicates weather the full alignment should be trimmed ot create an alignment for the sampled, or if alignment should be reconstructed for the sample from scratch
+                             # not mandatory. False by default
+
+use_full_tree_in_sample      # indicates weather the full alignment should be trimmed ot create an alignment for the sampled, or if alignment should be reconstructed for the sample from scratch
+                             # not mandatory. False by default
+
+exec_on_full_data            # boolean indicating weather the pipeline should run on the full initial data as well (when set to 1) or not (when set to 0)
                              # not mandatory. 1 by default
 
 parallelize                  # boolean indicating weather the pipeline should run in parallel (when set to 1) or not (when set to 0)
