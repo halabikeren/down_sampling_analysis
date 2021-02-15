@@ -198,6 +198,15 @@ class Program:
         return result
 
     @staticmethod
+    def parse_reference_data(input_path: str) -> t.Dict[str, t.Any]:
+        result = dict()
+        if os.path.exists(input_path):
+            with open(input_path, "r") as input_file:
+                result["raw_output"] = input_file.read()
+        return result
+
+
+    @staticmethod
     def write_result_json(input_path: str, job_output_dir: t.Optional[str], output_path: str):
         """
         :param input_path: path to file with the raw program results

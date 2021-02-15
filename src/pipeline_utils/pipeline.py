@@ -391,6 +391,11 @@ class Pipeline:
                             program_name.value
                         ]["full_data_result"] = full_data_result
 
+                    if pipeline_input.reference_data_paths and program_name.value in pipeline_input.reference_data_paths:
+                        self.samples_info[fraction][method_name]["programs_performance"][
+                            program_name.value
+                        ]["reference_data"] = program_instance.parse_reference_data(pipeline_input.reference_data_paths[program_name.value])
+
     def write_results(self, output_path: str):
         if os.path.exists(output_path):
             logger.info(f"written output already exists at {output_path}")
