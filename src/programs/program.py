@@ -199,6 +199,10 @@ class Program:
 
     @staticmethod
     def parse_reference_data(input_path: str) -> t.Dict[str, t.Any]:
+        """
+        :param input_path: path to the reference data
+        :return: a dictionary with the parsed reference data
+        """
         result = dict()
         if os.path.exists(input_path):
             with open(input_path, "r") as input_file:
