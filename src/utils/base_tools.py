@@ -61,7 +61,7 @@ class BaseTools:
                 control_file.write(control_content)
             # simulate
             os.chdir(output_dir)
-            cmd = f"{os.environ['cluster_indelible'] if 'tau.ac.il' in socket.gethostname() else os.environ['indelible']}"
+            cmd = f"{os.environ['cluster_indelible'] if 'power' in socket.gethostname() else os.environ['indelible']}"
             process = subprocess.Popen(
                 cmd,
                 shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
