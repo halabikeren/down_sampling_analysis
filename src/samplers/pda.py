@@ -221,7 +221,7 @@ class Pda(Sampler):
                 for taxon in self.taxon_to_weight:
                     weights_file.write(f"{taxon}\t{self.taxon_to_weight[taxon]}\n")
             weights_arg += f" -e {os.path.dirname(self.sequences_path)}/weights.txt"
-        cmd = f"{os.environ['cluster_pda'] if 'tau.ac.il' in socket.gethostname() else os.environ['pda']} -g -k {k}{weights_arg} {aux_dir}/tree.nwk {aux_dir}/out.pda"
+        cmd = f"{os.environ['cluster_pda'] if 'power' in socket.gethostname() else os.environ['pda']} -g -k {k}{weights_arg} {aux_dir}/tree.nwk {aux_dir}/out.pda"
         process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         if len(process.stderr.read()) > 0:
             raise RuntimeError(
