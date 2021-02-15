@@ -145,6 +145,19 @@ class Paml(Program):
             control_file.write(control_file_content)
 
     @staticmethod
+    def parse_reference_data(input_path: str) -> t.Dict[str, t.Any]:
+        """
+        :param input_path: path to the reference data
+        :return: a dictionary with the parsed reference data
+        """
+        rates_data_regex = re.compile("(Site\s*Class.*)", re.MULTILINE | re.DOTALL)
+        with open(input_path, "r") as input_file:
+            rates_data = rates_data_regex.search(input_file.read()).group(1)
+        f = StringIO(rates_data)
+        rates_df = pd.read_csv(f, sep="\t")
+        return rates_df.to_dict()
+
+    @staticmethod
     def parse_positive_selection_analysis(
         data: str, data_regex: re, column_names
     ) -> t.Dict[t.Any, t.Any]:
