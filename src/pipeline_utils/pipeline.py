@@ -60,7 +60,8 @@ class Pipeline:
             f"{processed_data_dir}{dataset_name}_unaligned.fasta"
         )
         # simplify input sequences names
-        self.new_to_orig_names_map = BaseTools.simplify_names(input_path=pipeline_input.unaligned_sequence_data_path, output_path=self.unaligned_sequence_data_path)
+        self.new_to_orig_names_map = BaseTools.simplify_names(input_path=pipeline_input.unaligned_sequence_data_path,
+                                                              output_path=self.unaligned_sequence_data_path)
         new_to_orig_names_map_path = f"{pipeline_input.pipeline_dir}/new_to_orig_names_map.pickle"
         with open(new_to_orig_names_map_path, "wb") as outfile:
             pickle.dump(self.new_to_orig_names_map, outfile)
@@ -79,7 +80,8 @@ class Pipeline:
             f"{processed_data_dir}{dataset_name}_aligned.fasta"
         )
         if pipeline_input.aligned_sequence_data_path:
-            BaseTools.simplify_names(pipeline_input.aligned_sequence_data_path, self.aligned_sequence_data_path, self.new_to_orig_names_map)
+            BaseTools.simplify_names(pipeline_input.aligned_sequence_data_path, self.aligned_sequence_data_path,
+                                     self.new_to_orig_names_map)
             logger.info(f"Aligned data saved at {self.aligned_sequence_data_path}")
         else:
             BaseTools.align(
@@ -134,7 +136,8 @@ class Pipeline:
                         "reference_data": None
                     }
 
-    def align_sampled_data(self, pipeline_input: PipelineInput, fraction: float, method: SamplingMethod, fraction_to_samples_dir: t.Dict[t.Any, t.Any], sample_member_names: t.List[str]):
+    def align_sampled_data(self, pipeline_input: PipelineInput, fraction: float, method: SamplingMethod,
+                           fraction_to_samples_dir: t.Dict[t.Any, t.Any], sample_member_names: t.List[str]):
         self.samples_info[fraction][method.value][
             "aligned_sequence_data_path"
         ] = f"{fraction_to_samples_dir[fraction]}aligned_method_{method.value}.fasta"
@@ -183,7 +186,8 @@ class Pipeline:
                     f"Aligned sample records written to {self.samples_info[fraction][method.value]['aligned_sequence_data_path']}"
                 )
 
-    def build_sampled_tree(self, pipeline_input: PipelineInput, fraction: float, method: SamplingMethod, fraction_to_samples_dir: t.Dict[t.Any, t.Any], sample_member_names: t.List[str]):
+    def build_sampled_tree(self, pipeline_input: PipelineInput, fraction: float, method: SamplingMethod,
+                           fraction_to_samples_dir: t.Dict[t.Any, t.Any], sample_member_names: t.List[str]):
         self.samples_info[fraction][method.value][
             "tree_path"
         ] = f"{fraction_to_samples_dir[fraction]}method_{method.value}_tree.nwk"
@@ -271,7 +275,8 @@ class Pipeline:
                         f"Sample of fraction {fraction} and size {sample_size} using method {method.value} already "
                         f"exists. "
                     )
-                    sample_members_names = [record.name for record in self.samples_info[fraction][method.value]["unaligned_sequence_data_path"]]
+                    sample_members_names = [record.name for record in
+                                            self.samples_info[fraction][method.value]["unaligned_sequence_data_path"]]
                 else:
                     if method.value == "pda" and pipeline_input.weight_pda:
                         sampler_instance.compute_taxon_weights(
@@ -291,10 +296,14 @@ class Pipeline:
                     sample_members_names = [record.name for record in sample]
 
                 # align the sample
-                self.align_sampled_data(pipeline_input=pipeline_input, fraction=fraction, method=method, fraction_to_samples_dir=fraction_to_samples_dir, sample_member_names=sample_members_names)
+                self.align_sampled_data(pipeline_input=pipeline_input, fraction=fraction, method=method,
+                                        fraction_to_samples_dir=fraction_to_samples_dir,
+                                        sample_member_names=sample_members_names)
 
                 # write the tree
-                self.build_sampled_tree(pipeline_input=pipeline_input, fraction=fraction, method=method, fraction_to_samples_dir=fraction_to_samples_dir, sample_member_names=sample_members_names)
+                self.build_sampled_tree(pipeline_input=pipeline_input, fraction=fraction, method=method,
+                                        fraction_to_samples_dir=fraction_to_samples_dir,
+                                        sample_member_names=sample_members_names)
 
         logger.info("Completed samples generation")
 
@@ -444,7 +453,8 @@ class Pipeline:
                     if pipeline_input.reference_data_paths and program_name.value in pipeline_input.reference_data_paths:
                         self.samples_info[fraction][method_name]["programs_performance"][
                             program_name.value
-                        ]["reference_data"] = program_instance.parse_reference_data(pipeline_input.reference_data_paths[program_name.value])
+                        ]["reference_data"] = program_instance.parse_reference_data(
+                            pipeline_input.reference_data_paths[program_name.value])
 
     def write_results(self, output_path: str):
         if os.path.exists(output_path):
@@ -453,6 +463,16 @@ class Pipeline:
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         with open(output_path, "w") as outfile:
             json.dump(self.samples_info, outfile)
+
+    @staticmethod
+    def get_accuracy_df(program_instance: Program, reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any],
+                        fraction: float, method: SamplingMethod):
+        df = pd.DataFrame(columns=["sampling_fraction", "sampling_method", "accuracy"])
+        df["accuracy"] = program_instance.get_accuracy(
+            reference_data=reference_data, test_data=test_data)
+        df["sampling_fraction"] = fraction
+        df["sampling_method"] = method.value
+        return df
 
     def analyze_results(self, pipeline_input: PipelineInput):
         """
@@ -467,25 +487,40 @@ class Pipeline:
         for program_name in programs:
             figure_path = f"{output_dir}/{program_name.value}.svg"
             plt.grid(False)
-            fig = plt.figure(figsize=[1 * 8.5 + 2, 1 * 7.58 + 2], frameon=True)
-            accuracy_dfs = []
+            ncols = 1 if not pipeline_input.reference_data_paths[program_name.value] else 2
+            fig, axis = plt.subplots(
+                nrows=1,
+                ncols=ncols,
+                sharex="none",
+                sharey="none",
+                figsize=[ncols * 8.5 + 2 + 2, 7.58 + 2],
+                frameon=True,
+            )
+            full_accuracy_dfs = []
+            ref_accuracy_dfs = []
             for fraction in sampling_fractions:
                 for method in sampling_methods:
                     result_data = self.samples_info[fraction][method.value]["programs_performance"][program_name.value]
                     full_data_result = result_data["full_data_result"]
+                    reference_data_result = result_data["reference_data"]
                     sampled_data_result = result_data["result"]
-                    comparison_df = pd.DataFrame(columns=["sampling_fraction", "sampling_method", "accuracy"])
-                    comparison_df["accuracy"] = program_to_callable[program_name.value].get_accuracy(reference_data=full_data_result, test_data=sampled_data_result)
-                    comparison_df["sampling_fraction"] = fraction
-                    comparison_df["sampling_method"] = method.value
-                    accuracy_dfs.append(comparison_df)
-            accuracy_df = pd.concat(accuracy_dfs)
-            sns.boxplot(y="accuracy", x="sampling_fraction", data=accuracy_df, palette="colorblind", hue="sampling_method")
+                    full_accuracy_dfs.append(
+                        Pipeline.get_accuracy_df(program_instance=program_to_callable[program_name.value],
+                                                 reference_data=full_data_result, test_data=sampled_data_result,
+                                                 fraction=fraction, method=method))
+                    ref_accuracy_dfs.append(
+                        Pipeline.get_accuracy_df(program_instance=program_to_callable[program_name.value],
+                                                 reference_data=reference_data_result, test_data=sampled_data_result,
+                                                 fraction=fraction, method=method))
+            full_accuracy_df = pd.concat(full_accuracy_dfs)
+            sns.boxplot(ax=axis[1], y="accuracy", x="sampling_fraction", data=full_accuracy_df, palette="colorblind",
+                        hue="sampling_method")
+            axis[0].set_title("reference: full data")
+            ref_accuracy_df = pd.concat(ref_accuracy_dfs)
+            sns.boxplot(ax=axis[1], y="accuracy", x="sampling_fraction", data=ref_accuracy_df, palette="colorblind",
+                        hue="sampling_method")
+            axis[1].set_title("reference: simulated data")
             fig.subplots_adjust()
             fig.tight_layout()
             plt.savefig(figure_path, bbox_inches="tight", transparent=True)
             plt.clf()
-
-
-
-
