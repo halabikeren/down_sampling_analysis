@@ -10,24 +10,37 @@ from ete3 import Tree
 class Sampler:
     sequences_path: str
     tree: Tree
-    sequences: t.List[SeqIO.SeqRecord] = None
+    saved_sequence: SeqIO.SeqRecord  # this sequence will appear in every sample
+    sequences: t.List[SeqIO.SeqRecord]
+
+    def __init__(self, sequence_data_path: str, tree_path: str, sequences: t.Optional[t.List[SeqIO.SeqRecord]] = None):
+        if sequences:
+            self.sequences = sequences
+        else:
+            self.sequences = list(SeqIO.parse(sequence_data_path, "fasta"))
+        self.saved_sequence = self.sequences[0]
+        self.sequences.remove(self.saved_sequence)
+        self.sequences_path = sequence_data_path.replace(".", f"_without_reference_{self.saved_sequence.name}.")
+        SeqIO.write(self.sequences, self.sequences_path, "fasta")
+        self.tree = Tree(tree_path, format=5)
 
     def get_sample(
         self, k: int, aux_dir: str, **kwargs
-    ) -> t.Union[str, t.List[SeqIO.SeqRecord]]:
+    ) -> t.List[SeqIO.SeqRecord]:
         """
         :param k: number of sequences to sample
         :param aux_dir directory to generate auxiliary files in
         :return: either a path to the generated sample or a list of samples sequence names
         """
-        self.sequences = list(SeqIO.parse(self.sequences_path, "fasta"))
-        if k < 0 or k > len(self.sequences):
+        if k < 0 or k > len(self.sequences)+1:
             raise ValueError(
-                f"sample size {k} is invalid for data of size {len(self.sequences)}"
+                f"sample size {k} is invalid for data of size {len(self.sequences)+1}"
             )
-        return self.sequences_path
+        if k == 1:
+            return [self.saved_sequence]
+        return self.sequences+[self.saved_sequence]
 
-    def write_sample(self, k: int, aux_dir: str, output_path: str, **kwargs):
+    def write_sample(self, k: int, aux_dir: str, output_path: str, **kwargs) -> t.Union[str, t.List[SeqIO.SeqRecord]]:
         """
         writes the sampled data to an output file
         :param k required sample size
@@ -36,7 +49,5 @@ class Sampler:
         :return: None
         """
         sample = self.get_sample(k, aux_dir, **kwargs)
-        if type(sample) is str:
-            shutil.copyfile(sample, output_path)
-        else:
-            SeqIO.write(sample, output_path, "fasta")
+        SeqIO.write(sample, output_path, "fasta")
+        return sample

@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 import os
 import logging
 
+from ete3 import Tree
+
 from .sampler import Sampler
 
 log = logging.getLogger(__name__)
@@ -13,6 +15,10 @@ log = logging.getLogger(__name__)
 @dataclass
 class CdHit(Sampler):
     thr_to_sample: t.Dict[float, t.List[SeqIO.SeqRecord]] = field(default_factory=dict)
+
+    def __init__(self, sequence_data_path: str, tree_path: str, sequences: t.Optional[t.List[SeqIO.SeqRecord]] = None):
+        super(CdHit, self).__init__(sequence_data_path=sequence_data_path, tree_path=tree_path, sequences=sequences)
+        self.thr_to_sample = dict()
 
     def run_cd_hit(self, threshold: float, aux_dir: str) -> str:
         """
@@ -123,17 +129,18 @@ class CdHit(Sampler):
 
     def get_sample(
         self, k: int, aux_dir: str, **kwargs
-    ) -> t.Union[str, t.List[SeqIO.SeqRecord]]:
+    ) -> t.List[SeqIO.SeqRecord]:
         """
         :param k: number of sequences to sample
         :param aux_dir directory to generate auxiliary files in
         :return: either a path to the generated sample or a list of samples sequence names
         """
         sample = super(CdHit, self).get_sample(k, aux_dir)
-        if k < len(self.sequences):
+        if 1 < k < len(self.sequences):
             os.makedirs(aux_dir, exist_ok=True)
             thr = self.get_similarity_threshold(
-                k, 0.4, 1, aux_dir
+                k-1, 0.4, 1, aux_dir
             )  # the minimum threshold 0.4 is set based on experience
             sample = self.thr_to_sample[thr]
+            sample.append(self.saved_sequence)  # saved sequence must be in every sample
         return sample

@@ -6,6 +6,7 @@
   "states_frequencies": [0.25, 0.25, 0.25, 0.25],
   "tree_rooted": 1,
   "tree_random": 1,
+  "tree_length": 4,
   "ntaxa": 6,
   "seq_len": 10,
   "birth_rate": 0.3,

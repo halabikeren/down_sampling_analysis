@@ -240,9 +240,8 @@ class Pipeline:
         tree = Tree(self.tree_path)
         for method in pipeline_input.sampling_methods:
             sampler_instance = method_to_callable[method.value](
-                sequences_path=self.unaligned_sequence_data_path,
-                tree=tree,
-                sequences=self.unaligned_sequence_data,
+                sequence_data_path=self.unaligned_sequence_data_path,
+                tree_path=self.tree_path
             )
             for fraction in pipeline_input.sampling_fractions:
                 self.samples_info[fraction][method.value][
@@ -318,12 +317,14 @@ class Pipeline:
             os.makedirs(program_aux_dir, exist_ok=True)
             program_to_exec = program_to_callable[program_name.value]()
             program_name_to_instance[program_name] = program_to_exec
-            program_params = None
+            program_params = dict()
             if (
                     pipeline_input.programs_params
                     and program_name.value in pipeline_input.programs_params
             ):
                 program_params = pipeline_input.programs_params[program_name.value]
+            if program_name.value == "rate4site":
+                program_params["-a"] = self.unaligned_sequence_data[0].name
 
             # execute on the full dataset
             if pipeline_input.exec_on_full_data:

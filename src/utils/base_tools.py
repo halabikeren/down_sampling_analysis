@@ -123,7 +123,9 @@ class BaseTools:
                     record.description = record.name = record.id = reversed_names_translator[record.description]
                 SeqIO.write(seq_records, output_path, "fasta")
         else:
-            tree = Tree(input_path)
+            with open(input_path, "r") as infile:
+                tree_str = infile.read()
+            tree = Tree(tree_str, format=1)
             tree_leaves = tree.get_leaves()
             if not names_translator:
                 s = 1

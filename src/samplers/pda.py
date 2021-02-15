@@ -35,6 +35,10 @@ class Pda(Sampler):
     ] = None  # sample subtree is saved such that if later on, a larger sample is required, we can simply extend the current one rather than start over
     pd_score: float = 0
 
+    def __init__(self, sequence_data_path: str, tree_path: str, sequences: t.Optional[t.List[SeqIO.SeqRecord]] = None, taxon_to_weight: t.Optional[t.Dict[str, float]] = None):
+        super(Pda, self).__init__(sequence_data_path=sequence_data_path, tree_path=tree_path, sequences=sequences)
+        self.taxon_to_weight = taxon_to_weight
+
     def compute_taxon_weights(self, aligned_sequences_path: str):
         """
         computes the weight of each taxon (or sequence) based on the
@@ -246,7 +250,7 @@ class Pda(Sampler):
             aux_dir: str,
             is_weighted: bool = False,
             use_external: bool = False,
-    ) -> t.Union[str, t.List[SeqIO.SeqRecord]]:
+    ) -> t.List[SeqIO.SeqRecord]:
         """
         computes the most phylogenetically diverse weighted sample based on the greedy algorithm of Steel (2005).
         for more details see https://academic.oup.com/sysbio/article-abstract/54/4/527/2842877
@@ -256,9 +260,6 @@ class Pda(Sampler):
         :param use_external: indicates weather the pda tool should be used or internally implemented code
         :return: list of names of chosen leaves
         """
-        if k < 1:
-            logger.error("Required sample size must be at least 2")
-            raise ValueError("Required sample size must be at least 2")
         self.add_internal_names()
         sample = super(Pda, self).get_sample(k, aux_dir)
         if k == len(self.sequences):
@@ -271,20 +272,39 @@ class Pda(Sampler):
                         for taxon in self.sample_subtree.get_leaf_names()
                     ]
                 )
-            return sample
-
+        elif k == 1:
+            self.sample_subtree = Tree(f"{sample[0].name};")
+            self.pd_score = 0
+            if is_weighted:
+                self.pd_score += self.taxon_to_weight[sample[0].name]
         else:
-            if not use_external:
-                self.sample_subtree = Tree()
-                self.add_internal_names()
-                while len(self.sample_subtree.get_leaf_names()) < k:
-                    self.do_pd_step(is_weighted=is_weighted)
-                sample_members = self.sample_subtree.get_leaf_names()
+            if k-1 > 1:
+                self.tree.prune([leaf for leaf in self.tree.get_leaf_names() if leaf != self.saved_sequence.name])
+                if not use_external:
+                    self.sample_subtree = Tree()
+                    self.add_internal_names()
+                    while len(self.sample_subtree.get_leaf_names()) < k-1:
+                        self.do_pd_step(is_weighted=is_weighted)
+                    sample_members = self.sample_subtree.get_leaf_names()
+                else:
+                    sample_members = self.exec_external_pda(
+                        k-1, aux_dir, is_weighted=is_weighted
+                    )
             else:
-                sample_members = self.exec_external_pda(
-                    k, aux_dir, is_weighted=is_weighted
-                )
+                leaves = [leaf for leaf in self.tree.get_leaves() if leaf.name != self.saved_sequence.name]
+                saved_leaf = self.tree.search_nodes(name=self.saved_sequence.name)[0]
+                most_disant_leaf = leaves[0]
+                max_dist = self.tree.get_distance(saved_leaf, most_disant_leaf)
+                for l in range(1, len(leaves)):
+                    leaf = leaves[l]
+                    dist = self.tree.get_distance(saved_leaf, leaf)
+                    if dist > max_dist:
+                        max_dist = dist
+                        most_disant_leaf = leaf
+                sample_members = [most_disant_leaf.name]
 
-            return [
+            sample = [
                 record for record in self.sequences if record.name in sample_members
             ]
+            sample.append(self.saved_sequence)  # saved sequence must be in every sample
+        return sample
