@@ -103,6 +103,7 @@ class BaseTools:
         :param names_translator: translator of new to old names. if not provided, simple names will be generated and returned
         :return:
         """
+        input_is_tree = False
         if ".nwk" in str(input_path):
             input_is_tree = True
         if not input_is_tree:
