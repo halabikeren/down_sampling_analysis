@@ -11,6 +11,11 @@ from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 @dataclass
 class Rate4Site(Program):
 
@@ -64,15 +69,17 @@ class Rate4Site(Program):
         return result
 
     @staticmethod
-    def correct_rates_data(data: t.Dict[str, t.Any]) -> pd.DataFrame: # temp function for correcting parsing bug
-        output_regex = re.compile(
-            "#POS\s*SEQ\s*SCORE\s*QQ-INTERVAL\s*STD\s*MSA DATA.*?The alpha parameter (.\d*\.?\d*).*?LL=(-?\d*\.?\d*)(.*?)#Average",
-            re.MULTILINE | re.DOTALL,
-        )
-        output_match = output_regex.search(data["raw_output"])
-        data["rate_by_position"] = Rate4Site.parse_rates(output_match.group(3))
-        df = pd.DataFrame.from_dict(data["rate_by_position"])
-        return df
+    def parse_reference_data(input_path: str) -> t.Dict[str, t.Any]:
+        """
+        :param input_path: path to the reference data
+        :return: a dictionary with the parsed reference data
+        """
+        rates_data_regex = re.compile("(Site\s*Class.*)", re.MULTILINE | re.DOTALL)
+        with open(input_path, "r") as input_file:
+            rates_data = rates_data_regex.search(input_file.read()).group(1)
+        f = StringIO(rates_data)
+        rates_df = pd.read_csv(f, sep="\t")
+        return rates_df.to_dict()
 
     @staticmethod
     def get_accuracy(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any]) -> pd.Series:
@@ -83,15 +90,11 @@ class Rate4Site(Program):
         """
         reference_df = pd.DataFrame.from_dict(reference_data["rate_by_position"])
         test_df = pd.DataFrame.from_dict(test_data["rate_by_position"])
-        try:
-            reference_df["std"].astype(float)
-        except:
-            reference_df = Rate4Site.correct_rates_data(data=reference_data)
-        try:
-            test_df["std"].astype(float)
-        except:
-            test_df = Rate4Site.correct_rates_data(data=test_data)
-        test_positions = list(test_df.dropna()["position"].values)
+        test_positions = list(test_df["position"].values)
+        reference_positions = list(reference_df["position"].values)
+        if len(test_positions) < len(reference_positions):
+            logger.error(f"Number of positions in test data is {len(test_positions)} and is inconsistent with the number of positions in the reference data {len(reference_positions)}")
+            raise ValueError(f"Number of positions in test data is {len(test_positions)} and is inconsistent with the number of positions in the reference data {len(reference_positions)}")
         reference_df = reference_df.loc[reference_df["position"].isin(test_positions)]
         absolute_error = abs(reference_df["rate"]-test_df["rate"])
         denominator = abs(reference_df["rate"]) + abs(test_df["rate"])
