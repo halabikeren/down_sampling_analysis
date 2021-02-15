@@ -271,6 +271,7 @@ class Pipeline:
                         f"Sample of fraction {fraction} and size {sample_size} using method {method.value} already "
                         f"exists. "
                     )
+                    sample_members_names = [record.name for record in self.samples_info[fraction][method.value]["unaligned_sequence_data_path"]]
                 else:
                     if method.value == "pda" and pipeline_input.weight_pda:
                         sampler_instance.compute_taxon_weights(
