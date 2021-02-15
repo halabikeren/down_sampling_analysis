@@ -74,6 +74,7 @@ class BaseTools:
             tree_regex = re.compile("TREE STRING.*?(\(.*?\;)", re.MULTILINE | re.DOTALL)
             pipeline_json_input = deepcopy(simulation_params)
             pipeline_json_input["pipeline_dir"] = f"{output_dir}/pipeline_dir/"
+            pipeline_json_input["cluster_data_dir"] = output_dir
             pipeline_json_input["unaligned_sequence_data_path"] = f"{output_dir}/seq_data_1.fasta"
             if simulation_params["use_simulated_alignment"]:
                 pipeline_json_input["aligned_sequence_data_path"] = f"{output_dir}/seq_data_TRUE_1.fasta"
