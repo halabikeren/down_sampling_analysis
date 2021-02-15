@@ -50,7 +50,7 @@ def exec_pipeline_on_simulations(input_path: click.Path):
             name="pipeline_on_simulated_data",
             sh_dir=aux_dir,
             output_dir=aux_dir,
-            commands=[f"python ./main.py --input_path={json_path}"],
+            commands=[f"python /groups/itay_mayrose/halabikeren/down_sampling_analysis/src/main.py --input_path={json_path}"],
             priority=simulation_params["priority"],
             queue=simulation_params["queue"],
         )
