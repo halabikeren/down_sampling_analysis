@@ -80,7 +80,8 @@ class Rate4Site(Program):
         f = StringIO(rates_data)
         rates_df = pd.read_csv(f, sep="\t")
         rates_df.rename({"Site": "position", "Rate": "rate"})
-        return rates_df.to_dict()
+        reference_data = {"rate_by_position": rates_df.to_dict()}
+        return reference_data
 
     @staticmethod
     def get_accuracy(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any]) -> pd.Series:
