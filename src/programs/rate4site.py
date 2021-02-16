@@ -79,7 +79,7 @@ class Rate4Site(Program):
             rates_data = rates_data_regex.search(input_file.read()).group(1)
         f = StringIO(rates_data)
         rates_df = pd.read_csv(f, sep="\t")
-        os.rename({"Site": "position", "Rate": "rate"})
+        rates_df.rename({"Site": "position", "Rate": "rate"})
         return rates_df.to_dict()
 
     @staticmethod
