@@ -241,7 +241,6 @@ class Pipeline:
             os.makedirs(fraction_to_samples_dir[fraction], exist_ok=True)
 
         # generate the samples
-        tree = Tree(self.tree_path)
         for method in pipeline_input.sampling_methods:
             sampler_instance = method_to_callable[method.value](
                 sequence_data_path=self.unaligned_sequence_data_path,
@@ -276,7 +275,7 @@ class Pipeline:
                         f"exists. "
                     )
                     sample_members_names = [record.name for record in
-                                            self.samples_info[fraction][method.value]["unaligned_sequence_data_path"]]
+                                            list(SeqIO.parse(self.samples_info[fraction][method.value]["unaligned_sequence_data_path"], "fasta"))]
                 else:
                     if method.value == "pda" and pipeline_input.weight_pda:
                         sampler_instance.compute_taxon_weights(
