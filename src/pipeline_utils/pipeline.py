@@ -512,7 +512,7 @@ class Pipeline:
                                                  reference_data=reference_data_result, test_data=sampled_data_result,
                                                  fraction=fraction, method=method))
             full_accuracy_df = pd.concat(full_accuracy_dfs)
-            sns.boxplot(ax=axis[1], y="accuracy", x="sampling_fraction", data=full_accuracy_df, palette="colorblind",
+            sns.boxplot(ax=axis[0], y="accuracy", x="sampling_fraction", data=full_accuracy_df, palette="colorblind",
                         hue="sampling_method")
             axis[0].set_title("reference: full data")
             ref_accuracy_df = pd.concat(ref_accuracy_dfs)
