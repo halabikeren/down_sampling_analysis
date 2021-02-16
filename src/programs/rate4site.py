@@ -79,7 +79,8 @@ class Rate4Site(Program):
             rates_data = rates_data_regex.search(input_file.read()).group(1)
         f = StringIO(rates_data)
         rates_df = pd.read_csv(f, sep="\t")
-        rates_df.rename({"Site": "position", "Rate": "rate"}, inplace=True)
+        rates_df.rename(columns={"Site": "position", "Rate": "rate"}, inplace=True)
+        rates_df["std"] = rates_df["rate"].std()
         reference_data = {"rate_by_position": rates_df.to_dict()}
         return reference_data
 
