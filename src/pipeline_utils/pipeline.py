@@ -428,8 +428,8 @@ class Pipeline:
             # parse output of the full program
             if pipeline_input.exec_on_full_data:
                 full_program_output = program_to_full_data_output[program_name.value]
-                full_data_result = program_instance.parse_output(output_path=full_program_output, job_output_dir=(
-                    full_data_program_aux_dir if pipeline_input.parallelize else None))
+                full_data_result = program_instance.parse_output(output_path=full_program_output, job_output_dir=
+                    full_data_program_aux_dir)
                 if "duration(minutes)" not in full_data_result:
                     full_data_result["duration(minutes)"] = full_data_duration
 
@@ -443,7 +443,7 @@ class Pipeline:
                     self.samples_info[fraction][method_name]["programs_performance"][
                         program_name.value
                     ]["result"].update(program_instance.parse_output(output_path=program_output_path,
-                                                                     job_output_dir=job_output_dir if pipeline_input.parallelize else None))
+                                                                     job_output_dir=job_output_dir))
                     if pipeline_input.exec_on_full_data:
                         self.samples_info[fraction][method_name]["programs_performance"][
                             program_name.value
@@ -524,10 +524,12 @@ class Pipeline:
             sns.boxplot(ax=axis[0], y="accuracy", x="sampling_fraction", data=full_accuracy_df, palette="colorblind",
                         hue="sampling_method")
             axis[0].set_title("reference: full data")
+            axis[0].set_ylim(bottom=0, top=1)
             ref_accuracy_df = pd.concat(ref_accuracy_dfs)
             sns.boxplot(ax=axis[1], y="accuracy", x="sampling_fraction", data=ref_accuracy_df, palette="colorblind",
                         hue="sampling_method")
             axis[1].set_title("reference: simulated data")
+            axis[1].set_ylim(bottom=0, top=1)
             fig.subplots_adjust()
             fig.tight_layout()
             plt.savefig(figure_path, bbox_inches="tight", transparent=True)

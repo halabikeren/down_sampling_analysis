@@ -109,8 +109,10 @@ class Rate4Site(Program):
             raise ValueError(f"Number of positions in test data is {len(test_positions)} and is inconsistent with the number of positions in the reference data {len(reference_positions)}")
         reference_df = reference_df.loc[reference_df["position"].isin(test_positions)]
         absolute_error = abs(reference_df["rate"]-test_df["rate"])
-        denominator = abs(reference_df["rate"]) + abs(test_df["rate"])
+        denominator = 2 if use_normalized_rates else (max(list(reference_df["rate"])+list(test_df["rate"]))-min(list(reference_df["rate"])+list(test_df["rate"])))  # in the case of normalized rates: corresponds to the range of rates [-1,1] which is also the maximal value of difference between rates
         relative_error = absolute_error/denominator
-        penalized_error_by_std = relative_error * (abs(reference_df["std"]-test_df["std"])/test_df["std"])  # will punish error with low test std more than one without
+        denominator = max(list(reference_df["std"])+list(test_df["std"]))-min(list(reference_df["std"])+list(test_df["std"]))
+        std_normalizer = (abs(reference_df["std"]-test_df["std"]))/denominator
+        penalized_error_by_std = relative_error * std_normalizer  # will punish error with low test std more than one without
         penalized_accuracy_by_std = 1-penalized_error_by_std
         return penalized_accuracy_by_std
