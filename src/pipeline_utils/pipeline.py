@@ -340,7 +340,7 @@ class Pipeline:
                 input_path = self.aligned_sequence_data_path
                 output_path = f"{program_dir}/full_data_{program_name.value}.out"
                 program_to_full_data_output[program_name.value] = output_path
-                full_data_program_aux_dir = f"{os.path.dirname(self.aligned_sequence_data_path)}/{program_name.value}_aux/"
+                full_data_program_aux_dir = f"{program_dir}/full_data_{program_name.value}_aux/"
                 full_data_program_params = dict()
                 if program_params:
                     full_data_program_params = deepcopy(program_params)
@@ -427,11 +427,15 @@ class Pipeline:
 
             # parse output of the full program
             if pipeline_input.exec_on_full_data:
-                full_program_output = program_to_full_data_output[program_name.value]
-                full_data_result = program_instance.parse_output(output_path=full_program_output, job_output_dir=
-                    full_data_program_aux_dir)
-                if "duration(minutes)" not in full_data_result:
-                    full_data_result["duration(minutes)"] = full_data_duration
+                try:
+                    full_program_output = program_to_full_data_output[program_name.value]
+                    full_data_result = program_instance.parse_output(output_path=full_program_output, job_output_dir=
+                        full_data_program_aux_dir)
+                    if "duration(minutes)" not in full_data_result:
+                        full_data_result["duration(minutes)"] = full_data_duration
+                except Exception as e:
+                    logger.error(f"Failed to parse results on full data due to error {e}. check why it failed in {full_data_program_aux_dir}")
+                    full_data_result = None
 
             for fraction in self.samples_info:
                 for method_name in self.samples_info[fraction]:
@@ -512,14 +516,16 @@ class Pipeline:
                     full_data_result = result_data["full_data_result"]
                     reference_data_result = result_data["reference_data"]
                     sampled_data_result = result_data["result"]
-                    full_accuracy_dfs.append(
-                        Pipeline.get_accuracy_df(program_instance=program_to_callable[program_name.value],
-                                                 reference_data=full_data_result, test_data=sampled_data_result,
-                                                 fraction=fraction, method=method))
-                    ref_accuracy_dfs.append(
-                        Pipeline.get_accuracy_df(program_instance=program_to_callable[program_name.value],
-                                                 reference_data=reference_data_result, test_data=sampled_data_result,
-                                                 fraction=fraction, method=method, use_normalized_rates=False))
+                    if full_data_result:
+                        full_accuracy_dfs.append(
+                            Pipeline.get_accuracy_df(program_instance=program_to_callable[program_name.value],
+                                                     reference_data=full_data_result, test_data=sampled_data_result,
+                                                     fraction=fraction, method=method))
+                    if reference_data_result:
+                        ref_accuracy_dfs.append(
+                            Pipeline.get_accuracy_df(program_instance=program_to_callable[program_name.value],
+                                                     reference_data=reference_data_result, test_data=sampled_data_result,
+                                                     fraction=fraction, method=method, use_normalized_rates=False))
             full_accuracy_df = pd.concat(full_accuracy_dfs)
             sns.boxplot(ax=axis[0], y="accuracy", x="sampling_fraction", data=full_accuracy_df, palette="colorblind",
                         hue="sampling_method")
