@@ -65,10 +65,13 @@ def exec_pipeline(input_path: click.Path):
     pipeline.write_results(pipeline_output_path)
     logger.info(f"Written pipeline output successfully.")
 
-    logger.info(f"Plotting results")
-    pipeline.analyze_results(pipeline_input)
-    logger.info(f"Plotted pipeline output successfully.\nPipeline is complete.")
+    logger.info(f"Writing results to file")
+    pipeline.analyse_results(pipeline_input)
+    logger.info("Wrote analyzed results successfully")
 
+    logger.info(f"Plotting results")
+    pipeline.plot_results(pipeline_input)
+    logger.info(f"Plotted pipeline output successfully.\nPipeline is complete.")
 
 
 if __name__ == "__main__":

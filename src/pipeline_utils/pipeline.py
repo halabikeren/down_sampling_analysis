@@ -275,7 +275,8 @@ class Pipeline:
                         f"exists. "
                     )
                     sample_members_names = [record.name for record in
-                                            list(SeqIO.parse(self.samples_info[fraction][method.value]["unaligned_sequence_data_path"], "fasta"))]
+                                            list(SeqIO.parse(self.samples_info[fraction][method.value][
+                                                                 "unaligned_sequence_data_path"], "fasta"))]
                 else:
                     if method.value == "pda" and pipeline_input.weight_pda:
                         sampler_instance.compute_taxon_weights(
@@ -430,11 +431,12 @@ class Pipeline:
                 try:
                     full_program_output = program_to_full_data_output[program_name.value]
                     full_data_result = program_instance.parse_output(output_path=full_program_output, job_output_dir=
-                        full_data_program_aux_dir)
+                    full_data_program_aux_dir)
                     if "duration(minutes)" not in full_data_result:
                         full_data_result["duration(minutes)"] = full_data_duration
                 except Exception as e:
-                    logger.error(f"Failed to parse results on full data due to error {e}. check why it failed in {full_data_program_aux_dir}")
+                    logger.error(
+                        f"Failed to parse results on full data due to error {e}. check why it failed in {full_data_program_aux_dir}")
                     full_data_result = None
 
             for fraction in self.samples_info:
@@ -486,17 +488,14 @@ class Pipeline:
         df["sampling_method"] = method.value
         return df
 
-    def analyze_results(self, pipeline_input: PipelineInput):
+    def plot_results(self, pipeline_input: PipelineInput):
         """
         :param pipeline_input: pipeline input instance
         :return: nothing. analyses programs outputs and writes figures with the result to output dir
         """
         output_dir = f"{pipeline_input.pipeline_dir}/figures"
         os.makedirs(output_dir, exist_ok=True)
-        programs = pipeline_input.programs
-        sampling_methods = pipeline_input.sampling_methods
-        sampling_fractions = pipeline_input.sampling_fractions
-        for program_name in programs:
+        for program_name in pipeline_input.programs:
             figure_path = f"{output_dir}/{program_name.value}.svg"
             plt.grid(False)
             ncols = 1 if not pipeline_input.reference_data_paths[program_name.value] else 2
@@ -510,8 +509,8 @@ class Pipeline:
             )
             full_accuracy_dfs = []
             ref_accuracy_dfs = []
-            for fraction in sampling_fractions:
-                for method in sampling_methods:
+            for fraction in pipeline_input.sampling_fractions:
+                for method in pipeline_input.sampling_methods:
                     result_data = self.samples_info[fraction][method.value]["programs_performance"][program_name.value]
                     full_data_result = result_data["full_data_result"]
                     reference_data_result = result_data["reference_data"]
@@ -524,11 +523,13 @@ class Pipeline:
                     if reference_data_result:
                         ref_accuracy_dfs.append(
                             Pipeline.get_accuracy_df(program_instance=program_to_callable[program_name.value],
-                                                     reference_data=reference_data_result, test_data=sampled_data_result,
+                                                     reference_data=reference_data_result,
+                                                     test_data=sampled_data_result,
                                                      fraction=fraction, method=method, use_normalized_rates=False))
             if len(full_accuracy_dfs) > 0:
                 full_accuracy_df = pd.concat(full_accuracy_dfs)
-                sns.boxplot(ax=axis[0], y="accuracy", x="sampling_fraction", data=full_accuracy_df, palette="colorblind",
+                sns.boxplot(ax=axis[0], y="accuracy", x="sampling_fraction", data=full_accuracy_df,
+                            palette="colorblind",
                             hue="sampling_method")
                 axis[0].set_title("reference: full data")
                 axis[0].set_ylim(bottom=0, top=1)
@@ -542,3 +543,19 @@ class Pipeline:
             fig.tight_layout()
             plt.savefig(figure_path, bbox_inches="tight", transparent=True)
             plt.clf()
+
+    def analyse_results(self, pipeline_input: PipelineInput):
+        output_dir = f"{pipeline_input.pipeline_dir}/tables"
+        os.makedirs(output_dir, exist_ok=True)
+        for program_name in pipeline_input.programs:
+            output_path = f"{output_dir}/{program_name.value}.csv"
+            results_map = dict()
+            for fraction in pipeline_input.sampling_fractions:
+                for method in pipeline_input.sampling_methods:
+                    result_data = self.samples_info[fraction][method.value]["programs_performance"][program_name.value]
+                    if not "full" in results_map and result_data["full_data_result"]:
+                        results_map["full"] = result_data["full_data_result"]
+                    if not "reference" in results_map and result_data["reference_data"]:
+                        results_map["reference"] = result_data["reference_data"]
+                    results_map[f"{fraction}_{method.value}"] = result_data["result"]
+            program_to_callable[program_name.value].write_analysis(results=results_map, output_path=output_path)

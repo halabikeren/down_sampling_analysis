@@ -116,3 +116,37 @@ class Rate4Site(Program):
         penalized_error_by_std = relative_error * std_normalizer  # will punish error with low test std more than one without
         penalized_accuracy_by_std = 1-penalized_error_by_std
         return penalized_accuracy_by_std
+
+    @staticmethod
+    def write_analysis(results: t.Dict[str, t.Any], output_path: str):
+        """
+        :param results: dictionary mapping executions titles to their results
+        :param output_path: path to write the output to
+        :return: none
+        """
+        titles = list(results.keys())
+        column_names = [f"{title}_rates" for title in titles] + [f"{title}_std" for title in titles] + \
+                       [f"{title}_rel_acc_to_ref" for title in titles if "_" in title and "reference" in titles] + \
+                       [f"{title}_rel_acc_to_full" for title in titles if "_" in title and "full" in titles] + \
+                       [f"{title}_std_penalized_acc_to_ref" for title in titles if "_" in title and "reference" in titles] + \
+                       [f"{title}_std_penalized_acc_to_full" for title in titles if "_" in title and "full" in titles]
+        results_df = pd.DataFrame(columns=column_names)
+        ref_df = full_df = None
+        if "reference" in results:
+            ref_df = pd.DataFrame.from_dict(results["reference"]["denormalized_rate_by_position"])
+        if "full" in results:
+            full_df = pd.DataFrame.from_dict(results["full"]["denormalized_rate_by_position"])
+        for title in results:
+            try:
+                title_df = pd.DataFrame.from_dict(results[title]["denormalized_rate_by_position"])
+                results_df[f"{title}_rates"] = title_df["rate"]
+                results_df[f"{title}_std"] = title_df["std"]
+                if ref_df:
+                    results_df[f"{title}_rel_acc_to_ref"] = abs(title_df["rate"]-ref_df["rate"])/(max(list(ref_df["rate"])+list(title_df["rate"]))-min(list(ref_df["rate"])+list(title_df["rate"])))
+                    results_df[f"{title}_std_penalized_acc_to_ref"] = results_df[f"{title}_rel_acc_to_ref"] * (abs(ref_df["std"]-title["std"]))/max(list(ref_df["std"])+list(title_df["std"]))-min(list(ref_df["std"])+list(title_df["std"]))
+                if full_df:
+                    results_df[f"{title}_rel_acc_to_full"] = abs(title_df["rate"]-ref_df["rate"])/(max(list(full_df["rate"])+list(title_df["rate"]))-min(list(full_df["rate"])+list(title_df["rate"])))
+                    results_df[f"{title}_std_penalized_acc_to_full"] = results_df[f"{title}_rel_acc_to_full"] * (abs(full_df["std"]-title["std"]))/max(list(full_df["std"])+list(title_df["std"]))-min(list(full_df["std"])+list(title_df["std"]))
+            except Exception as e:
+                logger.error(f"Failed to extract rates for {title} due to error {e}")
+        results_df.to_csv(output_path)

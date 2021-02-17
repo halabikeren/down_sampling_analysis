@@ -94,7 +94,9 @@ class Program:
         input_str = f"{self.input_param_name} {program_input_path}"
         output_str = f"{self.output_param_name} {program_output_path}"
         if additional_params:
-            additional_params_str = self.set_additional_params(additional_params=additional_params, parallelize=parallelize, cluster_data_dir=cluster_data_dir, return_as_str=True)
+            additional_params_str = self.set_additional_params(additional_params=additional_params,
+                                                               parallelize=parallelize,
+                                                               cluster_data_dir=cluster_data_dir, return_as_str=True)
         else:
             additional_params_str = ""
         command = f"{self.program_exe if not parallelize else self.cluster_program_exe} {input_str} {output_str} {additional_params_str} "
@@ -187,7 +189,7 @@ class Program:
         result = {"raw_output": output_content}
 
         if job_output_dir:
-            paths_by_time = sorted([job_output_dir+path for path in os.listdir(job_output_dir)], key=os.path.getmtime)
+            paths_by_time = sorted([job_output_dir + path for path in os.listdir(job_output_dir)], key=os.path.getmtime)
             job_output_path = [path for path in paths_by_time if ".OU" in path][0]
             with open(job_output_path, "r") as job_output_file:
                 content = job_output_file.readlines()
@@ -209,7 +211,6 @@ class Program:
             with open(input_path, "r") as input_file:
                 result["raw_output"] = input_file.read()
         return result
-
 
     @staticmethod
     def write_result_json(input_path: str, job_output_dir: t.Optional[str], output_path: str):
@@ -233,3 +234,12 @@ class Program:
         :return: the output of pd series with indices as the members for which accuracy it assessed (be it positions in a sequence of sequences) and the values are the accuracy values computed for them
         """
         pass  # is overloaded by implementations n the inherited classes
+
+    @staticmethod
+    def write_analysis(results: t.Dict[str, t.Any], output_path: str):
+        """
+        :param results: dictionary mapping executions titles to their results
+        :param output_path: path to write the output to
+        :return: none
+        """
+        pass  # will be overloaded by inheriting classes
