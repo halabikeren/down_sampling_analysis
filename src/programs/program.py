@@ -234,3 +234,11 @@ class Program:
         :return: the output of pd series with indices as the members for which accuracy it assessed (be it positions in a sequence of sequences) and the values are the accuracy values computed for them
         """
         pass  # is overloaded by implementations n the inherited classes
+
+    @staticmethod
+    def get_result(data: t.Dict[str, t.Any], **kwargs) -> pd.Series:
+        """
+        :param data: dictionary mapping results
+        :return: the relevant data to compute accuracy for
+        """
+        pass # will be overloaded by inheriting classes

@@ -120,3 +120,14 @@ class Rate4Site(Program):
             return penalized_accuracy_by_std
         return relative_accuracy  # for now, use relative accuracy (17.2.2021)
 
+    @staticmethod
+    def get_result(data: t.Dict[str, t.Any], use_normalized_rates: bool = False) -> pd.Series:
+        """
+        :param data: dictionary mapping results
+        :param use_normalized_rates: indicates weather normalized rates should be used for accuracy computation or denormalized rates
+        :return: the relevant data to compute accuracy for
+        """
+        df = data["denormalized_rates_by_position"]
+        if use_normalized_rates:
+            df = data["rates_by_position"]
+        return df["rate"]
