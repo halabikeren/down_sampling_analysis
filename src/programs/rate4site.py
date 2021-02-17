@@ -55,6 +55,7 @@ class Rate4Site(Program):
         :param job_output_dir
         :return: None. parses the output file into a json form and saves it into self.result
         """
+        # TO DO: parse non normalized rates (required for comparison to simulated rates)
         result = super(Rate4Site, Rate4Site).parse_output(output_path=output_path, job_output_dir=job_output_dir)
         with open(output_path, "r") as output_file:
             output_content = output_file.read()
@@ -66,6 +67,10 @@ class Rate4Site(Program):
         result["alpha"] = float(output_match.group(1))
         result["log_likelihood"] = float(output_match.group(2))
         result["rate_by_position"] = Rate4Site.parse_rates(output_match.group(3))
+        denormalized_rates_by_position_path = f"{job_output_dir}/r4sOrig.res"
+        with open(denormalized_rates_by_position_path, "r") as output_file:
+            output_content = output_file.read()
+        result["denormalized_rate_by_position"] = Rate4Site.parse_rates(output_regex.search(output_content).group(3))
         return result
 
     @staticmethod
@@ -81,18 +86,22 @@ class Rate4Site(Program):
         rates_df = pd.read_csv(f, sep="\t")
         rates_df.rename(columns={"Site": "position", "Rate": "rate"}, inplace=True)
         rates_df["std"] = rates_df["rate"].std()
-        reference_data = {"rate_by_position": rates_df.to_dict()}
+        reference_data = {"denormalized_rate_by_position": rates_df.to_dict()}
         return reference_data
 
     @staticmethod
-    def get_accuracy(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any]) -> pd.Series:
+    def get_accuracy(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], use_normalized_rates: bool = True) -> pd.Series:
         """
         :param reference_data: reference data to compute results by reference to
         :param test_data: test data to compare to the reference data
+        :param use_normalized_rates: indicates weather normalized rates should be used for accuracy computation or denormalized rates
         :return: the output of pd series with indices as the members for which accuracy it assessed (be it positions in a sequence of sequences) and the values are the accuracy values computed for them
         """
-        reference_df = pd.DataFrame.from_dict(reference_data["rate_by_position"])
-        test_df = pd.DataFrame.from_dict(test_data["rate_by_position"])
+        rate_type = "rate_by_position"
+        if not use_normalized_rates:
+            rate_type = "denormalized_rate_by_position"
+        reference_df = pd.DataFrame.from_dict(reference_data[rate_type])
+        test_df = pd.DataFrame.from_dict(test_data[rate_type])
         test_positions = list(test_df["position"].values)
         reference_positions = list(reference_df["position"].values)
         if len(test_positions) < len(reference_positions):

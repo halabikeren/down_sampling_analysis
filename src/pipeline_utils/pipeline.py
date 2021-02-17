@@ -465,10 +465,19 @@ class Pipeline:
 
     @staticmethod
     def get_accuracy_df(program_instance: Program, reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any],
-                        fraction: float, method: SamplingMethod):
+                        fraction: float, method: SamplingMethod, use_normalized_rates: bool = True):
+        """
+        :param program_instance: program instance to get its accuracy computation
+        :param reference_data: data of reference set
+        :param test_data: data of test set
+        :param fraction: sampling fraction
+        :param method: sampling method
+        :param use_normalized_rates: for rate4site. indicates weather normalized rates should be used or not
+        :return:
+        """
         df = pd.DataFrame(columns=["sampling_fraction", "sampling_method", "accuracy"])
         df["accuracy"] = program_instance.get_accuracy(
-            reference_data=reference_data, test_data=test_data)
+            reference_data=reference_data, test_data=test_data, use_normalized_rates=use_normalized_rates)
         df["sampling_fraction"] = fraction
         df["sampling_method"] = method.value
         return df
@@ -510,7 +519,7 @@ class Pipeline:
                     ref_accuracy_dfs.append(
                         Pipeline.get_accuracy_df(program_instance=program_to_callable[program_name.value],
                                                  reference_data=reference_data_result, test_data=sampled_data_result,
-                                                 fraction=fraction, method=method))
+                                                 fraction=fraction, method=method, use_normalized_rates=False))
             full_accuracy_df = pd.concat(full_accuracy_dfs)
             sns.boxplot(ax=axis[0], y="accuracy", x="sampling_fraction", data=full_accuracy_df, palette="colorblind",
                         hue="sampling_method")

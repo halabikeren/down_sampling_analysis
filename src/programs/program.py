@@ -226,7 +226,7 @@ class Program:
             json.dump(result, output)
 
     @staticmethod
-    def get_accuracy(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any]) -> pd.Series:
+    def get_accuracy(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], **kwargs) -> pd.Series:
         """
         :param reference_data: reference data to compute results by reference to
         :param test_data: test data to compare to the reference data
