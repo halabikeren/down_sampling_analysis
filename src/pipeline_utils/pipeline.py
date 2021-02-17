@@ -526,16 +526,18 @@ class Pipeline:
                             Pipeline.get_accuracy_df(program_instance=program_to_callable[program_name.value],
                                                      reference_data=reference_data_result, test_data=sampled_data_result,
                                                      fraction=fraction, method=method, use_normalized_rates=False))
-            full_accuracy_df = pd.concat(full_accuracy_dfs)
-            sns.boxplot(ax=axis[0], y="accuracy", x="sampling_fraction", data=full_accuracy_df, palette="colorblind",
-                        hue="sampling_method")
-            axis[0].set_title("reference: full data")
-            axis[0].set_ylim(bottom=0, top=1)
-            ref_accuracy_df = pd.concat(ref_accuracy_dfs)
-            sns.boxplot(ax=axis[1], y="accuracy", x="sampling_fraction", data=ref_accuracy_df, palette="colorblind",
-                        hue="sampling_method")
-            axis[1].set_title("reference: simulated data")
-            axis[1].set_ylim(bottom=0, top=1)
+            if len(full_accuracy_dfs) > 0:
+                full_accuracy_df = pd.concat(full_accuracy_dfs)
+                sns.boxplot(ax=axis[0], y="accuracy", x="sampling_fraction", data=full_accuracy_df, palette="colorblind",
+                            hue="sampling_method")
+                axis[0].set_title("reference: full data")
+                axis[0].set_ylim(bottom=0, top=1)
+            if len(ref_accuracy_dfs) > 0:
+                ref_accuracy_df = pd.concat(ref_accuracy_dfs)
+                sns.boxplot(ax=axis[1], y="accuracy", x="sampling_fraction", data=ref_accuracy_df, palette="colorblind",
+                            hue="sampling_method")
+                axis[1].set_title("reference: simulated data")
+                axis[1].set_ylim(bottom=0, top=1)
             fig.subplots_adjust()
             fig.tight_layout()
             plt.savefig(figure_path, bbox_inches="tight", transparent=True)
