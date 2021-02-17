@@ -101,3 +101,4 @@ class PipelineInput(BaseModel):
                 raise ValueError(
                     f"Sampling fraction {item} is invalid. A value must be between 0 and 1, excluded"
                 )
+        return v
