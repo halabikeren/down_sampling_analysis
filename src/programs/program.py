@@ -234,21 +234,3 @@ class Program:
         :return: the output of pd series with indices as the members for which accuracy it assessed (be it positions in a sequence of sequences) and the values are the accuracy values computed for them
         """
         pass  # is overloaded by implementations n the inherited classes
-
-    @staticmethod
-    def write_analysis(results: t.Dict[str, t.Any], output_path: str):
-        """
-        :param results: dictionary mapping executions titles to their results
-        :param output_path: path to write the output to
-        :return: none
-        """
-        pass  # will be overloaded by inheriting classes
-
-    @staticmethod
-    def plot_large_scale_results(df: pd.DataFrame, output_path: str):
-        """
-        :param df: dataframe with a column "replicate" and other, program specific, columns
-        :param output_path: path to plot the data in
-        :return: none
-        """
-        pass  # meant to be over-loaded by inheriting classes

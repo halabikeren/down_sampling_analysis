@@ -545,17 +545,33 @@ class Pipeline:
             plt.clf()
 
     def analyse_results(self, pipeline_input: PipelineInput):
+        """
+        :param pipeline_input: pipeline input instance
+        :return: none. writes accuracy data of program to output csv
+        """
         output_dir = f"{pipeline_input.pipeline_dir}/tables"
         os.makedirs(output_dir, exist_ok=True)
         for program_name in pipeline_input.programs:
-            output_path = f"{output_dir}/{program_name.value}.csv"
-            results_map = dict()
+            program_class = program_to_callable[program_name.value]
+            output_path = f"{output_dir}/{program_name.value}_summary.csv"
+            output_dfs = []
             for fraction in pipeline_input.sampling_fractions:
                 for method in pipeline_input.sampling_methods:
-                    result_data = self.samples_info[fraction][method.value]["programs_performance"][program_name.value]
-                    if not "full" in results_map and result_data["full_data_result"]:
-                        results_map["full"] = result_data["full_data_result"]
-                    if not "reference" in results_map and result_data["reference_data"]:
-                        results_map["reference"] = result_data["reference_data"]
-                    results_map[f"{fraction}_{method.value}"] = result_data["result"]
-            program_to_callable[program_name.value].write_analysis(results=results_map, output_path=output_path)
+                    df = pd.DataFrame()
+                    df["sampling_fraction"] = fraction
+                    df["sampling_method"] = method.value
+                    sample_result = \
+                        self.samples_info[fraction][method.value]["programs_performance"][program_name.value]["result"]
+                    full_result = self.samples_info[fraction][method.value]["programs_performance"][program_name.value][
+                        "full_data_result"]
+                    reference_result = \
+                        self.samples_info[fraction][method.value]["programs_performance"][program_name.value][
+                            "reference_data"]
+                    df["result"] = program_class.get_result(sample_result)
+                    df["relative_accuracy_to_ref"] = program_class.get_accuracy(reference_data=reference_result,
+                                                                                test_data=sample_result)
+                    df["relative_accuracy_to_full"] = program_class.get_accuracy(reference_data=full_result,
+                                                                                 test_data=sample_result)
+                    output_dfs.append(df)
+            output_df = pd.concat(output_dfs)
+            output_df.to_csv(output_path)

@@ -8,8 +8,21 @@ import click
 from utils import BaseTools, Job
 from programs import program_to_callable
 from dotenv import load_dotenv
-
+import seaborn as sns
 load_dotenv()
+
+
+def plot_large_scale_results(df: pd.DataFrame, output_path: str):
+    """
+    :param df: dataframe with a column "replicate" and other, program specific, columns
+    :param output_path: path to plot the data in
+    :return: none
+    """
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    plot = sns.boxplot(y="accuracy", x="sampling_fraction", data=df.groupby(["replicate"]).mean().reset_index(),
+                       palette="colorblind",
+                       hue="sampling_method")
+    plot.savefig(output_path)
 
 
 @click.command()
@@ -89,7 +102,7 @@ def exec_pipeline_on_simulations(input_path: click.Path):
         data = []
         output_path = f"{simulation_params['simulations_output_dir']}/{program}.svg"
         for path in os.listdir(simulation_params['simulations_output_dir']):
-            df_path = f"{simulation_params['simulations_output_dir']}/{path}/pipeline_dir/tables/{program}.csv"
+            df_path = f"{simulation_params['simulations_output_dir']}/{path}/pipeline_dir/tables/{program}_summary.csv"
             try:
                 rep_data = pd.read_csv(df_path)
                 rep_data["replicate"] = path

@@ -5,7 +5,6 @@ import re
 from io import StringIO
 import pandas as pd
 from .program import Program
-import seaborn as sns
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -90,11 +89,12 @@ class Rate4Site(Program):
         return reference_data
 
     @staticmethod
-    def get_accuracy(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], use_normalized_rates: bool = True) -> pd.Series:
+    def get_accuracy(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], use_normalized_rates: bool = False, penalize_by_std: bool = False) -> pd.Series:
         """
         :param reference_data: reference data to compute results by reference to
         :param test_data: test data to compare to the reference data
         :param use_normalized_rates: indicates weather normalized rates should be used for accuracy computation or denormalized rates
+        :param penalize_by_std: boolean indicating weather to penalize by std or not
         :return: the output of pd series with indices as the members for which accuracy it assessed (be it positions in a sequence of sequences) and the values are the accuracy values computed for them
         """
         rate_type = "rate_by_position"
@@ -113,53 +113,10 @@ class Rate4Site(Program):
         relative_error = absolute_error/denominator
         denominator = max(list(reference_df["std"])+list(test_df["std"]))-min(list(reference_df["std"])+list(test_df["std"]))
         relative_accuracy = 1-relative_error
-        std_normalizer = (abs(reference_df["std"]-test_df["std"]))/denominator
-        penalized_error_by_std = relative_error * std_normalizer  # will punish error with low test std more than one without
-        penalized_accuracy_by_std = 1-penalized_error_by_std
+        if penalize_by_std:
+            std_normalizer = (abs(reference_df["std"] - test_df["std"])) / denominator
+            penalized_error_by_std = relative_error * std_normalizer  # will punish error with low test std more than one without
+            penalized_accuracy_by_std = 1 - penalized_error_by_std
+            return penalized_accuracy_by_std
         return relative_accuracy  # for now, use relative accuracy (17.2.2021)
 
-    @staticmethod
-    def write_analysis(results: t.Dict[str, t.Any], output_path: str):
-        """
-        :param results: dictionary mapping executions titles to their results
-        :param output_path: path to write the output to
-        :return: none
-        """
-        titles = list(results.keys())
-        column_names = [f"{title}_rates" for title in titles] + [f"{title}_std" for title in titles] + \
-                       [f"{title}_rel_acc_to_ref" for title in titles if "_" in title and "reference" in titles] + \
-                       [f"{title}_rel_acc_to_full" for title in titles if "_" in title and "full" in titles] + \
-                       [f"{title}_std_penalized_acc_to_ref" for title in titles if "_" in title and "reference" in titles] + \
-                       [f"{title}_std_penalized_acc_to_full" for title in titles if "_" in title and "full" in titles]
-        results_df = pd.DataFrame(columns=column_names)
-        ref_df = full_df = None
-        if "reference" in results:
-            ref_df = pd.DataFrame.from_dict(results["reference"]["denormalized_rate_by_position"])
-        if "full" in results:
-            full_df = pd.DataFrame.from_dict(results["full"]["denormalized_rate_by_position"])
-        for title in results:
-            title_df = pd.DataFrame.from_dict(results[title]["denormalized_rate_by_position"])
-            results_df[f"{title}_rates"] = title_df["rate"]
-            results_df[f"{title}_std"] = title_df["std"]
-            if ref_df is not None:
-                rel_error = (abs(title_df["rate"]-ref_df["rate"])/(max(list(ref_df["rate"])+list(title_df["rate"]))-min(list(ref_df["rate"])+list(title_df["rate"]))))
-                results_df[f"{title}_rel_acc_to_ref"] = 1-rel_error
-                results_df[f"{title}_std_penalized_acc_to_ref"] = 1-(rel_error * ((abs(ref_df["std"]-title_df["std"]))/max(list(ref_df["std"])+list(title_df["std"]))-min(list(ref_df["std"])+list(title_df["std"]))))
-            if full_df is not None:
-                rel_error = abs(title_df["rate"]-full_df["rate"])/(max(list(full_df["rate"])+list(title_df["rate"]))-min(list(full_df["rate"])+list(title_df["rate"])))
-                results_df[f"{title}_rel_acc_to_full"] = 1-rel_error
-                results_df[f"{title}_std_penalized_acc_to_full"] = 1-(rel_error * ((abs(full_df["std"]-title_df["std"]))/max(list(full_df["std"])+list(title_df["std"]))-min(list(full_df["std"])+list(title_df["std"]))))
-        results_df.to_csv(output_path)
-
-    @staticmethod
-    def plot_large_scale_results(df: pd.DataFrame, output_path: str):
-        """
-        :param df: dataframe with a column "replicate" and other, program specific, columns
-        :param output_path: path to plot the data in
-        :return: none
-        """
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        plot = sns.boxplot(y="accuracy", x="sampling_fraction", data=df.groupby(["replicate"]).mean().reset_index(),
-                    palette="colorblind",
-                    hue="sampling_method")
-        plot.savefig(output_path)
