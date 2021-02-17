@@ -243,3 +243,12 @@ class Program:
         :return: none
         """
         pass  # will be overloaded by inheriting classes
+
+    @staticmethod
+    def plot_large_scale_results(df: pd.DataFrame, output_path: str):
+        """
+        :param df: dataframe with a column "replicate" and other, program specific, columns
+        :param output_path: path to plot the data in
+        :return: none
+        """
+        pass  # meant to be over-loaded by inheriting classes

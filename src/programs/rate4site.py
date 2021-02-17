@@ -5,7 +5,7 @@ import re
 from io import StringIO
 import pandas as pd
 from .program import Program
-
+import seaborn as sns
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -116,7 +116,7 @@ class Rate4Site(Program):
         std_normalizer = (abs(reference_df["std"]-test_df["std"]))/denominator
         penalized_error_by_std = relative_error * std_normalizer  # will punish error with low test std more than one without
         penalized_accuracy_by_std = 1-penalized_error_by_std
-        return relative_accuracy # for now, use relative accuracy (17.2.2021)
+        return relative_accuracy  # for now, use relative accuracy (17.2.2021)
 
     @staticmethod
     def write_analysis(results: t.Dict[str, t.Any], output_path: str):
@@ -144,10 +144,22 @@ class Rate4Site(Program):
             if ref_df is not None:
                 rel_error = (abs(title_df["rate"]-ref_df["rate"])/(max(list(ref_df["rate"])+list(title_df["rate"]))-min(list(ref_df["rate"])+list(title_df["rate"]))))
                 results_df[f"{title}_rel_acc_to_ref"] = 1-rel_error
-                results_df[f"{title}_std_penalized_acc_to_ref"] = 1-(rel_error * (abs(ref_df["std"]-title_df["std"]))/max(list(ref_df["std"])+list(title_df["std"]))-min(list(ref_df["std"])+list(title_df["std"])))
+                results_df[f"{title}_std_penalized_acc_to_ref"] = 1-(rel_error * ((abs(ref_df["std"]-title_df["std"]))/max(list(ref_df["std"])+list(title_df["std"]))-min(list(ref_df["std"])+list(title_df["std"]))))
             if full_df is not None:
-                rel_error = abs(title_df["rate"]-ref_df["rate"])/(max(list(full_df["rate"])+list(title_df["rate"]))-min(list(full_df["rate"])+list(title_df["rate"])))
-                results_df[f"{title}_rel_acc_to_full"] = rel_error
-                results_df[f"{title}_std_penalized_acc_to_full"] = 1-(rel_error * (abs(full_df["std"]-title_df["std"]))/max(list(full_df["std"])+list(title_df["std"]))-min(list(full_df["std"])+list(title_df["std"])))
-
+                rel_error = abs(title_df["rate"]-full_df["rate"])/(max(list(full_df["rate"])+list(title_df["rate"]))-min(list(full_df["rate"])+list(title_df["rate"])))
+                results_df[f"{title}_rel_acc_to_full"] = 1-rel_error
+                results_df[f"{title}_std_penalized_acc_to_full"] = 1-(rel_error * ((abs(full_df["std"]-title_df["std"]))/max(list(full_df["std"])+list(title_df["std"]))-min(list(full_df["std"])+list(title_df["std"]))))
         results_df.to_csv(output_path)
+
+    @staticmethod
+    def plot_large_scale_results(df: pd.DataFrame, output_path: str):
+        """
+        :param df: dataframe with a column "replicate" and other, program specific, columns
+        :param output_path: path to plot the data in
+        :return: none
+        """
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        plot = sns.boxplot(y="accuracy", x="sampling_fraction", data=df.groupby(["replicate"]).mean().reset_index(),
+                    palette="colorblind",
+                    hue="sampling_method")
+        plot.savefig(output_path)
