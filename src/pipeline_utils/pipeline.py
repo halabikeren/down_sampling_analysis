@@ -535,8 +535,7 @@ class Pipeline:
         plt.savefig(output_path, bbox_inches="tight", transparent=True)
         plt.clf()
 
-    @staticmethod
-    def plot_results(pipeline_input: PipelineInput):
+    def plot_results(self, pipeline_input: PipelineInput):
         """
         :param pipeline_input: pipeline input instance
         :return: nothing. analyses programs outputs and writes figures with the result to output dir
@@ -544,9 +543,9 @@ class Pipeline:
         output_dir = f"{pipeline_input.pipeline_dir}/figures"
         os.makedirs(output_dir, exist_ok=True)
         for program_name in pipeline_input.programs:
-            Pipeline.plot_error(pipeline_input=pipeline_input, program_name=program_name.value,
+            self.plot_error(pipeline_input=pipeline_input, program_name=program_name.value,
                                 output_path=f"{output_dir}/{program_name.value}_absolute_error.svg", use_relative_error=False)
-            Pipeline.plot_error(pipeline_input=pipeline_input, program_name=program_name.value,
+            self.plot_error(pipeline_input=pipeline_input, program_name=program_name.value,
                                 output_path=f"{output_dir}/{program_name.value}_relative_error.svg", use_relative_error=True)
 
 
