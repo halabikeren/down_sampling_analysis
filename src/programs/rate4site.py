@@ -118,8 +118,7 @@ class Rate4Site(Program):
                 "std"]  # will punish error with low test std more than one without
         if use_relative_error:
             return relative_error
-        else:
-            return absolute_error
+        return absolute_error
 
     @staticmethod
     def get_result(data: t.Dict[str, t.Any], use_normalized_rates: bool = False) -> pd.Series:

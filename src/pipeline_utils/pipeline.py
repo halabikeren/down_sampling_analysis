@@ -575,17 +575,17 @@ class Pipeline:
                     df["result"] = program_class.get_result(sample_result)
                     try:
                         df["relative_error_to_ref"] = program_class.get_error(reference_data=reference_result,
-                                                                              test_data=sample_result, relative=True)
+                                                                              test_data=sample_result, use_relative_error=True)
                         df["absolute_error_to_ref"] = program_class.get_error(reference_data=reference_result,
-                                                                              test_data=sample_result, relative=False)
+                                                                              test_data=sample_result, use_relative_error=False)
                     except Exception as e:
                         logger.error(
                             f"Could not compute error of sample {fraction}_{method.value} relative to reference due to error {e}")
                     try:
                         df["relative_error_to_full"] = program_class.get_error(reference_data=full_result,
-                                                                               test_data=sample_result, relative=True)
+                                                                               test_data=sample_result, use_relative_error=True)
                         df["absolute_error_to_full"] = program_class.get_error(reference_data=full_result,
-                                                                               test_data=sample_result, relative=False)
+                                                                               test_data=sample_result, use_relative_error=False)
                     except Exception as e:
                         logger.error(
                             f"Could not compute error of sample {fraction}_{method.value} relative to full due to error {e}")
