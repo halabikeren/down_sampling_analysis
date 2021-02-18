@@ -557,9 +557,7 @@ class Pipeline:
             output_dfs = []
             for fraction in pipeline_input.sampling_fractions:
                 for method in pipeline_input.sampling_methods:
-                    df = pd.DataFrame()
-                    df["sampling_fraction"] = fraction
-                    df["sampling_method"] = method.value
+                    df = pd.DataFrame(columns=["sampling_fraction", "sampling_method", "relative_accuracy_to_ref", "relative_accuracy_to_full"])
                     sample_result = \
                         self.samples_info[fraction][method.value]["programs_performance"][program_name.value]["result"]
                     full_result = self.samples_info[fraction][method.value]["programs_performance"][program_name.value][
@@ -568,10 +566,19 @@ class Pipeline:
                         self.samples_info[fraction][method.value]["programs_performance"][program_name.value][
                             "reference_data"]
                     df["result"] = program_class.get_result(sample_result)
-                    df["relative_accuracy_to_ref"] = program_class.get_accuracy(reference_data=reference_result,
-                                                                                test_data=sample_result)
-                    df["relative_accuracy_to_full"] = program_class.get_accuracy(reference_data=full_result,
-                                                                                 test_data=sample_result)
+                    try:
+                        df["relative_accuracy_to_ref"] = program_class.get_accuracy(reference_data=reference_result,
+                                                                                    test_data=sample_result)
+                    except Exception as e:
+                        logger.error(f"Could not compute accuracy of sample {fraction}_{method.value} relative to reference due to error {e}")
+                    try:
+                        df["relative_accuracy_to_full"] = program_class.get_accuracy(reference_data=full_result,
+                                                                                     test_data=sample_result)
+                    except Exception as e:
+                        logger.error(
+                            f"Could not compute accuracy of sample {fraction}_{method.value} relative to full due to error {e}")
+                    df["sampling_fraction"] = fraction
+                    df["sampling_method"] = method.value
                     output_dfs.append(df)
             output_df = pd.concat(output_dfs)
             output_df.to_csv(output_path)
