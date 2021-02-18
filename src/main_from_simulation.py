@@ -13,16 +13,20 @@ import seaborn as sns
 load_dotenv()
 
 
-def plot_large_scale_results(df: pd.DataFrame, output_path: str):
+def plot_large_scale_results(df: pd.DataFrame, output_path: str, use_relative_error: bool = False):
     """
     :param df: dataframe with a column "replicate" and other, program specific, columns
     :param output_path: path to plot the data in
+    :param use_relative_error: boolean indicating weather the error should be relative or absolute
     :return: none
     """
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.grid(False)
-    ncols = 2 if "relative_error_to_ref" in df.columns and "relative_error_to_full" in df.columns else 1
+    prefix = "absolute"
+    if use_relative_error:
+        prefix = "relative"
+    ncols = 2 if f"{prefix}_error_to_ref" in df.columns and f"{prefix}_error_to_full" in df.columns else 1
     fig, axis = plt.subplots(
         nrows=1,
         ncols=ncols,
@@ -31,18 +35,18 @@ def plot_large_scale_results(df: pd.DataFrame, output_path: str):
         figsize=[ncols * 8.5 + 2 + 2, 7.58 + 2],
         frameon=True,
     )
-    if "relative_error_to_ref" in df.columns:
-        sns.boxplot(ax=axis[0], y="relative_error_to_ref", x="sampling_fraction", data=df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index(),
+    if f"{prefix}_error_to_ref" in df.columns:
+        sns.boxplot(ax=axis[0], y=f"{prefix}_error_to_ref", x="sampling_fraction", data=df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index(),
                            palette="colorblind",
                            hue="sampling_method")
-        axis[0].set_ylabel(f"mean relative error ({len(df['replicate'].unique())} replicates)")
+        axis[0].set_ylabel(f"mean {prefix} error ({len(df['replicate'].unique())} replicates)")
         axis[0].set_xlabel("sampling fraction")
         axis[0].set_title("reference: simulated rates")
-    if "relative_error_to_full" in df.columns:
-        sns.boxplot(ax=axis[1], y="relative_error_to_full", x="sampling_fraction", data=df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index(),
+    if f"{prefix}_error_to_full" in df.columns:
+        sns.boxplot(ax=axis[1], y=f"{prefix}_error_to_full", x="sampling_fraction", data=df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index(),
                            palette="colorblind",
                            hue="sampling_method")
-        axis[1].set_ylabel(f"mean relative error ({len(df['replicate'].unique())} replicates)")
+        axis[1].set_ylabel(f"mean {prefix} error ({len(df['replicate'].unique())} replicates)")
         axis[1].set_xlabel("sampling fraction")
         axis[1].set_title("reference: inferred rates based on full dataset")
     fig.subplots_adjust()
@@ -134,7 +138,6 @@ def exec_pipeline_on_simulations(input_path: click.Path):
     # analyze large scale results
     for program in simulation_params["programs"]:
         data = []
-        output_path = f"{simulation_params['simulations_output_dir']}/{program}.svg"
         for path in os.listdir(simulation_params['simulations_output_dir']):
             df_path = f"{simulation_params['simulations_output_dir']}/{path}/pipeline_dir/tables/{program}_summary.csv"
             try:
@@ -144,8 +147,10 @@ def exec_pipeline_on_simulations(input_path: click.Path):
             except Exception as e:
                 logger.error(f"Failed to load dataframe from {df_path} due to error {e}")
         full_df = pd.concat(data)
+
         # plot large scale data
-        plot_large_scale_results(df=full_df, output_path=output_path)
+        plot_large_scale_results(df=full_df, output_path=f"{simulation_params['simulations_output_dir']}/{program}_absolute_error.svg", use_relative_error=False)
+        plot_large_scale_results(df=full_df, output_path=f"{simulation_params['simulations_output_dir']}/{program}_relative_error.svg", use_relative_error=True)
 
 
 if __name__ == "__main__":

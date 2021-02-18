@@ -88,12 +88,12 @@ class Rate4Site(Program):
         return reference_data
 
     @staticmethod
-    def get_error(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], relative: bool = True,
+    def get_error(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], use_relative_error: bool = True,
                   use_normalized_rates: bool = False, penalize_by_std: bool = False) -> pd.Series:
         """
         :param reference_data: reference data to compute results by reference to
         :param test_data: test data to compare to the reference data
-        :param relative: indicates weather absolute or relative error should be used
+        :param use_relative_error: indicates weather absolute or relative error should be used
         :param use_normalized_rates: indicates weather normalized rates should be used for error computation or denormalized rates
         :param penalize_by_std: boolean indicating weather to penalize by std or not
         :return: the output of pd series with indices as the members for which error it assessed (be it positions in a sequence of sequences) and the values are the error values computed for them
@@ -116,7 +116,7 @@ class Rate4Site(Program):
         if penalize_by_std:
             return relative_error * (abs(reference_df["std"] - test_df["std"])) / reference_df[
                 "std"]  # will punish error with low test std more than one without
-        if relative:
+        if use_relative_error:
             return relative_error
         else:
             return absolute_error
