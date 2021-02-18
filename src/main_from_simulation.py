@@ -98,17 +98,19 @@ def exec_pipeline_on_simulations(input_path: click.Path):
 
     if not simulations_exist:
         pipeline_input_json_paths = BaseTools.simulate(simulation_params=simulation_params)
-        aux_dirs = [f"{os.path.dirname(json_path)}/job_aux/" for json_path in pipeline_input_json_paths]
+        simulations_dirs = [f"{os.path.dirname(json_path)}/" for json_path in pipeline_input_json_paths]
         logger.info(f"Simulation is complete.")
 
     else:
-        aux_dirs = [f"{simulation_params['simulations_output_dir']}/{path}/job_aux/" for path in
+        simulations_dirs = [f"{simulation_params['simulations_output_dir']}/{path}/" for path in
                     os.listdir(simulation_params['simulations_output_dir'])]
 
     if not simulations_exec_complete:
         logger.info(f"submitting pipeline jobs for the simulated data")
         completion_validators = []
-        for aux_dir in aux_dirs:
+        for simulations_dir in simulations_dirs:
+            aux_dir = f"{simulations_dir}/job_aux/"
+            json_path = f"{simulations_dir}/input.json"
             if not os.path.exists(f"{aux_dir}/pipeline_on_simulated_data.touch"):
                 job = Job(
                     name="pipeline_on_simulated_data",
