@@ -37,15 +37,14 @@ def plot_large_scale_results(df: pd.DataFrame, output_path: str):
                            hue="sampling_method")
         axis[0].set_ylabel(f"mean relative error ({len(df['replicate'].unique())} replicates)")
         axis[0].set_xlabel("sampling fraction")
-        axis[0].set_ylim(bottom=0, top=1)
         axis[0].set_title("reference: simulated rates")
     if "relative_error_to_full" in df.columns:
         sns.boxplot(ax=axis[1], y="relative_error_to_full", x="sampling_fraction", data=df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index(),
                            palette="colorblind",
                            hue="sampling_method")
-        axis[0].set_ylabel(f"mean relative error ({len(df['replicate'].unique())} replicates)")
-        axis[0].set_xlabel("sampling fraction")
-        axis[0].set_title("reference: inferred rates based on full dataset")
+        axis[1].set_ylabel(f"mean relative error ({len(df['replicate'].unique())} replicates)")
+        axis[1].set_xlabel("sampling fraction")
+        axis[1].set_title("reference: inferred rates based on full dataset")
     fig.subplots_adjust()
     fig.tight_layout()
     plt.savefig(output_path, bbox_inches="tight", transparent=True)

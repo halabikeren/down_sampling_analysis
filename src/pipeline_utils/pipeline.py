@@ -532,13 +532,11 @@ class Pipeline:
                             palette="colorblind",
                             hue="sampling_method")
                 axis[0].set_title("reference: full data")
-                axis[0].set_ylim(bottom=0, top=1)
             if len(ref_error_dfs) > 0:
                 ref_error_df = pd.concat(ref_error_dfs)
                 sns.boxplot(ax=axis[1], y="error", x="sampling_fraction", data=ref_error_df, palette="colorblind",
                             hue="sampling_method")
                 axis[1].set_title("reference: simulated data")
-                axis[1].set_ylim(bottom=0, top=1)
             fig.subplots_adjust()
             fig.tight_layout()
             plt.savefig(figure_path, bbox_inches="tight", transparent=True)
