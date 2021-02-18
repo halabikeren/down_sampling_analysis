@@ -489,9 +489,9 @@ class Pipeline:
         df["sampling_method"] = method.value
         return df
 
-    def plot_error(self, pipeline_input, program_name: str, output_path: str, use_relative_error: bool = False):
+    def plot_error(self, pipeline_input, program_name: ProgramName, output_path: str, use_relative_error: bool = False):
         plt.grid(False)
-        ncols = 1 if not pipeline_input.reference_data_paths[program_name] else 2
+        ncols = 1 if not pipeline_input.reference_data_paths[program_name.value] else 2
         fig, axis = plt.subplots(
             nrows=1,
             ncols=ncols,
@@ -543,9 +543,9 @@ class Pipeline:
         output_dir = f"{pipeline_input.pipeline_dir}/figures"
         os.makedirs(output_dir, exist_ok=True)
         for program_name in pipeline_input.programs:
-            self.plot_error(pipeline_input=pipeline_input, program_name=program_name.value,
+            self.plot_error(pipeline_input=pipeline_input, program_name=program_name,
                                 output_path=f"{output_dir}/{program_name.value}_absolute_error.svg", use_relative_error=False)
-            self.plot_error(pipeline_input=pipeline_input, program_name=program_name.value,
+            self.plot_error(pipeline_input=pipeline_input, program_name=program_name,
                                 output_path=f"{output_dir}/{program_name.value}_relative_error.svg", use_relative_error=True)
 
 
