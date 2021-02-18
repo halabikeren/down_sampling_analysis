@@ -471,7 +471,8 @@ class Pipeline:
 
     @staticmethod
     def get_error_df(program_instance: Program, reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any],
-                     fraction: float, method: SamplingMethod, use_normalized_rates: bool = False, use_relative_error: bool = False):
+                     fraction: float, method: SamplingMethod, use_normalized_rates: bool = False,
+                     use_relative_error: bool = False):
         """
         :param program_instance: program instance to get its error computation
         :param reference_data: data of reference set
@@ -479,12 +480,13 @@ class Pipeline:
         :param fraction: sampling fraction
         :param method: sampling method
         :param use_normalized_rates: for rate4site. indicates weather normalized rates should be used or not
-        :param use_relative_error: boolean indicating weather relative or absoulue error should be used
+        :param use_relative_error: boolean indicating weather relative or absolute error should be used
         :return:
         """
         df = pd.DataFrame(columns=["sampling_fraction", "sampling_method", "error"])
         df["error"] = program_instance.get_error(
-            reference_data=reference_data, test_data=test_data, use_normalized_rates=use_normalized_rates, use_relative_error=use_relative_error)
+            reference_data=reference_data, test_data=test_data, use_normalized_rates=use_normalized_rates,
+            use_relative_error=use_relative_error)
         df["sampling_fraction"] = fraction
         df["sampling_method"] = method.value
         return df
@@ -518,7 +520,8 @@ class Pipeline:
                         Pipeline.get_error_df(program_instance=program_to_callable[program_name.value],
                                               reference_data=reference_data_result,
                                               test_data=sampled_data_result,
-                                              fraction=fraction, method=method, use_normalized_rates=False, use_relative_error=use_relative_error))
+                                              fraction=fraction, method=method, use_normalized_rates=False,
+                                              use_relative_error=use_relative_error))
         if len(full_error_dfs) > 0:
             full_error_df = pd.concat(full_error_dfs)
             sns.boxplot(ax=axis[0], y="error", x="sampling_fraction", data=full_error_df,
@@ -544,10 +547,11 @@ class Pipeline:
         os.makedirs(output_dir, exist_ok=True)
         for program_name in pipeline_input.programs:
             self.plot_error(pipeline_input=pipeline_input, program_name=program_name,
-                                output_path=f"{output_dir}/{program_name.value}_absolute_error.svg", use_relative_error=False)
+                            output_path=f"{output_dir}/{program_name.value}_absolute_error.svg",
+                            use_relative_error=False)
             self.plot_error(pipeline_input=pipeline_input, program_name=program_name,
-                                output_path=f"{output_dir}/{program_name.value}_relative_error.svg", use_relative_error=True)
-
+                            output_path=f"{output_dir}/{program_name.value}_relative_error.svg",
+                            use_relative_error=True)
 
     def analyse_results(self, pipeline_input: PipelineInput):
         """
@@ -575,17 +579,21 @@ class Pipeline:
                     df["result"] = program_class.get_result(sample_result)
                     try:
                         df["relative_error_to_ref"] = program_class.get_error(reference_data=reference_result,
-                                                                              test_data=sample_result, use_relative_error=True)
+                                                                              test_data=sample_result,
+                                                                              use_relative_error=True)
                         df["absolute_error_to_ref"] = program_class.get_error(reference_data=reference_result,
-                                                                              test_data=sample_result, use_relative_error=False)
+                                                                              test_data=sample_result,
+                                                                              use_relative_error=False)
                     except Exception as e:
                         logger.error(
                             f"Could not compute error of sample {fraction}_{method.value} relative to reference due to error {e}")
                     try:
                         df["relative_error_to_full"] = program_class.get_error(reference_data=full_result,
-                                                                               test_data=sample_result, use_relative_error=True)
+                                                                               test_data=sample_result,
+                                                                               use_relative_error=True)
                         df["absolute_error_to_full"] = program_class.get_error(reference_data=full_result,
-                                                                               test_data=sample_result, use_relative_error=False)
+                                                                               test_data=sample_result,
+                                                                               use_relative_error=False)
                     except Exception as e:
                         logger.error(
                             f"Could not compute error of sample {fraction}_{method.value} relative to full due to error {e}")

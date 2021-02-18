@@ -112,7 +112,7 @@ class Rate4Site(Program):
                 f"Number of positions in test data is {len(test_positions)} and is inconsistent with the number of positions in the reference data {len(reference_positions)}")
         reference_df = reference_df.loc[reference_df["position"].isin(test_positions)]
         absolute_error = abs(reference_df["rate"] - test_df["rate"])
-        relative_error = absolute_error / reference_df["rate"]
+        relative_error = absolute_error / (reference_df["rate"] + 0.0001)  # add a small number in case the simulated rate is 0
         if penalize_by_std:
             return relative_error * (abs(reference_df["std"] - test_df["std"])) / reference_df[
                 "std"]  # will punish error with low test std more than one without

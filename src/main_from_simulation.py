@@ -9,6 +9,7 @@ from utils import BaseTools, Job
 import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 import seaborn as sns
+import numpy as np
 
 load_dotenv()
 
@@ -36,14 +37,14 @@ def plot_large_scale_results(df: pd.DataFrame, output_path: str, use_relative_er
         frameon=True,
     )
     if f"{prefix}_error_to_ref" in df.columns:
-        sns.boxplot(ax=axis[0], y=f"{prefix}_error_to_ref", x="sampling_fraction", data=df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index(),
+        sns.boxplot(ax=axis[0], y=f"{prefix}_error_to_ref", x="sampling_fraction", data=df,
                            palette="colorblind",
                            hue="sampling_method")
         axis[0].set_ylabel(f"mean {prefix} error ({len(df['replicate'].unique())} replicates)")
         axis[0].set_xlabel("sampling fraction")
         axis[0].set_title("reference: simulated rates")
     if f"{prefix}_error_to_full" in df.columns:
-        sns.boxplot(ax=axis[1], y=f"{prefix}_error_to_full", x="sampling_fraction", data=df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index(),
+        sns.boxplot(ax=axis[1], y=f"{prefix}_error_to_full", x="sampling_fraction", data=df,
                            palette="colorblind",
                            hue="sampling_method")
         axis[1].set_ylabel(f"mean {prefix} error ({len(df['replicate'].unique())} replicates)")
@@ -138,7 +139,8 @@ def exec_pipeline_on_simulations(input_path: click.Path):
     # analyze large scale results
     for program in simulation_params["programs"]:
         data = []
-        for path in os.listdir(simulation_params['simulations_output_dir']):
+        paths = [path for path in os.listdir(simulation_params['simulations_output_dir']) if "rep" in path]
+        for path in paths:
             df_path = f"{simulation_params['simulations_output_dir']}/{path}/pipeline_dir/tables/{program}_summary.csv"
             try:
                 rep_data = pd.read_csv(df_path)
@@ -147,6 +149,8 @@ def exec_pipeline_on_simulations(input_path: click.Path):
             except Exception as e:
                 logger.error(f"Failed to load dataframe from {df_path} due to error {e}")
         full_df = pd.concat(data)
+        full_df = full_df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index()
+        full_df.to_csv(f"{simulation_params['simulations_output_dir']}/{program}_aggregated_data.csv")
 
         # plot large scale data
         plot_large_scale_results(df=full_df, output_path=f"{simulation_params['simulations_output_dir']}/{program}_absolute_error.svg", use_relative_error=False)
