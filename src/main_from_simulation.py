@@ -40,7 +40,7 @@ def plot_large_scale_results(df: pd.DataFrame, output_path: str):
         axis[0].set_ylim(bottom=0, top=1)
         axis[0].set_title("reference: simulated rates")
     if "relative_accuracy_to_full" in df.columns:
-        sns.boxplot(ax=axis[1], y="relative_accuracy_to_full", x="sampling_fraction", data=df.groupby(["replicate"]).mean().reset_index(),
+        sns.boxplot(ax=axis[1], y="relative_accuracy_to_full", x="sampling_fraction", data=df.groupby(["sampling_fraction", "sampling_method"]).mean().reset_index(),
                            palette="colorblind",
                            hue="sampling_method")
         axis[0].set_ylabel(f"mean relative accuracy ({len(df['replicate'].unique())} replicates)")
