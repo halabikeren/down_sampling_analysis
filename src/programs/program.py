@@ -231,7 +231,7 @@ class Program:
         """
         :param reference_data: reference data to compute results by reference to
         :param test_data: test data to compare to the reference data
-        :return: the output of pd series with indices as the members for which error it assessed (be it positions in a sequence of sequences) and the values are the accuracy values computed for them
+        :return: the output of pd series with indices as the members for which error it assessed (be it positions in a sequence of sequences) and the values are the error values computed for them
         """
         pass  # is overloaded by implementations n the inherited classes
 

@@ -9,7 +9,6 @@ from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
 
-
 import logging
 
 logger = logging.getLogger(__name__)
@@ -47,7 +46,7 @@ class Rate4Site(Program):
 
     @staticmethod
     def parse_output(
-        output_path: str, job_output_dir: t.Optional[str] = None
+            output_path: str, job_output_dir: t.Optional[str] = None
     ) -> t.Dict[str, t.Any]:
         """
         :param output_path
@@ -89,7 +88,8 @@ class Rate4Site(Program):
         return reference_data
 
     @staticmethod
-    def get_error(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], relative: bool = True, use_normalized_rates: bool = False, penalize_by_std: bool = False) -> pd.Series:
+    def get_error(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], relative: bool = True,
+                  use_normalized_rates: bool = False, penalize_by_std: bool = False) -> pd.Series:
         """
         :param reference_data: reference data to compute results by reference to
         :param test_data: test data to compare to the reference data
@@ -106,14 +106,20 @@ class Rate4Site(Program):
         test_positions = list(test_df["position"].values)
         reference_positions = list(reference_df["position"].values)
         if len(test_positions) < len(reference_positions):
-            logger.error(f"Number of positions in test data is {len(test_positions)} and is inconsistent with the number of positions in the reference data {len(reference_positions)}")
-            raise ValueError(f"Number of positions in test data is {len(test_positions)} and is inconsistent with the number of positions in the reference data {len(reference_positions)}")
+            logger.error(
+                f"Number of positions in test data is {len(test_positions)} and is inconsistent with the number of positions in the reference data {len(reference_positions)}")
+            raise ValueError(
+                f"Number of positions in test data is {len(test_positions)} and is inconsistent with the number of positions in the reference data {len(reference_positions)}")
         reference_df = reference_df.loc[reference_df["position"].isin(test_positions)]
-        absolute_error = abs(reference_df["rate"]-test_df["rate"])
-        relative_error = absolute_error/reference_df["rate"]
-        if relative_error and penalize_by_std:
-           return relative_error * (abs(reference_df["std"] - test_df["std"])) / reference_df["std"]  # will punish error with low test std more than one without
-        return relative_error if relative else absolute_error
+        absolute_error = abs(reference_df["rate"] - test_df["rate"])
+        relative_error = absolute_error / reference_df["rate"]
+        if penalize_by_std:
+            return relative_error * (abs(reference_df["std"] - test_df["std"])) / reference_df[
+                "std"]  # will punish error with low test std more than one without
+        if relative:
+            return relative_error
+        else:
+            return absolute_error
 
     @staticmethod
     def get_result(data: t.Dict[str, t.Any], use_normalized_rates: bool = False) -> pd.Series:
