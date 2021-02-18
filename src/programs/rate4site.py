@@ -127,7 +127,7 @@ class Rate4Site(Program):
         :param use_normalized_rates: indicates weather normalized rates should be used for accuracy computation or denormalized rates
         :return: the relevant data to compute accuracy for
         """
-        df = data["denormalized_rates_by_position"]
+        df = data["denormalized_rate_by_position"]
         if use_normalized_rates:
             df = data["rates_by_position"]
         return df["rate"]
