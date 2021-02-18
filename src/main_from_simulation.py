@@ -22,7 +22,7 @@ def plot_large_scale_results(df: pd.DataFrame, output_path: str):
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.grid(False)
-    ncols = 2 if not "relative_accuracy_to_ref" in df.columns and "relative_accuracy_to_full" in column else 1
+    ncols = 2 if not "relative_accuracy_to_ref" in df.columns and "relative_accuracy_to_full" in df.columns else 1
     fig, axis = plt.subplots(
         nrows=1,
         ncols=ncols,
@@ -32,7 +32,7 @@ def plot_large_scale_results(df: pd.DataFrame, output_path: str):
         frameon=True,
     )
     if "relative_accuracy_to_ref" in df.columns:
-        sns.boxplot(ax=axis[0], y="relative_accuracy_to_ref", x="sampling_fraction", data=df.groupby(["replicate"]).mean().reset_index(),
+        sns.boxplot(ax=axis[0], y="relative_accuracy_to_ref", x="sampling_fraction", data=df.groupby(["sampling_fraction", "sampling_method"]).mean().reset_index(),
                            palette="colorblind",
                            hue="sampling_method")
         axis[0].set_ylabel(f"mean relative accuracy ({len(df['replicate'].unique())} replicates)")
