@@ -470,10 +470,10 @@ class Pipeline:
             json.dump(self.samples_info, outfile)
 
     @staticmethod
-    def get_accuracy_df(program_instance: Program, reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any],
-                        fraction: float, method: SamplingMethod, use_normalized_rates: bool = True):
+    def get_error_df(program_instance: Program, reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any],
+                     fraction: float, method: SamplingMethod, use_normalized_rates: bool = False):
         """
-        :param program_instance: program instance to get its accuracy computation
+        :param program_instance: program instance to get its error computation
         :param reference_data: data of reference set
         :param test_data: data of test set
         :param fraction: sampling fraction
@@ -481,8 +481,8 @@ class Pipeline:
         :param use_normalized_rates: for rate4site. indicates weather normalized rates should be used or not
         :return:
         """
-        df = pd.DataFrame(columns=["sampling_fraction", "sampling_method", "accuracy"])
-        df["accuracy"] = program_instance.get_accuracy(
+        df = pd.DataFrame(columns=["sampling_fraction", "sampling_method", "error"])
+        df["error"] = program_instance.get_error(
             reference_data=reference_data, test_data=test_data, use_normalized_rates=use_normalized_rates)
         df["sampling_fraction"] = fraction
         df["sampling_method"] = method.value
@@ -507,8 +507,8 @@ class Pipeline:
                 figsize=[ncols * 8.5 + 2 + 2, 7.58 + 2],
                 frameon=True,
             )
-            full_accuracy_dfs = []
-            ref_accuracy_dfs = []
+            full_error_dfs = []
+            ref_error_dfs = []
             for fraction in pipeline_input.sampling_fractions:
                 for method in pipeline_input.sampling_methods:
                     result_data = self.samples_info[fraction][method.value]["programs_performance"][program_name.value]
@@ -516,26 +516,26 @@ class Pipeline:
                     reference_data_result = result_data["reference_data"]
                     sampled_data_result = result_data["result"]
                     if full_data_result:
-                        full_accuracy_dfs.append(
-                            Pipeline.get_accuracy_df(program_instance=program_to_callable[program_name.value],
-                                                     reference_data=full_data_result, test_data=sampled_data_result,
-                                                     fraction=fraction, method=method))
+                        full_error_dfs.append(
+                            Pipeline.get_error_df(program_instance=program_to_callable[program_name.value],
+                                                  reference_data=full_data_result, test_data=sampled_data_result,
+                                                  fraction=fraction, method=method))
                     if reference_data_result:
-                        ref_accuracy_dfs.append(
-                            Pipeline.get_accuracy_df(program_instance=program_to_callable[program_name.value],
-                                                     reference_data=reference_data_result,
-                                                     test_data=sampled_data_result,
-                                                     fraction=fraction, method=method, use_normalized_rates=False))
-            if len(full_accuracy_dfs) > 0:
-                full_accuracy_df = pd.concat(full_accuracy_dfs)
-                sns.boxplot(ax=axis[0], y="accuracy", x="sampling_fraction", data=full_accuracy_df,
+                        ref_error_dfs.append(
+                            Pipeline.get_error_df(program_instance=program_to_callable[program_name.value],
+                                                  reference_data=reference_data_result,
+                                                  test_data=sampled_data_result,
+                                                  fraction=fraction, method=method, use_normalized_rates=False))
+            if len(full_error_dfs) > 0:
+                full_error_df = pd.concat(full_error_dfs)
+                sns.boxplot(ax=axis[0], y="error", x="sampling_fraction", data=full_error_df,
                             palette="colorblind",
                             hue="sampling_method")
                 axis[0].set_title("reference: full data")
                 axis[0].set_ylim(bottom=0, top=1)
-            if len(ref_accuracy_dfs) > 0:
-                ref_accuracy_df = pd.concat(ref_accuracy_dfs)
-                sns.boxplot(ax=axis[1], y="accuracy", x="sampling_fraction", data=ref_accuracy_df, palette="colorblind",
+            if len(ref_error_dfs) > 0:
+                ref_error_df = pd.concat(ref_error_dfs)
+                sns.boxplot(ax=axis[1], y="error", x="sampling_fraction", data=ref_error_df, palette="colorblind",
                             hue="sampling_method")
                 axis[1].set_title("reference: simulated data")
                 axis[1].set_ylim(bottom=0, top=1)
@@ -547,7 +547,7 @@ class Pipeline:
     def analyse_results(self, pipeline_input: PipelineInput):
         """
         :param pipeline_input: pipeline input instance
-        :return: none. writes accuracy data of program to output csv
+        :return: none. writes error data of program to output csv
         """
         output_dir = f"{pipeline_input.pipeline_dir}/tables"
         os.makedirs(output_dir, exist_ok=True)
@@ -557,7 +557,8 @@ class Pipeline:
             output_dfs = []
             for fraction in pipeline_input.sampling_fractions:
                 for method in pipeline_input.sampling_methods:
-                    df = pd.DataFrame(columns=["sampling_fraction", "sampling_method", "relative_accuracy_to_ref", "relative_accuracy_to_full"])
+                    df = pd.DataFrame(columns=["sampling_fraction", "sampling_method", "relative_error_to_ref",
+                                               "relative_error_to_full"])
                     sample_result = \
                         self.samples_info[fraction][method.value]["programs_performance"][program_name.value]["result"]
                     full_result = self.samples_info[fraction][method.value]["programs_performance"][program_name.value][
@@ -567,16 +568,17 @@ class Pipeline:
                             "reference_data"]
                     df["result"] = program_class.get_result(sample_result)
                     try:
-                        df["relative_accuracy_to_ref"] = program_class.get_accuracy(reference_data=reference_result,
-                                                                                    test_data=sample_result)
-                    except Exception as e:
-                        logger.error(f"Could not compute accuracy of sample {fraction}_{method.value} relative to reference due to error {e}")
-                    try:
-                        df["relative_accuracy_to_full"] = program_class.get_accuracy(reference_data=full_result,
-                                                                                     test_data=sample_result)
+                        df["relative_error_to_ref"] = program_class.get_error(reference_data=reference_result,
+                                                                                 test_data=sample_result)
                     except Exception as e:
                         logger.error(
-                            f"Could not compute accuracy of sample {fraction}_{method.value} relative to full due to error {e}")
+                            f"Could not compute error of sample {fraction}_{method.value} relative to reference due to error {e}")
+                    try:
+                        df["relative_error_to_full"] = program_class.get_error(reference_data=full_result,
+                                                                                  test_data=sample_result)
+                    except Exception as e:
+                        logger.error(
+                            f"Could not compute error of sample {fraction}_{method.value} relative to full due to error {e}")
                     df["sampling_fraction"] = fraction
                     df["sampling_method"] = method.value
                     output_dfs.append(df)

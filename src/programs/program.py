@@ -227,11 +227,11 @@ class Program:
             json.dump(result, output)
 
     @staticmethod
-    def get_accuracy(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], **kwargs) -> pd.Series:
+    def get_error(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], **kwargs) -> pd.Series:
         """
         :param reference_data: reference data to compute results by reference to
         :param test_data: test data to compare to the reference data
-        :return: the output of pd series with indices as the members for which accuracy it assessed (be it positions in a sequence of sequences) and the values are the accuracy values computed for them
+        :return: the output of pd series with indices as the members for which error it assessed (be it positions in a sequence of sequences) and the values are the accuracy values computed for them
         """
         pass  # is overloaded by implementations n the inherited classes
 
@@ -239,6 +239,6 @@ class Program:
     def get_result(data: t.Dict[str, t.Any], **kwargs) -> pd.Series:
         """
         :param data: dictionary mapping results
-        :return: the relevant data to compute accuracy for
+        :return: the relevant data to compute error for
         """
-        pass # will be overloaded by inheriting classes
+        pass  # will be overloaded by inheriting classes

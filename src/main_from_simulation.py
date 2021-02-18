@@ -22,7 +22,7 @@ def plot_large_scale_results(df: pd.DataFrame, output_path: str):
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.grid(False)
-    ncols = 2 if "relative_accuracy_to_ref" in df.columns and "relative_accuracy_to_full" in df.columns else 1
+    ncols = 2 if "relative_error_to_ref" in df.columns and "relative_error_to_full" in df.columns else 1
     fig, axis = plt.subplots(
         nrows=1,
         ncols=ncols,
@@ -31,19 +31,19 @@ def plot_large_scale_results(df: pd.DataFrame, output_path: str):
         figsize=[ncols * 8.5 + 2 + 2, 7.58 + 2],
         frameon=True,
     )
-    if "relative_accuracy_to_ref" in df.columns:
-        sns.boxplot(ax=axis[0], y="relative_accuracy_to_ref", x="sampling_fraction", data=df.groupby(["sampling_fraction", "sampling_method"]).mean().reset_index(),
+    if "relative_error_to_ref" in df.columns:
+        sns.boxplot(ax=axis[0], y="relative_error_to_ref", x="sampling_fraction", data=df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index(),
                            palette="colorblind",
                            hue="sampling_method")
-        axis[0].set_ylabel(f"mean relative accuracy ({len(df['replicate'].unique())} replicates)")
+        axis[0].set_ylabel(f"mean relative error ({len(df['replicate'].unique())} replicates)")
         axis[0].set_xlabel("sampling fraction")
         axis[0].set_ylim(bottom=0, top=1)
         axis[0].set_title("reference: simulated rates")
-    if "relative_accuracy_to_full" in df.columns:
-        sns.boxplot(ax=axis[1], y="relative_accuracy_to_full", x="sampling_fraction", data=df.groupby(["sampling_fraction", "sampling_method"]).mean().reset_index(),
+    if "relative_error_to_full" in df.columns:
+        sns.boxplot(ax=axis[1], y="relative_error_to_full", x="sampling_fraction", data=df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index(),
                            palette="colorblind",
                            hue="sampling_method")
-        axis[0].set_ylabel(f"mean relative accuracy ({len(df['replicate'].unique())} replicates)")
+        axis[0].set_ylabel(f"mean relative error ({len(df['replicate'].unique())} replicates)")
         axis[0].set_xlabel("sampling fraction")
         axis[0].set_title("reference: inferred rates based on full dataset")
     fig.subplots_adjust()

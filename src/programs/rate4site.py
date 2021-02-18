@@ -89,13 +89,14 @@ class Rate4Site(Program):
         return reference_data
 
     @staticmethod
-    def get_accuracy(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], use_normalized_rates: bool = False, penalize_by_std: bool = False) -> pd.Series:
+    def get_error(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], relative: bool = True, use_normalized_rates: bool = False, penalize_by_std: bool = False) -> pd.Series:
         """
         :param reference_data: reference data to compute results by reference to
         :param test_data: test data to compare to the reference data
-        :param use_normalized_rates: indicates weather normalized rates should be used for accuracy computation or denormalized rates
+        :param relative: indicates weather absolute or relative error should be used
+        :param use_normalized_rates: indicates weather normalized rates should be used for error computation or denormalized rates
         :param penalize_by_std: boolean indicating weather to penalize by std or not
-        :return: the output of pd series with indices as the members for which accuracy it assessed (be it positions in a sequence of sequences) and the values are the accuracy values computed for them
+        :return: the output of pd series with indices as the members for which error it assessed (be it positions in a sequence of sequences) and the values are the error values computed for them
         """
         rate_type = "rate_by_position"
         if not use_normalized_rates:
@@ -109,23 +110,17 @@ class Rate4Site(Program):
             raise ValueError(f"Number of positions in test data is {len(test_positions)} and is inconsistent with the number of positions in the reference data {len(reference_positions)}")
         reference_df = reference_df.loc[reference_df["position"].isin(test_positions)]
         absolute_error = abs(reference_df["rate"]-test_df["rate"])
-        denominator = 2 if use_normalized_rates else (max(list(reference_df["rate"])+list(test_df["rate"]))-min(list(reference_df["rate"])+list(test_df["rate"])))  # in the case of normalized rates: corresponds to the range of rates [-1,1] which is also the maximal value of difference between rates
-        relative_error = absolute_error/denominator
-        denominator = max(list(reference_df["std"])+list(test_df["std"]))-min(list(reference_df["std"])+list(test_df["std"]))
-        relative_accuracy = 1-relative_error
-        if penalize_by_std:
-            std_normalizer = (abs(reference_df["std"] - test_df["std"])) / denominator
-            penalized_error_by_std = relative_error * std_normalizer  # will punish error with low test std more than one without
-            penalized_accuracy_by_std = 1 - penalized_error_by_std
-            return penalized_accuracy_by_std
-        return relative_accuracy  # for now, use relative accuracy (17.2.2021)
+        relative_error = absolute_error/reference_df["rate"]
+        if relative_error and penalize_by_std:
+           return relative_error * (abs(reference_df["std"] - test_df["std"])) / reference_df["std"]  # will punish error with low test std more than one without
+        return relative_error if relative else absolute_error
 
     @staticmethod
     def get_result(data: t.Dict[str, t.Any], use_normalized_rates: bool = False) -> pd.Series:
         """
         :param data: dictionary mapping results
-        :param use_normalized_rates: indicates weather normalized rates should be used for accuracy computation or denormalized rates
-        :return: the relevant data to compute accuracy for
+        :param use_normalized_rates: indicates weather normalized rates should be used for error computation or denormalized rates
+        :return: the relevant data to compute error for
         """
         df = pd.DataFrame.from_dict(data["denormalized_rate_by_position"])
         if use_normalized_rates:
