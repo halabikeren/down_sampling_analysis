@@ -22,7 +22,7 @@ def plot_large_scale_results(df: pd.DataFrame, output_path: str):
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.grid(False)
-    ncols = 2 if not "relative_accuracy_to_ref" in df.columns and "relative_accuracy_to_full" in df.columns else 1
+    ncols = 2 if "relative_accuracy_to_ref" in df.columns and "relative_accuracy_to_full" in df.columns else 1
     fig, axis = plt.subplots(
         nrows=1,
         ncols=ncols,
