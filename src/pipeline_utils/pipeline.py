@@ -577,6 +577,8 @@ class Pipeline:
                         self.samples_info[fraction][method.value]["programs_performance"][program_name.value][
                             "reference_data"]
                     df["result"] = program_class.get_result(sample_result)
+                    df["simulated"] = program_class.get_result(reference_result)
+                    df["full_result"] = program_class.get_result(full_result)
                     try:
                         df["relative_error_to_ref"] = program_class.get_error(reference_data=reference_result,
                                                                               test_data=sample_result,
