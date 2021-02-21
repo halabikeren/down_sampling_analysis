@@ -1,5 +1,5 @@
 {
-  "simulations_output_dir": "/data/test/simulations/",
+  "simulations_output_dir": "simulations/",
   "sequence_data_type": "nucleotide",
   "substitution_model": "GTR",
   "substitution_model_params": [0.2, 0.4, 0.6, 0.8, 1.2],

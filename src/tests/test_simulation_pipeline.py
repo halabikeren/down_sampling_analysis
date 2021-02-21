@@ -3,7 +3,7 @@ import os
 import unittest
 import json
 from pipeline_utils import PipelineInput, Pipeline
-from utils import BaseTools
+from utils import SimulationInput, BaseTools
 
 
 class TestSimulationPipeline(unittest.TestCase):
@@ -13,7 +13,9 @@ class TestSimulationPipeline(unittest.TestCase):
     def generate_simulations(self):
         with open(self.simulation_params_path, "r") as input_file:
             simulation_params = json.load(input_file)
-        self.pipeline_input_json_paths = BaseTools.simulate(simulation_params=simulation_params)
+        os.makedirs(simulation_params["simulations_output_dir"], exist_ok=True)
+        simulation_input = SimulationInput(**simulation_params)
+        self.pipeline_input_json_paths = BaseTools.simulate(simulation_input=simulation_input)
 
     def generate_pipeline_inputs(self) -> t.List[PipelineInput]:
         if len(self.pipeline_input_json_paths) == 0:
