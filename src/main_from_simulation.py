@@ -14,7 +14,7 @@ import numpy as np
 load_dotenv()
 
 
-def plot_large_scale_results(df: pd.DataFrame, output_path: str, use_relative_error: bool = False):
+def plot_large_scale_error(df: pd.DataFrame, output_path: str, use_relative_error: bool = False):
     """
     :param df: dataframe with a column "replicate" and other, program specific, columns
     :param output_path: path to plot the data in
@@ -50,6 +50,39 @@ def plot_large_scale_results(df: pd.DataFrame, output_path: str, use_relative_er
         axis[1].set_ylabel(f"mean {prefix} error ({len(df['replicate'].unique())} replicates)")
         axis[1].set_xlabel("sampling fraction")
         axis[1].set_title("reference: inferred rates based on full dataset")
+    fig.subplots_adjust()
+    fig.tight_layout()
+    plt.savefig(output_path, bbox_inches="tight", transparent=True)
+    plt.clf()
+
+
+def plot_large_scale_bias(df: pd.DataFrame, output_path: str):
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    plt.grid(False)
+    fig, axis = plt.subplots(
+        nrows=1,
+        ncols=2,
+        sharex="none",
+        sharey="none",
+        figsize=[2 * 8.5 + 2 + 2, 7.58 + 2],
+        frameon=True,
+    )
+    # plot rate next to simulated
+    sns.boxplot(ax=axis[0], y="full_bias", x="sampling_fraction", data=df,
+                palette="colorblind",
+                hue="sampling_method")
+    # plot rate next to full
+    axis[0].set_ylabel(f"rates diff ({len(df['replicate'].unique())} replicates)")
+    axis[0].set_xlabel("sampling fraction")
+    axis[0].set_title("reference: simulated rates")
+
+    sns.boxplot(ax=axis[1], y="simulated_bias", x="sampling_fraction", data=df,
+                       palette="colorblind",
+                       hue="sampling_method")
+    axis[1].set_ylabel(f"rates diff ({len(df['replicate'].unique())} replicates)")
+    axis[1].set_xlabel("sampling fraction")
+    axis[1].set_title("reference: inferred rates based on full dataset")
+
     fig.subplots_adjust()
     fig.tight_layout()
     plt.savefig(output_path, bbox_inches="tight", transparent=True)
@@ -149,13 +182,15 @@ def exec_pipeline_on_simulations(input_path: click.Path):
             except Exception as e:
                 logger.error(f"Failed to load dataframe from {df_path} due to error {e}")
         full_df = pd.concat(data)
-        full_df = full_df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index()
-        full_df.to_csv(f"{simulation_params['simulations_output_dir']}/{program}_aggregated_data.csv")
+        full_df["full_bias"] = full_df["full_result"]-full_df["result"]
+        full_df["simulated_bias"] = full_df["simulated"]-full_df["result"]
+        full_df_grouped = full_df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index()
+        full_df_grouped.to_csv(f"{simulation_params['simulations_output_dir']}/{program}_aggregated_data.csv")
 
         # plot large scale data
-        plot_large_scale_results(df=full_df, output_path=f"{simulation_params['simulations_output_dir']}/{program}_absolute_error.svg", use_relative_error=False)
-        plot_large_scale_results(df=full_df, output_path=f"{simulation_params['simulations_output_dir']}/{program}_relative_error.svg", use_relative_error=True)
-
+        plot_large_scale_error(df=full_df_grouped, output_path=f"{simulation_params['simulations_output_dir']}/{program}_absolute_error.svg", use_relative_error=False)
+        plot_large_scale_error(df=full_df_grouped, output_path=f"{simulation_params['simulations_output_dir']}/{program}_relative_error.svg", use_relative_error=True)
+        plot_large_scale_bias(df=full_df_grouped, output_path=f"{simulation_params['simulations_output_dir']}/{program}_bias.svg")
 
 if __name__ == "__main__":
     exec_pipeline_on_simulations()

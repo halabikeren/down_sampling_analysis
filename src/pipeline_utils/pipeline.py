@@ -470,9 +470,9 @@ class Pipeline:
             json.dump(self.samples_info, outfile)
 
     @staticmethod
-    def get_error_df(program_instance: Program, reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any],
-                     fraction: float, method: SamplingMethod, use_normalized_rates: bool = False,
-                     use_relative_error: bool = False):
+    def get_result_df(program_instance: Program, reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any],
+                      fraction: float, method: SamplingMethod, use_normalized_rates: bool = False,
+                      use_relative_error: bool = False):
         """
         :param program_instance: program instance to get its error computation
         :param reference_data: data of reference set
@@ -483,10 +483,12 @@ class Pipeline:
         :param use_relative_error: boolean indicating weather relative or absolute error should be used
         :return:
         """
-        df = pd.DataFrame(columns=["sampling_fraction", "sampling_method", "error"])
+        df = pd.DataFrame(columns=["sampling_fraction", "sampling_method", "error", "result", "reference"])
         df["error"] = program_instance.get_error(
             reference_data=reference_data, test_data=test_data, use_normalized_rates=use_normalized_rates,
             use_relative_error=use_relative_error)
+        df["result"] = program_instance.get_result(data=test_data)
+        df["reference"] = program_instance.get_result(data=reference_data)
         df["sampling_fraction"] = fraction
         df["sampling_method"] = method.value
         return df
@@ -512,16 +514,16 @@ class Pipeline:
                 sampled_data_result = result_data["result"]
                 if full_data_result:
                     full_error_dfs.append(
-                        Pipeline.get_error_df(program_instance=program_to_callable[program_name.value],
-                                              reference_data=full_data_result, test_data=sampled_data_result,
-                                              fraction=fraction, method=method, use_relative_error=use_relative_error))
+                        Pipeline.get_result_df(program_instance=program_to_callable[program_name.value],
+                                               reference_data=full_data_result, test_data=sampled_data_result,
+                                               fraction=fraction, method=method, use_relative_error=use_relative_error))
                 if reference_data_result:
                     ref_error_dfs.append(
-                        Pipeline.get_error_df(program_instance=program_to_callable[program_name.value],
-                                              reference_data=reference_data_result,
-                                              test_data=sampled_data_result,
-                                              fraction=fraction, method=method, use_normalized_rates=False,
-                                              use_relative_error=use_relative_error))
+                        Pipeline.get_result_df(program_instance=program_to_callable[program_name.value],
+                                               reference_data=reference_data_result,
+                                               test_data=sampled_data_result,
+                                               fraction=fraction, method=method, use_normalized_rates=False,
+                                               use_relative_error=use_relative_error))
         if len(full_error_dfs) > 0:
             full_error_df = pd.concat(full_error_dfs)
             sns.boxplot(ax=axis[0], y="error", x="sampling_fraction", data=full_error_df,
@@ -533,6 +535,56 @@ class Pipeline:
             sns.boxplot(ax=axis[1], y="error", x="sampling_fraction", data=ref_error_df, palette="colorblind",
                         hue="sampling_method")
             axis[1].set_title("reference: simulated data")
+        fig.subplots_adjust()
+        fig.tight_layout()
+        plt.savefig(output_path, bbox_inches="tight", transparent=True)
+        plt.clf()
+
+    def plot_bias(self, pipeline_input, program_name: ProgramName, output_path: str):
+        plt.grid(False)
+        ncols = 1 if not pipeline_input.reference_data_paths[program_name.value] else 2
+        fig, axis = plt.subplots(
+            nrows=1,
+            ncols=ncols,
+            sharex="none",
+            sharey="none",
+            figsize=[ncols * 8.5 + 2 + 2, 7.58 + 2],
+            frameon=True,
+        )
+        full_error_dfs = []
+        ref_error_dfs = []
+        for fraction in pipeline_input.sampling_fractions:
+            for method in pipeline_input.sampling_methods:
+                result_data = self.samples_info[fraction][method.value]["programs_performance"][program_name.value]
+                full_data_result = result_data["full_data_result"]
+                reference_data_result = result_data["reference_data"]
+                sampled_data_result = result_data["result"]
+                if full_data_result:
+                    full_error_dfs.append(
+                        Pipeline.get_result_df(program_instance=program_to_callable[program_name.value],
+                                               reference_data=full_data_result, test_data=sampled_data_result,
+                                               fraction=fraction, method=method, use_relative_error=True))
+                if reference_data_result:
+                    ref_error_dfs.append(
+                        Pipeline.get_result_df(program_instance=program_to_callable[program_name.value],
+                                               reference_data=reference_data_result, test_data=sampled_data_result,
+                                               fraction=fraction, method=method, use_relative_error=True))
+        if len(full_error_dfs) > 0:
+            full_error_df = pd.concat(full_error_dfs)
+            full_error_df["bias"] = full_error_df["reference"] - full_error_df["result"]
+            sns.boxplot(ax=axis[0], y="bias", x="sampling_fraction", data=full_error_df,
+                        palette="colorblind",
+                        hue="sampling_method")
+            axis[0].set_ylabel("full_rate-sampled_rate")
+            axis[0].set_title("reference: full")
+        if len(ref_error_dfs) > 0:
+            ref_error_df = pd.concat(ref_error_dfs)
+            ref_error_df["bias"] = ref_error_df["reference"] - ref_error_df["result"]
+            sns.boxplot(ax=axis[1], y="bias", x="sampling_fraction", data=ref_error_df,
+                        palette="colorblind",
+                        hue="sampling_method")
+            axis[1].set_ylabel("simulated_rate-sampled_rate")
+            axis[1].set_title("reference: simulated")
         fig.subplots_adjust()
         fig.tight_layout()
         plt.savefig(output_path, bbox_inches="tight", transparent=True)
@@ -552,6 +604,8 @@ class Pipeline:
             self.plot_error(pipeline_input=pipeline_input, program_name=program_name,
                             output_path=f"{output_dir}/{program_name.value}_relative_error.svg",
                             use_relative_error=True)
+            self.plot_bias(pipeline_input=pipeline_input, program_name=program_name,
+                            output_path=f"{output_dir}/{program_name.value}_bias.svg",)
 
     def analyse_results(self, pipeline_input: PipelineInput):
         """
