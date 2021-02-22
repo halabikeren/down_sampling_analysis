@@ -20,7 +20,8 @@ class Sampler:
             self.sequences = list(SeqIO.parse(sequence_data_path, "fasta"))
         self.saved_sequence = self.sequences[0]
         self.sequences.remove(self.saved_sequence)
-        self.sequences_path = sequence_data_path.replace(".", f"_without_reference_{self.saved_sequence.name}.")
+        self.sequences_path = sequence_data_path.replace(".fas", f"_without_reference_{self.saved_sequence.name}.fas")
+        print(f"self.sequences_path={self.sequences_path}\nsequence_data_path={sequence_data_path}") # debug
         SeqIO.write(self.sequences, self.sequences_path, "fasta")
         self.tree = Tree(tree_path, format=1)
 
