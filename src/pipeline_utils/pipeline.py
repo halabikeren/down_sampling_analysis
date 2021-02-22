@@ -314,7 +314,7 @@ class Pipeline:
             method_to_sample = dict()
             for method in pipeline_input.sampling_methods:
                 sample_path = self.samples_info[fraction][method.value]["unaligned_sequence_data_path"]
-                method_to_sample[method.value] = list(SeqIO.parse(sample_path, "fasta"))
+                method_to_sample[method.value] = [record.name for record in list(SeqIO.parse(sample_path, "fasta"))]
             for (method_1, method_2) in [pair for pair in itertools.combinations(list(method_to_sample.keys()), 2)]:
                 overlap_fraction = len([record for record in method_to_sample[method_1] if record in method_to_sample[method_2]]) / len(method_to_sample[method_1])
                 df_record = {"sampling_fraction": fraction, "method_1": method_1, "method_2": method_2, "overlap_fraction": overlap_fraction}
