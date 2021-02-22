@@ -49,22 +49,24 @@ class BaseTools:
         simulation_output_dir = simulation_input.simulations_output_dir
         os.makedirs(simulation_output_dir, exist_ok=True)
         pipeline_input_paths = []
-        for n in range(1, number_of_repeats+1):
+        for n in range(1, number_of_repeats + 1):
             # create control file
             output_dir = f"{simulation_output_dir}/rep_{n}/"
             os.makedirs(os.path.dirname(output_dir), exist_ok=True)
             simulation_tree_str = ""
             if not simulation_input.tree_random:
-                simulation_tree = Tree(simulation_input.simulation_tree_path)
+                with open(simulation_input.simulation_tree_path, "r") as tree_file:
+                    simulation_tree = Tree(tree_file.read())
+                    for node in simulation_tree.traverse():
+                        node.dist = round(node.dist, 7)
                 if simulation_input.tree_length:
                     BaseTools.scale_tree(tree=simulation_tree, required_size=simulation_input.tree_length)
                 simulation_tree_str = simulation_tree.write(format=5)
             tree_settings = simulation_tree_str
             if simulation_input.tree_random:
-                tree_settings += f"""
+                tree_settings = tree_settings + f"""
                 {'[rooted]' if simulation_input.tree_rooted else '[unrooted]'} {simulation_input.ntaxa} {simulation_input.birth_rate} {simulation_input.death_rate} {simulation_input.sample_rate}  {simulation_input.mutation_rate}
                 [treelength] {simulation_input.tree_length}"""
-
             control_content = f"""[TYPE] {'NUCLEOTIDE' if simulation_input.sequence_data_type == SequenceDataType.NUC else ('CODON' if simulation_input.sequence_data_type == SequenceDataType.CODON else 'AMINOACID')} 1
                                 [SETTINGS]
                                     [ancestralprint]    NEW
@@ -72,16 +74,16 @@ class BaseTools:
                                     [output]          	FASTA
                                     [fileperrep]      	TRUE
                                     [printrates]        TRUE
-    
+
                                 [MODEL]    model
                                   [submodel]  {simulation_input.substitution_model} {' '.join([str(p) for p in simulation_input.substitution_model_params])}
                                   [statefreq] {' '.join([str(p) for p in simulation_input.states_frequencies])}
                                   [rates]     {simulation_input.pinv} {simulation_input.alpha} {simulation_input.ngamcat}
-      
+
                                 [TREE] tree {tree_settings}
-      
+
                                 [PARTITIONS] basic_partition [tree model {simulation_input.seq_len}]
-    
+
                                 [EVOLVE]     basic_partition  1  seq_data
             """
             with open(f"{output_dir}/control.txt", "w") as control_file:
@@ -92,7 +94,7 @@ class BaseTools:
             process = subprocess.Popen(
                 cmd,
                 shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if len(process.stderr.read()) > 0:
+            if len(process.stderr.read()) > 0 or not os.path.exists(f"{output_dir}/seq_data_1.fasta"):
                 raise RuntimeError(
                     f"INDELible failed to properly execute and provide an output file with error {process.stderr.read()} and output is {process.stdout.read()}"
                 )
@@ -100,10 +102,12 @@ class BaseTools:
             tree_regex = re.compile("TREE STRING.*?(\(.*?\;)", re.MULTILINE | re.DOTALL)
             pipeline_json_input = simulation_input.dict()
             pipeline_json_input.pop("simulations_output_dir")
+            pipeline_json_input.pop("simulation_tree_path")
             for key in pipeline_json_input:
                 if issubclass(type(pipeline_json_input[key]), Enum):
                     pipeline_json_input[key] = pipeline_json_input[key].value
-                elif type(pipeline_json_input[key]) is list and len(pipeline_json_input[key]) > 0 and issubclass(type(pipeline_json_input[key][0]), Enum):
+                elif type(pipeline_json_input[key]) is list and len(pipeline_json_input[key]) > 0 and issubclass(
+                        type(pipeline_json_input[key][0]), Enum):
                     for i in range(len(pipeline_json_input[key])):
                         pipeline_json_input[key][i] = pipeline_json_input[key][i].value
             pipeline_json_input["pipeline_dir"] = f"{output_dir}/pipeline_dir/"
@@ -133,7 +137,8 @@ class BaseTools:
         # create json input file
 
     @staticmethod
-    def simplify_names(input_path: str, output_path: str, names_translator: t.Optional[t.Dict[str, str]]= None) -> t.Optional[t.Dict[str, str]]:
+    def simplify_names(input_path: str, output_path: str, names_translator: t.Optional[t.Dict[str, str]] = None) -> \
+    t.Optional[t.Dict[str, str]]:
         """
         :param input_path: path with the original sequence names
         :param output_path:  path to which the sequences with the new names will be written

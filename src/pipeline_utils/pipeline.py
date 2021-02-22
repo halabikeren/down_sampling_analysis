@@ -210,7 +210,7 @@ class Pipeline:
                 full_tree.write(outfile=self.samples_info[fraction][method.value]["tree_path"])
             else:
                 logger.info(
-                    f"Bulding tree based sampled data to {self.samples_info[fraction][method.value]['tree_path']}"
+                    f"Building tree based on sampled data to {self.samples_info[fraction][method.value]['tree_path']}"
                 )
                 BaseTools.build_tree(
                     self.samples_info[fraction][method.value][
