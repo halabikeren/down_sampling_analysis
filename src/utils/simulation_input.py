@@ -97,7 +97,7 @@ class SimulationInput(BaseModel):
     def given_if_not_random(cls, v, values):
         if not v and not values["tree_random"]:
             raise ValueError(
-                "If tree ofr simulations is not set to be random, it must be provided in simulation_tree_path"
+                "If tree for simulations is not set to be random, it must be provided in simulation_tree_path"
             )
         return v
 
