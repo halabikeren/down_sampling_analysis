@@ -88,6 +88,28 @@ def plot_large_scale_bias(df: pd.DataFrame, output_path: str):
     plt.clf()
 
 
+def plot_large_scale_samples_overlap(df: pd.DataFrame, output_path: str):
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    plt.grid(False)
+    fig, axis = plt.subplots(
+        nrows=1,
+        ncols=1,
+        sharex="none",
+        sharey="none",
+        figsize=[1 * 8.5 + 2 + 2, 7.58 + 2],
+        frameon=True,
+    )
+    sns.boxplot(ax=axis, y="overlap_fraction", x="sampling_fraction", data=df,
+                palette="colorblind",
+                hue="compared_methods")
+    axis.set_ylabel(f"% overlap ({len(df['replicate'].unique())} replicates)")
+    axis.set_xlabel("sampling fraction")
+    fig.subplots_adjust()
+    fig.tight_layout()
+    plt.savefig(output_path, bbox_inches="tight", transparent=True)
+    plt.clf()
+
+
 @click.command()
 @click.option(
     "--input_path",
@@ -178,6 +200,20 @@ def exec_pipeline_on_simulations(input_path: click.Path):
                 sleep(60)
 
     # analyze large scale results
+    paths = [path for path in os.listdir(simulation_input.simulations_output_dir) if "rep" in path]
+    overlap_dfs = []
+    for path in paths:
+        overlap_df_path = f"{simulation_input.simulations_output_dir}/{path}/pipeline_dir/samples/samples_overlap.csv"
+        overlap_df = pd.read_csv(overlap_df_path)
+        overlap_df["replicate"] = path
+        overlap_df["compared_methods"] = (overlap_df["method_1"], overlap_df["method_2"])
+
+        overlap_dfs.append(overlap_df)
+    full_overlap_df = pd.concat(overlap_dfs)
+    plot_large_scale_samples_overlap(df=full_overlap_df, output_path=f"{simulation_input.simulations_output_dir}/samples_overlap.svg")
+
+
+
     for program in simulation_input.programs:
         data = []
         paths = [path for path in os.listdir(simulation_input.simulations_output_dir) if "rep" in path]
