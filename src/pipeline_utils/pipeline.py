@@ -1,3 +1,4 @@
+import itertools
 import json
 import pickle
 import shutil
@@ -306,6 +307,19 @@ class Pipeline:
                                         sample_member_names=sample_members_names)
 
         logger.info("Completed samples generation")
+
+        # compare % overlap between samples of the same size
+        df = pd.DataFrame(columns=["sampling_fraction", "method_1", "method_2", "overlap_fraction"])
+        for fraction in pipeline_input.sampling_fractions:
+            method_to_sample = dict()
+            for method in pipeline_input.sampling_methods:
+                sample_path = self.samples_info[fraction][method.value]["unaligned_sequence_data_path"]
+                method_to_sample[method.value] = list(SeqIO.parse(sample_path, "fasta"))
+            for (method_1, method_2) in [pair for pair in itertools.combinations(list(method_to_sample.keys()), 2)]:
+                overlap_fraction = len([record for record in method_to_sample[method_1] if record in method_to_sample[method_2]]) / len(method_to_sample[method_1])
+                df_record = {"sampling_fraction": fraction, "method_1": method_1, "method_2": method_2, "overlap_fraction": overlap_fraction}
+                df = df.append(df_record, ignore_index=True)
+            df.to_csv(f"{samples_dir}/samples_overlap.csv")
 
     def execute_programs(self, pipeline_input: PipelineInput):
         """
