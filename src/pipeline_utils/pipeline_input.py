@@ -83,7 +83,7 @@ class PipelineInput(BaseModel):
             "aligned_sequence_data_path",
             "tree_path",
         ]:
-            if field in data:
+            if field in data and data[field]:
                 data[field] = os.path.join(os.getcwd(), data[field])
         super().__init__(**data)
 
