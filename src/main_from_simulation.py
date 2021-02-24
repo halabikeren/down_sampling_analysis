@@ -206,8 +206,7 @@ def exec_pipeline_on_simulations(input_path: click.Path):
         overlap_df_path = f"{simulation_input.simulations_output_dir}/{path}/pipeline_dir/samples/samples_overlap.csv"
         overlap_df = pd.read_csv(overlap_df_path)
         overlap_df["replicate"] = path
-        overlap_df["compared_methods"] = (overlap_df["method_1"], overlap_df["method_2"])
-
+        overlap_df["compared_methods"] = overlap_df["method_1"].str.cat(overlap_df[["method_2"]], sep=',')
         overlap_dfs.append(overlap_df)
     full_overlap_df = pd.concat(overlap_dfs)
     plot_large_scale_samples_overlap(df=full_overlap_df, output_path=f"{simulation_input.simulations_output_dir}/samples_overlap.svg")
