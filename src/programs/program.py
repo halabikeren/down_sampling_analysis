@@ -189,14 +189,15 @@ class Program:
         result = {"raw_output": output_content}
 
         if job_output_dir:
-            paths_by_time = sorted([job_output_dir + path for path in os.listdir(job_output_dir)], key=os.path.getmtime)
-            job_output_path = [path for path in paths_by_time if ".OU" in path][0]
-            with open(job_output_path, "r") as job_output_file:
-                content = job_output_file.readlines()
-            start_time = datetime.strptime(content[0].rstrip(), "%H:%M:%S")
-            end_time = datetime.strptime(content[-1].rstrip(), "%H:%M:%S")
-            duration = (end_time - start_time).total_seconds() / 60
-            result["duration(minutes)"] = duration
+            paths_by_time = sorted([job_output_dir + path for path in os.listdir(job_output_dir) if ".OU" in path], key=os.path.getmtime)
+            if len(paths_by_time) > 0:
+                job_output_path = paths_by_time[0]
+                with open(job_output_path, "r") as job_output_file:
+                    content = job_output_file.readlines()
+                start_time = datetime.strptime(content[0].rstrip(), "%H:%M:%S")
+                end_time = datetime.strptime(content[-1].rstrip(), "%H:%M:%S")
+                duration = (end_time - start_time).total_seconds() / 60
+                result["duration(minutes)"] = duration
 
         return result
 

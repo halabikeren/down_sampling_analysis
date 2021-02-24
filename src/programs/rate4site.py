@@ -46,7 +46,7 @@ class Rate4Site(Program):
 
     @staticmethod
     def parse_output(
-            output_path: str, job_output_dir: t.Optional[str] = None
+            output_path: str, job_output_dir: str = os.getcwd()
     ) -> t.Dict[str, t.Any]:
         """
         :param output_path

@@ -34,7 +34,7 @@ class TestCDHIT(unittest.TestCase):
             sequence_data_path=self.sequences_data_path,
             tree_path=self.tree_path,
         )
-        expected_sample = {"A", "B"}
+        expected_sample = {"A", "C"}
         accepted_sample = cdhit.get_sample(2, self.aux_dir)
         accepted_sample = set([record.id for record in accepted_sample])
         self.assertEqual(accepted_sample, expected_sample)
@@ -44,9 +44,9 @@ class TestCDHIT(unittest.TestCase):
             sequence_data_path=self.sequences_data_path,
             tree_path=self.tree_path,
         )
-        accepted_sample = cdhit.get_sample(6, self.aux_dir)
+        accepted_sample = cdhit.get_sample(5, self.aux_dir)
         accepted_sample = set([record.id for record in accepted_sample])
-        self.assertEqual(len(accepted_sample), 5)
+        self.assertEqual(len(accepted_sample), 4)
 
 
 if __name__ == "__main__":

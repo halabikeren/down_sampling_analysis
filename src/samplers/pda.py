@@ -35,7 +35,8 @@ class Pda(Sampler):
     ] = None  # sample subtree is saved such that if later on, a larger sample is required, we can simply extend the current one rather than start over
     pd_score: float = 0
 
-    def __init__(self, sequence_data_path: str, tree_path: str, sequences: t.Optional[t.List[SeqIO.SeqRecord]] = None, taxon_to_weight: t.Optional[t.Dict[str, float]] = None):
+    def __init__(self, sequence_data_path: str, tree_path: str, exclude_a_ref_sequence: bool = False, sequences: t.Optional[t.List[SeqIO.SeqRecord]] = None,
+                 taxon_to_weight: t.Optional[t.Dict[str, float]] = None):
         super(Pda, self).__init__(sequence_data_path=sequence_data_path, tree_path=tree_path, sequences=sequences)
         self.taxon_to_weight = taxon_to_weight
 
@@ -278,19 +279,21 @@ class Pda(Sampler):
             if is_weighted:
                 self.pd_score += self.taxon_to_weight[sample[0].name]
         else:
-            if k-1 > 1:
-                self.tree.prune([leaf for leaf in self.tree.get_leaf_names() if leaf != self.saved_sequence.name])
+            if (not self.exclude_a_ref_sequence and k > 1) or (self.exclude_a_ref_sequence and k - 1 > 1):
+                if self.exclude_a_ref_sequence:
+                    self.tree.prune([leaf for leaf in self.tree.get_leaf_names() if leaf != self.saved_sequence.name])
+                sample_size = k - 1 if self.exclude_a_ref_sequence else k
                 if not use_external:
                     self.sample_subtree = Tree()
                     self.add_internal_names()
-                    while len(self.sample_subtree.get_leaf_names()) < k-1:
+                    while len(self.sample_subtree.get_leaf_names()) < sample_size:
                         self.do_pd_step(is_weighted=is_weighted)
                     sample_members = self.sample_subtree.get_leaf_names()
                 else:
                     sample_members = self.exec_external_pda(
-                        k-1, aux_dir, is_weighted=is_weighted
+                        sample_size, aux_dir, is_weighted=is_weighted
                     )
-            else:
+            else:  # self.exclude_a_ref_sequence and k-1 == 1:
                 leaves = [leaf for leaf in self.tree.get_leaves() if leaf.name != self.saved_sequence.name]
                 saved_leaf = self.tree.search_nodes(name=self.saved_sequence.name)[0]
                 most_disant_leaf = leaves[0]
@@ -306,5 +309,6 @@ class Pda(Sampler):
             sample = [
                 record for record in self.sequences if record.name in sample_members
             ]
-            sample.append(self.saved_sequence)  # saved sequence must be in every sample
+            if self.exclude_a_ref_sequence:
+                sample.append(self.saved_sequence)  # saved sequence must be in every sample
         return sample

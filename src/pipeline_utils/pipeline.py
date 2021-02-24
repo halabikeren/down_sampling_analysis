@@ -245,7 +245,7 @@ class Pipeline:
         for method in pipeline_input.sampling_methods:
             sampler_instance = method_to_callable[method.value](
                 sequence_data_path=self.unaligned_sequence_data_path,
-                tree_path=self.tree_path
+                tree_path=self.tree_path, exclude_a_ref_sequence=pipeline_input.exclude_ref_seq
             )
             for fraction in pipeline_input.sampling_fractions:
                 self.samples_info[fraction][method.value][
@@ -347,7 +347,7 @@ class Pipeline:
                     and program_name.value in pipeline_input.programs_params
             ):
                 program_params = pipeline_input.programs_params[program_name.value]
-            if program_name.value == "rate4site":
+            if program_name.value == "rate4site" and pipeline_input.exclude_ref_seq:
                 program_params["-a"] = self.unaligned_sequence_data[0].name
 
             # execute on the full dataset
@@ -460,10 +460,11 @@ class Pipeline:
                     ][program_name.value]["output_path"]
                     job_output_dir = \
                         self.samples_info[fraction][method_name]["programs_performance"][program_name.value]["aux_dir"]
-                    self.samples_info[fraction][method_name]["programs_performance"][
-                        program_name.value
-                    ]["result"].update(program_instance.parse_output(output_path=program_output_path,
-                                                                     job_output_dir=job_output_dir))
+                    if os.path.exists(job_output_dir):
+                        self.samples_info[fraction][method_name]["programs_performance"][
+                            program_name.value
+                        ]["result"].update(program_instance.parse_output(output_path=program_output_path,
+                                                                         job_output_dir=job_output_dir))
                     if pipeline_input.exec_on_full_data:
                         self.samples_info[fraction][method_name]["programs_performance"][
                             program_name.value
