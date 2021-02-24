@@ -94,10 +94,9 @@ class BaseTools:
             process = subprocess.Popen(
                 cmd,
                 shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if len(process.stderr.read()) > 0 or not os.path.exists(f"{output_dir}/seq_data_1.fasta"):
+            if len(process.stderr.read()) > 0 or not os.path.exists(f"{os.getcwd()}/seq_data_1.fasta"):
                 raise RuntimeError(
-                    f"INDELible failed to properly execute and provide an output file with error {process.stderr.read()} and output is {process.stdout.read()}"
-                )
+                    f"INDELible failed to properly execute and provide an output file with error {process.stderr.read()} and output is {process.stdout.read()}")
             # prepare pipeline input
             tree_regex = re.compile("TREE STRING.*?(\(.*?\;)", re.MULTILINE | re.DOTALL)
             pipeline_json_input = simulation_input.dict()
@@ -110,25 +109,25 @@ class BaseTools:
                         type(pipeline_json_input[key][0]), Enum):
                     for i in range(len(pipeline_json_input[key])):
                         pipeline_json_input[key][i] = pipeline_json_input[key][i].value
-            pipeline_json_input["pipeline_dir"] = f"{output_dir}/pipeline_dir/"
-            pipeline_json_input["cluster_data_dir"] = output_dir
-            pipeline_json_input["unaligned_sequence_data_path"] = f"{output_dir}/seq_data_1.fasta"
+            pipeline_json_input["pipeline_dir"] = f"{os.getcwd()}/pipeline_dir/"
+            pipeline_json_input["cluster_data_dir"] = os.getcwd()
+            pipeline_json_input["unaligned_sequence_data_path"] = f"{os.getcwd()}/seq_data_1.fasta"
             if simulation_input.use_simulated_alignment:
-                pipeline_json_input["aligned_sequence_data_path"] = f"{output_dir}/seq_data_TRUE_1.fasta"
+                pipeline_json_input["aligned_sequence_data_path"] = f"{os.getcwd()}/seq_data_TRUE_1.fasta"
             if simulation_input.use_simulated_tree:
-                tree_path = f"{output_dir}/simulated_tree.nwk"
+                tree_path = f"{os.getcwd()}/simulated_tree.nwk"
                 if simulation_input.tree_random:
-                    with open(f"{output_dir}/trees.txt", "r") as trees_file:
+                    with open(f"{os.getcwd()}/trees.txt", "r") as trees_file:
                         tree_str = tree_regex.search(trees_file.read()).group(1)
                         tree = Tree(tree_str, format=1)
                         tree.write(outfile=tree_path, format=1)
                 else:
                     simulation_tree.write(outfile=tree_path, format=1)
                 pipeline_json_input["tree_path"] = tree_path
-            pipeline_json_input["reference_data_paths"] = {"rate4site": f"{output_dir}/seq_data_RATES.txt",
-                                                           "paml": f"{output_dir}/seq_data_RATES.txt",
-                                                           "fastml": f"{output_dir}/seq_data_ANCESTRAL_1.fasta"}
-            json_path = f"{output_dir}/input.json"
+            pipeline_json_input["reference_data_paths"] = {"rate4site": f"{os.getcwd()}/seq_data_RATES.txt",
+                                                           "paml": f"{os.getcwd()}/seq_data_RATES.txt",
+                                                           "fastml": f"{os.getcwd()}/seq_data_ANCESTRAL_1.fasta"}
+            json_path = f"{os.getcwd()}/input.json"
             with open(json_path, "w") as json_file:
                 json.dump(pipeline_json_input, json_file)
             pipeline_input_paths.append(json_path)
