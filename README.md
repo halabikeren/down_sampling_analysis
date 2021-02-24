@@ -12,7 +12,7 @@ A folder with a json file and a sequence data file. See example [here](https://g
 
 # Docker usage
 ```
-docker pull pull halabikeren/down_sampling_analysis_prod:latest
+docker pull halabikeren/down_sampling_analysis_prod:latest
 docker run -v <path_to_input_filder>:/data/ dsap --input_path=/data/<json_filename>
 ```
 
