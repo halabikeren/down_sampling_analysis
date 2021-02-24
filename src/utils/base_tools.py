@@ -57,10 +57,10 @@ class BaseTools:
             if not simulation_input.tree_random:
                 with open(simulation_input.simulation_tree_path, "r") as tree_file:
                     simulation_tree = Tree(tree_file.read())
-                    for node in simulation_tree.traverse():
-                        node.dist = round(node.dist, 4)
                 if simulation_input.tree_length:
                     BaseTools.scale_tree(tree=simulation_tree, required_size=simulation_input.tree_length)
+                for node in simulation_tree.traverse():
+                    node.dist = round(node.dist, 4)
                 simulation_tree_str = simulation_tree.write(format=5)
             tree_settings = simulation_tree_str
             if simulation_input.tree_random:
