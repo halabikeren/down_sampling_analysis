@@ -58,7 +58,7 @@ class BaseTools:
                 with open(simulation_input.simulation_tree_path, "r") as tree_file:
                     simulation_tree = Tree(tree_file.read())
                     for node in simulation_tree.traverse():
-                        node.dist = round(node.dist, 7)
+                        node.dist = round(node.dist, 6)
                 if simulation_input.tree_length:
                     BaseTools.scale_tree(tree=simulation_tree, required_size=simulation_input.tree_length)
                 simulation_tree_str = simulation_tree.write(format=5)
