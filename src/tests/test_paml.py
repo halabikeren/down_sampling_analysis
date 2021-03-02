@@ -42,8 +42,8 @@ class TestPAML(unittest.TestCase):
         self.assertTrue(abs(neb_positive_selection_analysis.loc[neb_positive_selection_analysis["position"] == 50, "mean(w)"].values[0]-4.705) < 0.1)
         self.assertTrue(not neb_positive_selection_analysis.loc[neb_positive_selection_analysis["position"] == 15, "is_significant"].values[0])
         self.assertTrue(abs(neb_positive_selection_analysis.loc[neb_positive_selection_analysis["position"] == 15, "p(w>1)"].values[0] - 0.913) < 0.1)
-        self.assertTrue(result["ws_inference"][1]["prop"] <= 1)
-        self.assertTrue(result["ws_inference"][1]["w"] < 0.4)
+        self.assertTrue(result["selection_parameters"][1]["prop"] <= 1)
+        self.assertTrue(result["selection_parameters"][1]["w"] < 0.4)
         self.assertTrue(int(result["duration(minutes)"]) < 2)
 
     def tearDown(self):
