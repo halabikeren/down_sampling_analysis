@@ -4,8 +4,10 @@ import os
 import re
 from io import StringIO
 import pandas as pd
-
-from utils import SequenceDataType, TreeReconstructionMethod, BaseTools
+from ete3 import Tree
+import itertools
+import json
+from utils import SequenceDataType, TreeReconstructionMethod, BaseTools, SimulationInput
 from .program import Program
 
 from dotenv import load_dotenv, find_dotenv
@@ -115,7 +117,7 @@ class Paml(Program):
             "CodonFreq": 2,  # 0:1/61 each, 1:F1X4, 2:F3X4, 3:codon table
             "clock": 0,  # 0: no clock, unrooted tree, 1: clock, rooted tree
             "model": 0,  # use a single branch category (site model)
-            "NSsites": 8,  # M3 model. for more options, see http://abacus.gene.ucl.ac.uk/software/pamlDOC.pdf
+            "NSsites": 8,  # M8 model. for more options, see http://abacus.gene.ucl.ac.uk/software/pamlDOC.pdf
             "icode": 0,  # 0:standard genetic code; 1:mammalian mt; 2-10:see below
             "fix_kappa": 0,  # 1: kappa fixed, 0: kappa to be estimated
             "kappa": 2,  # initial or fixed kappa
@@ -180,6 +182,20 @@ class Paml(Program):
         return df.to_dict()
 
     @staticmethod
+    def parse_codon_frequencies(content: str) -> t.Dict[str, float]:
+        states_frequencies_regex = re.compile("Codon\s*position\s*x\s*base\s*\(3x4\)\s*table\,\s*overall.*?position\s*1\:\s*T\:\s*(\d*\.?\d*)\s*C\:\s*(\d*\.?\d*)\s*A\:\s*(\d*\.?\d*)\s*G\:\s*(\d*\.?\d*)\s*.*?position\s*2\:\s*T\:\s*(\d*\.?\d*)\s*C\:\s*(\d*\.?\d*)\s*A\:\s*(\d*\.?\d*)\s*G\:\s*(\d*\.?\d*)\s*position\s*3\:\s*T\:\s*(\d*\.?\d*)\s*C\:\s*(\d*\.?\d*)\s*A\:\s*(\d*\.?\d*)\s*G\:\s*(\d*\.?\d*)\s*", re.MULTILINE | re.DOTALL)
+        match = states_frequencies_regex.search(content)
+        # extract F3X4 parameters
+        f3x4_parameters = {"pos1": {"T": float(match.group(1)), "C": float(match.group(2)), "A": float(match.group(3)), "G": float(match.group(4))},
+                           "pos2": {"T": float(match.group(5)), "C": float(match.group(6)), "A": float(match.group(7)), "G": float(match.group(8))},
+                           "pos3": {"T": float(match.group(9)), "C": float(match.group(10)), "A": float(match.group(11)), "G": float(match.group(12))}}
+        # compute codon frequencies according to them
+        codons = list(itertools.combinations(["T", "C", "A", "G"], 3))
+        codon_frequencies = {codon: f3x4_parameters["pos1"][codon[0]]*f3x4_parameters["pos2"][codon[1]]*f3x4_parameters["pos3"][codon[2]] for codon in codons}
+        return codon_frequencies
+
+
+    @staticmethod
     def parse_output(output_path: str, job_output_dir: t.Optional[str] = None) -> t.Dict[str, t.Any]:
         """
         the parser is currently compatible only with site-models
@@ -230,7 +246,7 @@ class Paml(Program):
         )
         inferred_w_content = inferred_w_regex.search(content).group(1)
         [props, ws] = [res.split("  ")[1:] for res in inferred_w_content.split("\n")]
-        result["ws_inference"] = {
+        result["selection_parameters"] = {
             cat + 1: {"prop": float(props[cat]), "w": float(ws[cat])} for cat in range(len(ws))
         }
 
@@ -238,4 +254,37 @@ class Paml(Program):
         result["duration(minutes)"] = float((
             duration_regex.search(content).group(1).replace(":", "."))
         )
+        kappa_regex = re.compile("kappa\s*\(ts\/tv\)\s= \s(\d*\.?\d*)")
+        result["kappa"] = float(kappa_regex.search(content).group(1))
+        tree_length_regex = re.compile("tree\s*length\s*=\s*(\d*\.?\d*)")
+        result["tree_length"] = float(tree_length_regex.search(content).group(1))
+        tree_str_regex = re.compile("(\(.*?\)\;)")
+        tree_str = [match for match in tree_str_regex.finditer(content)][0].group(1)
+        tree = Tree(tree_str)
+        tree_path = f"{os.path.dirname(output_path)}/tree.nwk"
+        tree.write(ourfile=tree_path, format=5)
+        result["tree_path"] = tree_path
+        result["states_frequencies"] = Paml.parse_codon_frequencies(content=content)
         return result
+
+    @staticmethod
+    def write_output_to_simulation_pipeline_json(program_output: t.Dict[str, t.Any], output_path: str, additional_simulation_parameters: t.Dict[str, t.Any]):
+        """
+        :param program_output: output of the program to translate to simulation params
+        :param output_path: output path for simulation pipeline input json
+        :param additional_simulation_parameters:  additional parameters
+        :return:
+        """
+        simulation_input_parameters = {"substitution_model": "",
+                                       "substitution_model_params": {"kappa": program_output["kappa"], "selection_parameters": program_output["selection_parameters"]},
+                                       "states_frequencies": program_output["states_frequencies"],
+                                       "tree_random": False,
+                                       "tree_length": program_output["tree_length"],
+                                       "simulation_tree_path": program_output["tree_path"],
+                                       "pinv": 0,
+                                       "alpha": 0,
+                                       "ngamcat": 0}
+        simulation_input_parameters.update(additional_simulation_parameters)
+        simulation_input = SimulationInput(**simulation_input_parameters)
+        with open(output_path, "w") as output_file:
+            json.dump(output_file, simulation_input)

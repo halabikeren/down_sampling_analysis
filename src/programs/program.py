@@ -243,3 +243,13 @@ class Program:
         :return: the relevant data to compute error for
         """
         pass  # will be overloaded by inheriting classes
+
+    @staticmethod
+    def write_output_to_simulation_pipeline_json(program_output: t.Dict[str, t.Any], output_path: str, additional_simulation_parameters: t.Dict[str, t.Any]):
+        """
+        :param program_output: output of the program to translate to simulation params
+        :param output_path: output path for simulation pipeline input json
+        :param additional_simulation_parameters:  additional parameters
+        :return:
+        """
+        pass  # is overloaded by inheriting classes
