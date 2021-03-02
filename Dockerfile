@@ -26,6 +26,11 @@ RUN echo 'alias indelible="~/indelible"' >> ~/.bashrc
 COPY requirements.txt /temp/requirements.txt
 RUN pip install -r /temp/requirements.txt
 
+# clear matplotlib cache to avoid warning: https://github.com/ocropus/ocropy/issues/204
+RUN rm -rf ~/.matplotlib
+RUN rm -rf ~/.cache/matplotlib
+RUN rm -rf ~/.cache/fontconfig/
+
 ENV BASH_ENV=~/.bashrc
 
 WORKDIR /src
