@@ -262,7 +262,7 @@ class Paml(Program):
         tree_str = [match for match in tree_str_regex.finditer(content)][0].group(1)
         tree = Tree(tree_str)
         tree_path = f"{os.path.dirname(output_path)}/tree.nwk"
-        tree.write(ourfile=tree_path, format=5)
+        tree.write(outfile=tree_path, format=5)
         result["tree_path"] = tree_path
         result["states_frequencies"] = Paml.parse_codon_frequencies(content=content)
         return result
