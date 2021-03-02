@@ -23,7 +23,6 @@ def remove_duplicates(sequence_records):
         else:
             sequence_records.pop(i)
 
-
 def sample_data(full_data: t.List[SeqIO.SeqRecord], output_dir: str, required_data_size: int, num_of_repeats: int) -> t.List[str]:
     if required_data_size > len(full_data):
         raise ValueError(f"full data size {len(full_data)} cannot be down-sampled to {required_data_size}")
@@ -36,11 +35,6 @@ def sample_data(full_data: t.List[SeqIO.SeqRecord], output_dir: str, required_da
         SeqIO.write(sampled_data, output_path, "fasta")
         samples_paths.append(output_path)
     return samples_paths
-
-
-
-    pass
-
 
 def run_program(sequence_data_path: click.Path, sequence_data_type: SequenceDataType, additional_params: t.Optional[t.Dict] = None) -> t.Union[str, str, str, str]:
     """
