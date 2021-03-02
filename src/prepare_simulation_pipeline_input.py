@@ -78,7 +78,7 @@ def run_program(sequence_data_path: click.Path, sequence_data_type: SequenceData
               required=True)
 @click.option("--sequence_data_type",
               help="type of sequence data. options are: nucleotide, codon, amino_acid",
-              type=SequenceDataType,
+              type=str,
               required=True)
 @click.option("--required_input_size",
               help="integer of the required data size",
