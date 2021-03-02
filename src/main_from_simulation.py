@@ -5,7 +5,7 @@ import sys
 from time import sleep
 import pandas as pd
 import click
-from utils import SimulationInput, BaseTools, Job
+from utils import SimulationInput, SimulationTools, Job
 import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 import seaborn as sns
@@ -164,7 +164,7 @@ def exec_pipeline_on_simulations(input_path: click.Path):
             simulations_exec_complete = True
 
     if not simulations_exist:
-        pipeline_input_json_paths = BaseTools.simulate(simulation_input=simulation_input)
+        pipeline_input_json_paths = SimulationTools.simulate(simulation_input=simulation_input)
         simulations_dirs = [f"{os.path.dirname(json_path)}/" for json_path in pipeline_input_json_paths]
         logger.info(f"Simulation is complete.")
 

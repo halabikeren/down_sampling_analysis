@@ -2,18 +2,12 @@ import subprocess
 import typing as t
 from copy import deepcopy
 from dataclasses import dataclass
-from enum import Enum
-
 from ete3 import Tree
-import socket
 import os
-import re
-import json
 from Bio import SeqIO
 from Bio.Seq import Seq
-from .types import SequenceDataType, TreeReconstructionMethod, AlignmentMethod
-from .simulation_input import SimulationInput
 from dotenv import load_dotenv, find_dotenv
+from .types import SequenceDataType, AlignmentMethod, TreeReconstructionMethod
 
 load_dotenv(find_dotenv())
 
@@ -38,102 +32,6 @@ class BaseTools:
         rescaling_factor = required_size / orig_size
         for node in tree.traverse():
             node.dist *= rescaling_factor
-
-    @staticmethod
-    def simulate(simulation_input: SimulationInput) -> t.List[str]:
-        """
-        :param simulation_input: parameters to simulate data with
-        :return: a list of paths to json input files corresponding to the input jsons for executing the pipeline on the simulated datasets
-        """
-        number_of_repeats = simulation_input.nrep
-        simulation_output_dir = simulation_input.simulations_output_dir
-        os.makedirs(simulation_output_dir, exist_ok=True)
-        pipeline_input_paths = []
-        for n in range(1, number_of_repeats + 1):
-            # create control file
-            output_dir = f"{simulation_output_dir}/rep_{n}/"
-            os.makedirs(os.path.dirname(output_dir), exist_ok=True)
-            simulation_tree_str = ""
-            if not simulation_input.tree_random:
-                with open(simulation_input.simulation_tree_path, "r") as tree_file:
-                    simulation_tree = Tree(tree_file.read())
-                if simulation_input.tree_length:
-                    BaseTools.scale_tree(tree=simulation_tree, required_size=simulation_input.tree_length)
-                for node in simulation_tree.traverse():
-                    node.dist = round(node.dist, 4)
-                simulation_tree_str = simulation_tree.write(format=5)
-            tree_settings = simulation_tree_str
-            if simulation_input.tree_random:
-                tree_settings = tree_settings + f"""
-                {'[rooted]' if simulation_input.tree_rooted else '[unrooted]'} {simulation_input.ntaxa} {simulation_input.birth_rate} {simulation_input.death_rate} {simulation_input.sample_rate}  {simulation_input.mutation_rate}
-                [treelength] {simulation_input.tree_length}"""
-            control_content = f"""[TYPE] {'NUCLEOTIDE' if simulation_input.sequence_data_type == SequenceDataType.NUC else ('CODON' if simulation_input.sequence_data_type == SequenceDataType.CODON else 'AMINOACID')} 1
-                                [SETTINGS]
-                                    [ancestralprint]    NEW
-                                    [fastaextension]    fasta
-                                    [output]          	FASTA
-                                    [fileperrep]      	TRUE
-                                    [printrates]        TRUE
-
-                                [MODEL]    model
-                                  [submodel]  {simulation_input.substitution_model} {' '.join([str(p) for p in simulation_input.substitution_model_params])}
-                                  [statefreq] {' '.join([str(p) for p in simulation_input.states_frequencies])}
-                                  [rates]     {simulation_input.pinv} {simulation_input.alpha} {simulation_input.ngamcat}
-
-                                [TREE] tree {tree_settings}
-
-                                [PARTITIONS] basic_partition [tree model {simulation_input.seq_len}]
-
-                                [EVOLVE]     basic_partition  1  seq_data
-            """
-            with open(f"{output_dir}/control.txt", "w") as control_file:
-                control_file.write(control_content)
-            # simulate
-            os.chdir(output_dir)
-            cmd = f"{os.environ['cluster_indelible'] if 'power' in socket.gethostname() else os.environ['indelible']}"
-            process = subprocess.Popen(
-                cmd,
-                shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            if len(process.stderr.read()) > 0 or not os.path.exists(f"{os.getcwd()}/seq_data_1.fasta"):
-                raise RuntimeError(
-                    f"INDELible failed to properly execute and provide an output file with error {process.stderr.read()} and output is {process.stdout.read()}")
-            # prepare pipeline input
-            tree_regex = re.compile("TREE STRING.*?(\(.*?\;)", re.MULTILINE | re.DOTALL)
-            pipeline_json_input = simulation_input.dict()
-            pipeline_json_input.pop("simulations_output_dir")
-            pipeline_json_input.pop("simulation_tree_path")
-            for key in pipeline_json_input:
-                if issubclass(type(pipeline_json_input[key]), Enum):
-                    pipeline_json_input[key] = pipeline_json_input[key].value
-                elif type(pipeline_json_input[key]) is list and len(pipeline_json_input[key]) > 0 and issubclass(
-                        type(pipeline_json_input[key][0]), Enum):
-                    for i in range(len(pipeline_json_input[key])):
-                        pipeline_json_input[key][i] = pipeline_json_input[key][i].value
-            pipeline_json_input["pipeline_dir"] = f"{os.getcwd()}/pipeline_dir/"
-            pipeline_json_input["cluster_data_dir"] = os.getcwd()
-            pipeline_json_input["unaligned_sequence_data_path"] = f"{os.getcwd()}/seq_data_1.fasta"
-            if simulation_input.use_simulated_alignment:
-                pipeline_json_input["aligned_sequence_data_path"] = f"{os.getcwd()}/seq_data_TRUE_1.fasta"
-            if simulation_input.use_simulated_tree:
-                tree_path = f"{os.getcwd()}/simulated_tree.nwk"
-                if simulation_input.tree_random:
-                    with open(f"{os.getcwd()}/trees.txt", "r") as trees_file:
-                        tree_str = tree_regex.search(trees_file.read()).group(1)
-                        tree = Tree(tree_str, format=1)
-                        tree.write(outfile=tree_path, format=1)
-                else:
-                    simulation_tree.write(outfile=tree_path, format=1)
-                pipeline_json_input["tree_path"] = tree_path
-            pipeline_json_input["reference_data_paths"] = {"rate4site": f"{os.getcwd()}/seq_data_RATES.txt",
-                                                           "paml": f"{os.getcwd()}/seq_data_RATES.txt",
-                                                           "fastml": f"{os.getcwd()}/seq_data_ANCESTRAL_1.fasta"}
-            json_path = f"{os.getcwd()}/input.json"
-            with open(json_path, "w") as json_file:
-                json.dump(pipeline_json_input, json_file)
-            pipeline_input_paths.append(json_path)
-        return pipeline_input_paths
-
-        # create json input file
 
     @staticmethod
     def simplify_names(input_path: str, output_path: str, names_translator: t.Optional[t.Dict[str, str]] = None) -> \

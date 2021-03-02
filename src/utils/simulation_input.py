@@ -1,10 +1,13 @@
 import typing as t
 import os
+
+import re
 from pydantic import BaseModel, FilePath, DirectoryPath, Field, validator
 from .types import SequenceDataType, AlignmentMethod, TreeReconstructionMethod
 from samplers import SamplingMethod
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -12,8 +15,10 @@ class SimulationInput(BaseModel):
     simulations_output_dir: DirectoryPath  # path to write simulations to
     sequence_data_type: SequenceDataType  # the type of provided sequence data in the form of SequenceDataType
     substitution_model: str  # substitution model. will be build as a enum later
-    substitution_model_params: t.List[float]  # list of parameters for the model. ordered as it is in INDELible
-    states_frequencies: t.List[float]  # list of states frequencies
+    substitution_model_params: t.Dict[
+        t.Tuple[str, str], float]  # maps tuples of two states to the rate of substitution between them
+    states_frequencies: t.Dict[
+        str, float]  # maps state (character / triplet of characters in case of codons) to their frequencies
     tree_rooted: bool = True
     tree_random: bool = True
     tree_length: t.Optional[float] = None
@@ -73,7 +78,8 @@ class SimulationInput(BaseModel):
     exec_on_full_data: bool = (
         True  # indicates weather the program should be executed on the full dataset
     )
-    reference_data_paths: t.Optional[t.Dict[str, FilePath]] = None  # maps a program to its relevant simulated reference data
+    reference_data_paths: t.Optional[
+        t.Dict[str, FilePath]] = None  # maps a program to its relevant simulated reference data
     parallelize: bool = False  # indicator weather execution of programs on the samples should be parallelized or not
     cluster_data_dir: t.Optional[str] = None
     priority: int = (
@@ -117,3 +123,10 @@ class SimulationInput(BaseModel):
                     f"Sampling fraction {item} is invalid. A value must be between 0 and 1, excluded"
                 )
         return v
+
+    @validator("substitution_model_params", pre=True)
+    def validate_data(cls, v):
+        new_data = {}
+        for key, value in v.items():
+            new_data[tuple([re.sub("\(|\)|\s*", "", item) for item in key.split(",")])] = value
+        return new_data
