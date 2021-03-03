@@ -50,7 +50,7 @@ def sample_data(full_data: t.List[SeqIO.SeqRecord], output_dir: str, required_da
         sampled_data = sample(full_data, required_data_size)
         output_path = f"{output_dir}/sample_{i}/sequences_old_names.fasta"
         SeqIO.write(sampled_data, output_path, "fasta")
-        convert_names(translator_path=f"{output_dir}/new_to_old_names_map.pickle", records=sampled_data)
+        convert_names(translator_path=f"{output_dir}/sample_{i}/new_to_old_names_map.pickle", records=sampled_data)
         output_path = f"{output_dir}/sample_{i}/sequences_new_names.fasta"
         SeqIO.write(sampled_data, output_path, "fasta")
         samples_paths.append(output_path)
