@@ -62,7 +62,7 @@ def run_program(sequence_data_path: click.Path, sequence_data_type: SequenceData
         aux_dir=working_dir,
         additional_params=additional_params,
         parallelize=True,
-        cluster_data_dir=os.chdir(),
+        cluster_data_dir=os.chdir(os.path.dirname(alignment_path)),
         priority=0,
         queue="itaym",
         wait_until_complete=True,
