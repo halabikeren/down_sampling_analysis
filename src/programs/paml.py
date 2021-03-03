@@ -75,6 +75,11 @@ class Paml(Program):
                 self.tree_reconstruction_method,
                 self.tree_reconstruction_prams,
             )
+        # shorted file paths for paml (gives up upon receiving file paths > 120 chars)
+        shared_dir = f"{os.path.commonprefix([program_input_path, input_tree_path, program_output_path])}/"
+        program_input_path = program_input_path.replace(shared_dir, "/")
+        input_tree_path = input_tree_path.replace(shared_dir, "/")
+        program_output_path = program_output_path.replace(shared_dir, "/")
 
         self.set_control_file(
             program_input_path,
@@ -84,7 +89,7 @@ class Paml(Program):
             additional_params,
             sequence_data_type=sequence_data_type,
         )
-        return f"{self.program_exe} {control_file_path}"
+        return f"cd {shared_dir};{self.program_exe} {control_file_path}"
 
     @staticmethod
     def set_control_file(
