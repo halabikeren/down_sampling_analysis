@@ -80,12 +80,14 @@ def run_program(sequence_data_path: click.Path, sequence_data_type: SequenceData
               help="type of sequence data. options are: nucleotide, codon, amino_acid",
               type=str,
               required=True)
-@click.option("--required_input_size",
+@click.option("--required_data_size",
               help="integer of the required data size",
+              type=int,
               required=False,
               default=500)
 @click.option("--num_of_repeats",
               help="number of repeats of down sampling the data",
+              type=int,
               required=False,
               default=1)
 @click.option("--output_dir",
@@ -94,15 +96,18 @@ def run_program(sequence_data_path: click.Path, sequence_data_type: SequenceData
               required=True)
 @click.option("--additional_program_parameters",
               help="a path ot a json file with extra program parameters",
-              type=t.Optional[click.Path(exists=False, dir_okay=True)],
               default=None,
               required=False)
 @click.option("--additional_simulation_parameters",
               help="path to json file with additional simulation parameters",
-              type=t.Optional[click.Path(exists=False, dir_okay=True)],
               default=None,
               required=False)
-def prepare_data(sequence_data_path: click.Path, sequence_data_type: str, required_data_size: int, num_of_repeats: int, output_dir: click.Path, additional_program_parameters: click.Path, additional_simulation_parameters: click.Path):
+def prepare_data(sequence_data_path: click.Path,
+                 sequence_data_type: str, required_data_size: int,
+                 num_of_repeats: int,
+                 output_dir: click.Path,
+                 additional_program_parameters: t.Optional[click.Path],
+                 additional_simulation_parameters: t.Optional[click.Path]):
     """reduced the given data to a required size by randomly sampling sequences without repeats.
        can repeat the procedure multiple times to augment data"""
 
@@ -113,10 +118,10 @@ def prepare_data(sequence_data_path: click.Path, sequence_data_type: str, requir
     sampled_data_paths = sample_data(full_data=full_data, output_dir=output_dir, required_data_size=required_data_size, num_of_repeats=num_of_repeats)
     sample_to_output = dict()
     for path in sampled_data_paths:
-        if os.path.exists(additional_program_parameters):
+        if additional_program_parameters and os.path.exists(additional_program_parameters):
             with open(additional_program_parameters, "r") as input_file:
                 additional_program_parameters = json.load(input_file)
-        alignment_path, program_output_path, job_output_dir, completion_validator_path = run_program(sequence_data_path=path, paml_parameters=additional_program_parameters)
+        alignment_path, program_output_path, job_output_dir, completion_validator_path = run_program(sequence_data_path=path, additional_params=additional_program_parameters)
         sample_to_output[path] = {"alignment_path": alignment_path, "program_output_path": program_output_path, "job_output_dir": job_output_dir, "completion_validator_path": completion_validator_path}
 
     # wait for the program to finish
