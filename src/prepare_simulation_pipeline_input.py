@@ -83,7 +83,7 @@ def run_program(sequence_data_path: click.Path, sequence_data_type: SequenceData
         cluster_data_dir=os.path.dirname(alignment_path),
         priority=0,
         queue="itaym",
-        wait_until_complete=True,
+        wait_until_complete=False,
         get_completion_validator=True,
         control_file_path=f"{working_dir}/input.ctl",
         input_tree_path=f"{working_dir}/tree.nwk"
