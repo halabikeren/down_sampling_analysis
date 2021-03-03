@@ -1,6 +1,8 @@
+import logging
 import os
 import re
 import json
+import sys
 from time import sleep
 import click
 from Bio import SeqIO
@@ -102,25 +104,46 @@ def run_program(sequence_data_path: click.Path, sequence_data_type: SequenceData
               help="path to json file with additional simulation parameters",
               default=None,
               required=False)
+@click.option("--log_path",
+              help="path ot log file",
+              type=click.Path(exists=False, dir_okay=True),
+              required=True)
 def prepare_data(sequence_data_path: click.Path,
                  sequence_data_type: str, required_data_size: int,
                  num_of_repeats: int,
                  output_dir: click.Path,
                  additional_program_parameters: t.Optional[click.Path],
-                 additional_simulation_parameters: t.Optional[click.Path]):
+                 additional_simulation_parameters: t.Optional[click.Path],
+                 log_path: click.Path):
     """reduced the given data to a required size by randomly sampling sequences without repeats.
        can repeat the procedure multiple times to augment data"""
+
+    # intialize the logger
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s module: %(module)s function: %(funcName)s line: %(lineno)d %(message)s",
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(log_path),
+        ],
+    )
+    logger = logging.getLogger(__name__)
+    logger.info("Initiating simulations preparation from real data")
 
     sequence_data_type = SequenceDataType(sequence_data_type)
     os.makedirs(output_dir, exist_ok=True)
     full_data = list(SeqIO.parse(sequence_data_path, "fasta"))
+    logger.info("Data loaded successfully")
     remove_duplicates(sequence_records=full_data)
+    logger.info("Accession duplicates removed from data")
     sampled_data_paths = sample_data(full_data=full_data, output_dir=output_dir, required_data_size=required_data_size, num_of_repeats=num_of_repeats)
+    logger.info(f"{num_of_repeats} samples of size {required_data_size} generated successfully")
     sample_to_output = dict()
     for path in sampled_data_paths:
         if additional_program_parameters and os.path.exists(additional_program_parameters):
             with open(additional_program_parameters, "r") as input_file:
                 additional_program_parameters = json.load(input_file)
+        logger.info(f"executing program on sample {path}")
         alignment_path, program_output_path, job_output_dir, completion_validator_path = run_program(sequence_data_path=path, sequence_data_type=sequence_data_type, additional_params=additional_program_parameters)
         sample_to_output[path] = {"alignment_path": alignment_path, "program_output_path": program_output_path, "job_output_dir": job_output_dir, "completion_validator_path": completion_validator_path}
 
@@ -128,8 +151,10 @@ def prepare_data(sequence_data_path: click.Path,
     for path in sample_to_output:
         while not os.path.exists(sample_to_output[path]["completion_validator_path"]):
             sleep(10)
+    logger.info("execution of program on all samples is complete")
 
     # write simulations pipeline input according to the output of the program
+    logger.info(f"parsing program output ro simulation inputs")
     program_name = "paml" if sequence_data_type == SequenceDataType.CODON else "phyml"
     program_to_exec = program_to_callable[program_name]()
     for path in sample_to_output:
@@ -145,7 +170,7 @@ def prepare_data(sequence_data_path: click.Path,
         if not "ntaxa" in additional_simulation_parameters:
             additional_simulation_parameters["ntaxa"] = len(full_data)
         program_to_exec.write_output_to_simulation_pipeline_json(program_output=output, output_path=f"{os.path.dirname(path)}/simulations.json", additional_simulation_parameters=additional_simulation_parameters)
-
+        logger.info(f"parsing complete")
 
 if __name__ == '__main__':
     prepare_data()
