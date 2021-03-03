@@ -121,7 +121,7 @@ def prepare_data(sequence_data_path: click.Path,
         if additional_program_parameters and os.path.exists(additional_program_parameters):
             with open(additional_program_parameters, "r") as input_file:
                 additional_program_parameters = json.load(input_file)
-        alignment_path, program_output_path, job_output_dir, completion_validator_path = run_program(sequence_data_path=path, additional_params=additional_program_parameters)
+        alignment_path, program_output_path, job_output_dir, completion_validator_path = run_program(sequence_data_path=path, sequence_data_type=sequence_data_type, additional_params=additional_program_parameters)
         sample_to_output[path] = {"alignment_path": alignment_path, "program_output_path": program_output_path, "job_output_dir": job_output_dir, "completion_validator_path": completion_validator_path}
 
     # wait for the program to finish
