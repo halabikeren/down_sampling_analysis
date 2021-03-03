@@ -66,7 +66,7 @@ def run_program(sequence_data_path: click.Path, sequence_data_type: SequenceData
     program_name = "paml" if sequence_data_type == SequenceDataType.CODON else "phyml" # program will provide the parameters to simulate with
     # align the data
     working_dir = os.path.dirname(sequence_data_path)
-    alignment_path = f"{working_dir}/aligned_sequences.fasta"
+    alignment_path = str(sequence_data_path).replace(".fas", "_aligned.fas")
     BaseTools.align(input_path=sequence_data_path, output_path=alignment_path, sequence_data_type=sequence_data_type, alignment_method=AlignmentMethod.MAFFT)
     output_path = working_dir if program_name == "phyml" else f"{working_dir}/paml.out"
 
