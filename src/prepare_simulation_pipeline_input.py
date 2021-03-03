@@ -1,5 +1,6 @@
 import logging
 import os
+import pickle
 import re
 import json
 import sys
@@ -25,6 +26,20 @@ def remove_duplicates(sequence_records):
         else:
             sequence_records.pop(i)
 
+
+def convert_names(translator_path: str, records: t.List[SeqIO.SeqRecord]):
+    new_to_old = dict()
+    i = 1
+    for record in records:
+        old = record.description
+        new = f"S{i}"
+        i += 1
+        record.id = record.name = record.description = new
+        new_to_old[new] = old
+    with open(translator_path, "wb") as outfile:
+        pickle.dump(new_to_old, outfile)
+
+
 def sample_data(full_data: t.List[SeqIO.SeqRecord], output_dir: str, required_data_size: int, num_of_repeats: int) -> t.List[str]:
     if required_data_size > len(full_data):
         raise ValueError(f"full data size {len(full_data)} cannot be down-sampled to {required_data_size}")
@@ -33,7 +48,10 @@ def sample_data(full_data: t.List[SeqIO.SeqRecord], output_dir: str, required_da
     for i in range(1, num_of_repeats+1):
         os.makedirs(f"{output_dir}/sample_{i}/", exist_ok=True)
         sampled_data = sample(full_data, required_data_size)
-        output_path = f"{output_dir}/sample_{i}/sequences.fasta"
+        output_path = f"{output_dir}/sample_{i}/sequences_old_names.fasta"
+        SeqIO.write(sampled_data, output_path, "fasta")
+        convert_names(translator_path=f"{output_dir}/new_to_old_names_map.pickle", records=sampled_data)
+        output_path = f"{output_dir}/sample_{i}/sequences_new_names.fasta"
         SeqIO.write(sampled_data, output_path, "fasta")
         samples_paths.append(output_path)
     return samples_paths
@@ -62,7 +80,7 @@ def run_program(sequence_data_path: click.Path, sequence_data_type: SequenceData
         aux_dir=working_dir,
         additional_params=additional_params,
         parallelize=True,
-        cluster_data_dir=os.chdir(os.path.dirname(alignment_path)),
+        cluster_data_dir=os.path.dirname(alignment_path),
         priority=0,
         queue="itaym",
         wait_until_complete=True,
