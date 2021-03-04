@@ -119,7 +119,7 @@ def run_program(program_name: ProgramName, sequence_data_path: click.Path, seque
               help="directory to write the sampled data to",
               type=click.Path(exists=False, dir_okay=True),
               required=True)
-@click.option("--program",
+@click.option("--program_name",
               help="name of the program to infect simulation parameters from the provided data with",
               type=click.Choice(['paml', 'phyml', 'busted']),
               required=True)
@@ -140,7 +140,7 @@ def prepare_data(sequence_data_path: click.Path,
                  required_data_size: int,
                  num_of_repeats: int,
                  output_dir: click.Path,
-                 program: str,
+                 program_name: str,
                  additional_program_parameters: t.Optional[click.Path],
                  additional_simulation_parameters: t.Optional[click.Path],
                  log_path: click.Path):
@@ -160,7 +160,6 @@ def prepare_data(sequence_data_path: click.Path,
     logger.info("Initiating simulations preparation from real data")
 
     sequence_data_type = SequenceDataType(sequence_data_type)
-    program_name = ProgramName(program)
     os.makedirs(output_dir, exist_ok=True)
     full_data = list(SeqIO.parse(sequence_data_path, "fasta"))
     logger.info("Data loaded successfully")
