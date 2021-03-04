@@ -78,7 +78,7 @@ def run_program(program_name: ProgramName, sequence_data_path: click.Path, seque
     # create a program instance
     program_to_exec = program_to_callable[program_name]()
 
-    # run the inference program
+    # run the inference program (in the case of paml, the control file will be generated in the default directory
     completion_validator_path = program_to_exec.exec(
         input_path=alignment_path,
         output_path=output_path,
