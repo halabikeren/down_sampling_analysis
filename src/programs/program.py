@@ -129,6 +129,7 @@ class Program:
         :param get_completion_validator: boolean indicating weather a validator file should be generated upon job completion (recommended: True)
         :return: either the duration of the command in minutes, if no parallelization was selected, or the path to the touch file that is used for validation of job completion in case of parallelization
         """
+        os.chdir(os.path.dirname(input_path))
         command = self.set_command(
             input_path=input_path, output_path=output_path, additional_params=additional_params,
             parallelize=parallelize, cluster_data_dir=cluster_data_dir, **kwargs)
