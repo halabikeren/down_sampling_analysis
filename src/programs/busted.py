@@ -69,7 +69,7 @@ class Busted(Program):
             self.tree_reconstruction_prams,
         )
 
-        cmd = f"printf '1\\n5\\{program_input_path}\\n{input_tree_path}\\n' | hyphy"
+        cmd = f"printf '1\\n5\\n{program_input_path}\\n{input_tree_path}\\n' | hyphy"
         return cmd
 
     @staticmethod
