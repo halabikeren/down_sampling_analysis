@@ -61,14 +61,13 @@ class Busted(Program):
 
         if additional_params and "input_tree_path" in additional_params:
             input_tree_path = additional_params["input_tree_path"]
-        else:
-            BaseTools.build_tree(
-                input_path,
-                input_tree_path,
-                sequence_data_type,
-                self.tree_reconstruction_method,
-                self.tree_reconstruction_prams,
-            )
+        BaseTools.build_tree(
+            input_path,
+            input_tree_path,
+            sequence_data_type,
+            self.tree_reconstruction_method,
+            self.tree_reconstruction_prams,
+        )
 
         cmd = f"printf '1\\n5\\{program_input_path}\\n{input_tree_path}\\n' | hyphy"
         return cmd

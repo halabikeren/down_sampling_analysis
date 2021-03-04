@@ -67,14 +67,13 @@ class Paml(Program):
 
         if additional_params and "input_tree_path" in additional_params:
             input_tree_path = additional_params["input_tree_path"]
-        else:
-            BaseTools.build_tree(
-                input_path,
-                input_tree_path,
-                sequence_data_type,
-                self.tree_reconstruction_method,
-                self.tree_reconstruction_prams,
-            )
+        BaseTools.build_tree(
+            input_path,
+            input_tree_path,
+            sequence_data_type,
+            self.tree_reconstruction_method,
+            self.tree_reconstruction_prams,
+        )
         # shorted file paths for paml (gives up upon receiving file paths > 120 chars)
         shared_dir = os.path.commonprefix([program_input_path, input_tree_path, program_output_path, control_file_path])
         program_input_path = program_input_path.replace(shared_dir, "./").replace("//", "/")
