@@ -66,6 +66,8 @@ def run_program(program_name: ProgramName, sequence_data_path: click.Path, align
     """
     :param program_name: name of program to execute
     :param sequence_data_path: unaligned sequence data
+    :param alignment_path: path in which an alignment will be created
+    :param program_output_path: path to which the program output will be written
     :param sequence_data_type: sequence data type
     :param additional_params: additional program parameters, if needed
     :return: path to job completion validator file
@@ -200,8 +202,8 @@ def prepare_data(sequence_data_path: click.Path,
         if not output_exists(program_name=program_name, output_dir=program_output_path):
             logger.info(f"executing program on sample {path}")
             completion_validator_path = run_program(
-                program_name=program_name, sequence_data_path=path, sequence_data_type=sequence_data_type,
-                additional_params=additional_program_parameters)
+                program_name=program_name, sequence_data_path=path, alignment_path=alignment_path, sequence_data_type=sequence_data_type,
+                program_output_path=program_output_path, additional_params=additional_program_parameters)
         sample_to_output[path] = {"alignment_path": alignment_path, "program_output_path": program_output_path,
                                   "job_output_dir": os.path.dirname(sequence_data_path)}
         if completion_validator_path:
