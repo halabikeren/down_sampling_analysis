@@ -70,7 +70,7 @@ def run_program(program_name: ProgramName, sequence_data_path: click.Path, seque
 
     # align the data
     working_dir = f"{os.path.dirname(sequence_data_path)}/"
-    output_path = working_dir if program_name == "phyml" or program_name == "hyphy" else f"{working_dir}/paml.out"
+    output_path = working_dir if program_name == "phyml" or program_name == "busted" else f"{working_dir}/paml.out"
     alignment_path = str(sequence_data_path).replace(".fas", "_aligned.fas")
     completion_validator_path = None
     if not output_exists(program_name=program_name, output_dir=output_path):
@@ -104,14 +104,15 @@ def output_exists(program_name: ProgramName, output_dir) -> bool:
     :param output_dir: directory that should bol its output
     :return: boolean indicating weather output already exists or not
     """
-    if "paml.out" in output_dir and os.path.exists(output_dir):
-        return True
+    if "paml.out" in output_dir:
+        if os.path.exists(output_dir):
+            return True
+        return False
+
     for path in os.listdir(output_dir):
         if program_name == ProgramName.BUSTED and "BUSTED" in path:
             return True
         elif program_name == ProgramName.PHYML and "phyml_stats" in path:
-            return True
-        elif program_name == ProgramName.PAML and "paml.out" in path:
             return True
     return False
 
