@@ -73,7 +73,7 @@ def run_program(program_name: ProgramName, sequence_data_path: click.Path, seque
     alignment_path = str(sequence_data_path).replace(".fas", "_aligned.fas")
     BaseTools.align(input_path=sequence_data_path, output_path=alignment_path, sequence_data_type=sequence_data_type,
                     alignment_method=AlignmentMethod.MAFFT)
-    output_path = working_dir if program_name == "phyml" else f"{working_dir}/paml.out"
+    output_path = working_dir if program_name == "phyml" or program_name == "hyphy" else f"{working_dir}/paml.out"
 
     # create a program instance
     program_to_exec = program_to_callable[program_name]()
@@ -93,6 +93,15 @@ def run_program(program_name: ProgramName, sequence_data_path: click.Path, seque
     )
 
     return alignment_path, output_path, working_dir, completion_validator_path
+
+
+def output_exists(program_name, output_dir) -> bool:
+    """
+    :param program_name: name of program
+    :param output_dir: directory that should bol its output
+    :return: boolean indicating weather output already exists or not
+    """
+    pass
 
 
 @click.command()
@@ -162,11 +171,15 @@ def prepare_data(sequence_data_path: click.Path,
     os.makedirs(output_dir, exist_ok=True)
     full_data = list(SeqIO.parse(sequence_data_path, "fasta"))
     logger.info("Data loaded successfully")
-    remove_duplicates(sequence_records=full_data)
-    logger.info("Accession duplicates removed from data")
-    sampled_data_paths = sample_data(full_data=full_data, output_dir=output_dir, required_data_size=required_data_size,
-                                     num_of_repeats=num_of_repeats)
-    logger.info(f"{num_of_repeats} samples of size {required_data_size} generated successfully")
+    sampled_data_paths = os.listdir(output_dir)
+    if len(sampled_data_paths) == 0:
+        remove_duplicates(sequence_records=full_data)
+        logger.info("Accession duplicates removed from data")
+        sampled_data_paths = sample_data(full_data=full_data, output_dir=output_dir, required_data_size=required_data_size,
+                                         num_of_repeats=num_of_repeats)
+        logger.info(f"{num_of_repeats} samples of size {required_data_size} generated successfully")
+    else:
+        logger.info(f"Samples already exist in {output_dir}")
     sample_to_output = dict()
     for path in sampled_data_paths:
         if additional_program_parameters and os.path.exists(additional_program_parameters):
@@ -177,13 +190,15 @@ def prepare_data(sequence_data_path: click.Path,
             program_name=program_name, sequence_data_path=path, sequence_data_type=sequence_data_type,
             additional_params=additional_program_parameters)
         sample_to_output[path] = {"alignment_path": alignment_path, "program_output_path": program_output_path,
-                                  "job_output_dir": job_output_dir,
-                                  "completion_validator_path": completion_validator_path}
+                                  "job_output_dir": job_output_dir}
+        if completion_validator_path:
+            sample_to_output[path]["completion_validator_path"] = completion_validator_path
 
     # wait for the program to finish
     for path in sample_to_output:
-        while not os.path.exists(sample_to_output[path]["completion_validator_path"]):
-            sleep(10)
+        if "completion_validator_path" in sample_to_output[path]:
+            while not os.path.exists(sample_to_output[path]["completion_validator_path"]):
+                sleep(10)
     logger.info("execution of program on all samples is complete")
 
     # write simulations pipeline input according to the output of the program
