@@ -48,17 +48,20 @@ def sample_data(full_data: t.List[SeqIO.SeqRecord], output_dir: str, required_da
     samples_paths = []
     for i in range(1, num_of_repeats + 1):
         os.makedirs(f"{output_dir}/sample_{i}/", exist_ok=True)
-        sampled_data = sample(full_data, required_data_size)
         output_path = f"{output_dir}/sample_{i}/sequences_old_names.fasta"
-        SeqIO.write(sampled_data, output_path, "fasta")
-        convert_names(translator_path=f"{output_dir}/sample_{i}/new_to_old_names_map.pickle", records=sampled_data)
+        if not os.path.exists(output_path):
+            sampled_data = sample(full_data, required_data_size)
+            SeqIO.write(sampled_data, output_path, "fasta")
         output_path = f"{output_dir}/sample_{i}/sequences_new_names.fasta"
-        SeqIO.write(sampled_data, output_path, "fasta")
+        if not os.path.exists(output_path):
+            convert_names(translator_path=f"{output_dir}/sample_{i}/new_to_old_names_map.pickle", records=sampled_data)
+            output_path = f"{output_dir}/sample_{i}/sequences_new_names.fasta"
+            SeqIO.write(sampled_data, output_path, "fasta")
         samples_paths.append(output_path)
     return samples_paths
 
 
-def run_program(program_name: ProgramName, sequence_data_path: click.Path, sequence_data_type: SequenceDataType,
+def run_program(program_name: ProgramName, sequence_data_path: click.Path, alignment_path: str, sequence_data_type: SequenceDataType, program_output_path: str,
                 additional_params: t.Optional[t.Dict] = None) -> t.Union[str, str, str, str]:
     """
     :param program_name: name of program to execute
@@ -69,33 +72,28 @@ def run_program(program_name: ProgramName, sequence_data_path: click.Path, seque
     """
 
     # align the data
-    working_dir = f"{os.path.dirname(sequence_data_path)}/"
-    output_path = working_dir if program_name == "phyml" or program_name == "busted" else f"{working_dir}/paml.out"
-    alignment_path = str(sequence_data_path).replace(".fas", "_aligned.fas")
-    completion_validator_path = None
-    if not output_exists(program_name=program_name, output_dir=output_path):
-        BaseTools.align(input_path=sequence_data_path, output_path=alignment_path,
-                        sequence_data_type=sequence_data_type,
-                        alignment_method=AlignmentMethod.MAFFT)
+    BaseTools.align(input_path=sequence_data_path, output_path=alignment_path,
+                    sequence_data_type=sequence_data_type,
+                    alignment_method=AlignmentMethod.MAFFT)
 
-        # create a program instance
-        program_to_exec = program_to_callable[program_name]()
+    # create a program instance
+    program_to_exec = program_to_callable[program_name]()
 
-        # run the inference program (in the case of paml, the control file will be generated in the default directory
-        completion_validator_path = program_to_exec.exec(
-            input_path=alignment_path,
-            output_path=output_path,
-            aux_dir=working_dir,
-            additional_params=additional_params,
-            parallelize=True,
-            cluster_data_dir=os.path.dirname(alignment_path),
-            priority=0,
-            queue="itaym",
-            wait_until_complete=False,
-            get_completion_validator=True
-        )
+    # run the inference program (in the case of paml, the control file will be generated in the default directory
+    completion_validator_path = program_to_exec.exec(
+        input_path=alignment_path,
+        output_path=program_output_path,
+        aux_dir=f"{os.path.dirname(sequence_data_path)}/",
+        additional_params=additional_params,
+        parallelize=True,
+        cluster_data_dir=os.path.dirname(alignment_path),
+        priority=0,
+        queue="itaym",
+        wait_until_complete=False,
+        get_completion_validator=True
+    )
 
-    return alignment_path, output_path, working_dir, completion_validator_path
+    return completion_validator_path
 
 
 def output_exists(program_name: ProgramName, output_dir) -> bool:
@@ -184,27 +182,28 @@ def prepare_data(sequence_data_path: click.Path,
     os.makedirs(output_dir, exist_ok=True)
     full_data = list(SeqIO.parse(sequence_data_path, "fasta"))
     logger.info("Data loaded successfully")
-    sampled_data_paths = [f"{output_dir}/{path}" for path in os.listdir(output_dir)]
-    if len(sampled_data_paths) == 0:
-        remove_duplicates(sequence_records=full_data)
-        logger.info("Accession duplicates removed from data")
-        sampled_data_paths = sample_data(full_data=full_data, output_dir=output_dir,
-                                         required_data_size=required_data_size,
-                                         num_of_repeats=num_of_repeats)
-        logger.info(f"{num_of_repeats} samples of size {required_data_size} generated successfully")
-    else:
-        logger.info(f"Samples already exist in {output_dir}")
+    remove_duplicates(sequence_records=full_data)
+    logger.info("Accession duplicates removed from data")
+    sampled_data_paths = sample_data(full_data=full_data, output_dir=output_dir,
+                                     required_data_size=required_data_size,
+                                     num_of_repeats=num_of_repeats)
+    logger.info(f"{num_of_repeats} samples of size {required_data_size} generated successfully")
     sample_to_output = dict()
     for path in sampled_data_paths:
         if additional_program_parameters and os.path.exists(additional_program_parameters):
             with open(additional_program_parameters, "r") as input_file:
                 additional_program_parameters = json.load(input_file)
-        logger.info(f"executing program on sample {path}")
-        alignment_path, program_output_path, job_output_dir, completion_validator_path = run_program(
-            program_name=program_name, sequence_data_path=path, sequence_data_type=sequence_data_type,
-            additional_params=additional_program_parameters)
+        working_dir = f"{os.path.dirname(sequence_data_path)}/"
+        program_output_path = working_dir if program_name == "phyml" or program_name == "busted" else f"{working_dir}/paml.out"
+        alignment_path = str(sequence_data_path).replace(".fas", "_aligned.fas")
+        completion_validator_path = None
+        if not output_exists(program_name=program_name, output_dir=program_output_path):
+            logger.info(f"executing program on sample {path}")
+            completion_validator_path = run_program(
+                program_name=program_name, sequence_data_path=path, sequence_data_type=sequence_data_type,
+                additional_params=additional_program_parameters)
         sample_to_output[path] = {"alignment_path": alignment_path, "program_output_path": program_output_path,
-                                  "job_output_dir": job_output_dir}
+                                  "job_output_dir": os.path.dirname(sequence_data_path)}
         if completion_validator_path:
             sample_to_output[path]["completion_validator_path"] = completion_validator_path
 
