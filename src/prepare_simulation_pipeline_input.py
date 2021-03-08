@@ -41,7 +41,7 @@ def convert_names(translator_path: str, records: t.List[SeqIO.SeqRecord]):
 
 
 def sample_data(full_data: t.List[SeqIO.SeqRecord], output_dir: str, required_data_size: int, num_of_repeats: int) -> \
-t.List[str]:
+        t.List[str]:
     if required_data_size > len(full_data):
         raise ValueError(f"full data size {len(full_data)} cannot be down-sampled to {required_data_size}")
     os.makedirs(output_dir, exist_ok=True)
@@ -70,38 +70,49 @@ def run_program(program_name: ProgramName, sequence_data_path: click.Path, seque
 
     # align the data
     working_dir = f"{os.path.dirname(sequence_data_path)}/"
-    alignment_path = str(sequence_data_path).replace(".fas", "_aligned.fas")
-    BaseTools.align(input_path=sequence_data_path, output_path=alignment_path, sequence_data_type=sequence_data_type,
-                    alignment_method=AlignmentMethod.MAFFT)
     output_path = working_dir if program_name == "phyml" or program_name == "hyphy" else f"{working_dir}/paml.out"
+    alignment_path = str(sequence_data_path).replace(".fas", "_aligned.fas")
+    completion_validator_path = None
+    if not output_exists(program_name=program_name, output_dir=output_path):
+        BaseTools.align(input_path=sequence_data_path, output_path=alignment_path,
+                        sequence_data_type=sequence_data_type,
+                        alignment_method=AlignmentMethod.MAFFT)
 
-    # create a program instance
-    program_to_exec = program_to_callable[program_name]()
+        # create a program instance
+        program_to_exec = program_to_callable[program_name]()
 
-    # run the inference program (in the case of paml, the control file will be generated in the default directory
-    completion_validator_path = program_to_exec.exec(
-        input_path=alignment_path,
-        output_path=output_path,
-        aux_dir=working_dir,
-        additional_params=additional_params,
-        parallelize=True,
-        cluster_data_dir=os.path.dirname(alignment_path),
-        priority=0,
-        queue="itaym",
-        wait_until_complete=False,
-        get_completion_validator=True
-    )
+        # run the inference program (in the case of paml, the control file will be generated in the default directory
+        completion_validator_path = program_to_exec.exec(
+            input_path=alignment_path,
+            output_path=output_path,
+            aux_dir=working_dir,
+            additional_params=additional_params,
+            parallelize=True,
+            cluster_data_dir=os.path.dirname(alignment_path),
+            priority=0,
+            queue="itaym",
+            wait_until_complete=False,
+            get_completion_validator=True
+        )
 
     return alignment_path, output_path, working_dir, completion_validator_path
 
 
-def output_exists(program_name, output_dir) -> bool:
+def output_exists(program_name: ProgramName, output_dir) -> bool:
     """
     :param program_name: name of program
     :param output_dir: directory that should bol its output
     :return: boolean indicating weather output already exists or not
     """
-    pass
+    output_paths = os.listdir(output_dir)
+    for path in output_paths:
+        if program_name == ProgramName.BUSTED and "BUSTED" in path:
+            return True
+        elif program_name == ProgramName.PHYML and "phyml_stats" in path:
+            return True
+        elif program_name == ProgramName.PAML and "paml.out" in path:
+            return True
+    return False
 
 
 @click.command()
@@ -171,11 +182,12 @@ def prepare_data(sequence_data_path: click.Path,
     os.makedirs(output_dir, exist_ok=True)
     full_data = list(SeqIO.parse(sequence_data_path, "fasta"))
     logger.info("Data loaded successfully")
-    sampled_data_paths = os.listdir(output_dir)
+    sampled_data_paths = [f"{output_dir}/{path}" for path in os.listdir(output_dir)]
     if len(sampled_data_paths) == 0:
         remove_duplicates(sequence_records=full_data)
         logger.info("Accession duplicates removed from data")
-        sampled_data_paths = sample_data(full_data=full_data, output_dir=output_dir, required_data_size=required_data_size,
+        sampled_data_paths = sample_data(full_data=full_data, output_dir=output_dir,
+                                         required_data_size=required_data_size,
                                          num_of_repeats=num_of_repeats)
         logger.info(f"{num_of_repeats} samples of size {required_data_size} generated successfully")
     else:
