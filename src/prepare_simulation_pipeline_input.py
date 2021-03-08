@@ -104,8 +104,9 @@ def output_exists(program_name: ProgramName, output_dir) -> bool:
     :param output_dir: directory that should bol its output
     :return: boolean indicating weather output already exists or not
     """
-    output_paths = os.listdir(output_dir)
-    for path in output_paths:
+    if "paml.out" in output_dir and os.path.exists(output_dir):
+        return True
+    for path in os.listdir(output_dir):
         if program_name == ProgramName.BUSTED and "BUSTED" in path:
             return True
         elif program_name == ProgramName.PHYML and "phyml_stats" in path:
