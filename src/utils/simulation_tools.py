@@ -95,7 +95,7 @@ class SimulationTools:
             substitution_params_str += f" {k}"
         elif simulation_input.substitution_model == "": # codon model
             substitution_params_str += f"{simulation_input.substitution_model_params['kappa']}\n"
-            selection_parameters_str = " ".join([item["prop"] for item in simulation_input.substitution_model_params["selection_parameters"]][:-1]) + "\n" + " ".join([item["w"] for item in simulation_input.substitution_model_params["selection_parameters"]])
+            selection_parameters_str = " ".join([simulation_input.substitution_model_params["selection_parameters"][item]["prop"] for item in simulation_input.substitution_model_params["selection_parameters"]][:-1]) + "\n" + " ".join([simulation_input.substitution_model_params["selection_parameters"][item]["w"] for item in simulation_input.substitution_model_params["selection_parameters"]])
             substitution_params_str += selection_parameters_str
         return substitution_params_str
 
