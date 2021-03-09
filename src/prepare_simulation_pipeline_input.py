@@ -218,15 +218,15 @@ def prepare_data(sequence_data_path: click.Path,
 
     # write simulations pipeline input according to the output of the program
     logger.info(f"parsing program output ro simulation inputs")
+    if additional_simulation_parameters and os.path.exists(additional_simulation_parameters):
+        with open(additional_simulation_parameters, "r") as input_file:
+            additional_simulation_parameters = json.load(input_file)
+    else:
+        additional_simulation_parameters = dict()
     program_to_exec = program_to_callable[program_name]()
     for path in sample_to_output:
         output = program_to_exec.parse_output(output_path=sample_to_output[path]["program_output_path"],
                                               job_output_dir=sample_to_output[path]["job_output_dir"])
-        if additional_simulation_parameters and os.path.exists(additional_simulation_parameters):
-            with open(additional_simulation_parameters, "r") as input_file:
-                additional_simulation_parameters = json.load(input_file)
-        else:
-            additional_simulation_parameters = dict()
         if not "simulations_output_dir" in additional_simulation_parameters:
             additional_simulation_parameters["simulations_output_dir"] = f"{output_dir}/simulations/"
         if not "sequence_data_type" in additional_simulation_parameters:
