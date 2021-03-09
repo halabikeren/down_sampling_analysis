@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, date, time
 from decimal import Decimal
 from enum import Enum
+from pathlib import PosixPath
 from types import GeneratorType
 
 from ete3 import Tree
@@ -308,9 +309,10 @@ class BaseTools:
             return {BaseTools.jsonable_encoder(key): BaseTools.jsonable_encoder(value) for key, value in obj.items()}
         if isinstance(obj, BaseTools.SEQUENCES):
             return [BaseTools.jsonable_encoder(item) for item in obj]
-
         if isinstance(obj, BaseModel):
             return BaseTools.jsonable_encoder(obj.dict())
+        if isinstance(obj, PosixPath):
+            return str(obj)
         if isinstance(obj, Enum):
             return BaseTools.jsonable_encoder(obj.value)
         try:
