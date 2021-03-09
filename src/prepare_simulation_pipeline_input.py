@@ -98,21 +98,21 @@ def run_program(program_name: ProgramName, sequence_data_path: click.Path, align
     return completion_validator_path
 
 
-def output_exists(program_name: ProgramName, output_dir) -> bool:
+def output_exists(program_name: str, output_dir: str) -> bool:
     """
     :param program_name: name of program
     :param output_dir: directory that should bol its output
     :return: boolean indicating weather output already exists or not
     """
-    if "paml.out" in output_dir:
+    if program_name == "paml" and "paml.out" in output_dir:
         if os.path.exists(output_dir):
             return True
         return False
 
     for path in os.listdir(output_dir):
-        if program_name == ProgramName.BUSTED and "BUSTED" in path:
+        if program_name == "busted" and "BUSTED" in path:
             return True
-        elif program_name == ProgramName.PHYML and "phyml_stats" in path:
+        elif program_name == "phyml" and "phyml_stats" in path:
             return True
     return False
 
@@ -195,7 +195,7 @@ def prepare_data(sequence_data_path: click.Path,
         if additional_program_parameters and os.path.exists(additional_program_parameters):
             with open(additional_program_parameters, "r") as input_file:
                 additional_program_parameters = json.load(input_file)
-        working_dir = f"{os.path.dirname(sequence_data_path)}/"
+        working_dir = f"{os.path.dirname(path)}/"
         program_output_path = working_dir if program_name == "phyml" or program_name == "busted" else f"{working_dir}/paml.out"
         alignment_path = str(sequence_data_path).replace(".fas", "_aligned.fas")
         completion_validator_path = None
@@ -222,7 +222,10 @@ def prepare_data(sequence_data_path: click.Path,
     for path in sample_to_output:
         output = program_to_exec.parse_output(output_path=sample_to_output[path]["program_output_path"],
                                               job_output_dir=sample_to_output[path]["job_output_dir"])
-        if not additional_simulation_parameters:
+        if additional_simulation_parameters and os.path.exists(additional_simulation_parameters):
+            with open(additional_simulation_parameters, "r") as input_file:
+                additional_simulation_parameters = json.load(input_file)
+        else:
             additional_simulation_parameters = dict()
         if not "simulations_output_dir" in additional_simulation_parameters:
             additional_simulation_parameters["simulations_output_dir"] = f"{output_dir}/simulations/"
@@ -230,7 +233,7 @@ def prepare_data(sequence_data_path: click.Path,
             additional_simulation_parameters["sequence_data_type"] = sequence_data_type
         if not "seq_len" in additional_simulation_parameters:
             additional_simulation_parameters["seq_len"] = len(
-                list(SeqIO.parse(sample_to_output[path]["alignment_path"])[0]))
+                list(SeqIO.parse(sample_to_output[path]["alignment_path"])[0], "fasta"))
         if not "ntaxa" in additional_simulation_parameters:
             additional_simulation_parameters["ntaxa"] = len(full_data)
         program_to_exec.write_output_to_simulation_pipeline_json(program_output=output,

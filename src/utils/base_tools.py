@@ -2,11 +2,19 @@ import subprocess
 import typing as t
 from copy import deepcopy
 from dataclasses import dataclass
+from datetime import datetime, timedelta, date, time
+from decimal import Decimal
+from enum import Enum
+from types import GeneratorType
+
 from ete3 import Tree
 import os
 from Bio import SeqIO
 from Bio.Seq import Seq
 from dotenv import load_dotenv, find_dotenv
+from pydantic import BaseModel
+from pydantic.json import isoformat
+
 from .types import SequenceDataType, AlignmentMethod, TreeReconstructionMethod
 
 load_dotenv(find_dotenv())
@@ -18,6 +26,19 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class BaseTools:
+    JSONABLE_OK = (str, int, float, type(None))
+    SEQUENCES = (list, set, frozenset, GeneratorType, tuple)
+    ENCODERS_BY_TYPE = {
+        datetime: isoformat,
+        date: isoformat,
+        time: isoformat,
+        timedelta: lambda td: td.total_seconds(),
+        set: list,
+        frozenset: list,
+        GeneratorType: list,
+        bytes: lambda o: o.decode(),
+        Decimal: float,
+    }
 
     @staticmethod
     def scale_tree(tree: Tree, required_size: float):
@@ -278,3 +299,23 @@ class BaseTools:
                 )
             os.rename(f"{aux_dir}RAxML_bestTree.out", output_path)
             os.remove(aux_dir)
+
+    @staticmethod
+    def jsonable_encoder(obj):
+        if isinstance(obj, BaseTools.JSONABLE_OK):
+            return obj
+        if isinstance(obj, dict):
+            return {BaseTools.jsonable_encoder(key): BaseTools.jsonable_encoder(value) for key, value in obj.items()}
+        if isinstance(obj, BaseTools.SEQUENCES):
+            return [BaseTools.jsonable_encoder(item) for item in obj]
+
+        if isinstance(obj, BaseModel):
+            return BaseTools.jsonable_encoder(obj.dict())
+        if isinstance(obj, Enum):
+            return BaseTools.jsonable_encoder(obj.value)
+        try:
+            encoder = BaseTools.ENCODERS_BY_TYPE[type(obj)]
+        except KeyError:
+            raise TypeError(f"Object of type '{obj.__class__.__name__}' is not serializable")
+        else:
+            return encoder(obj)

@@ -5,7 +5,7 @@ import os
 import re
 import pandas as pd
 from .program import Program
-from utils import SequenceDataType, SimulationInput
+from utils import SequenceDataType, SimulationInput, BaseTools
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
@@ -155,6 +155,6 @@ class PhyML(Program):
                                              "pinv": 0,
                                              "ngamcat": len(program_output["relative_rates"].keys())})
         simulation_input_parameters.update(additional_simulation_parameters)
-        simulation_input = SimulationInput(**simulation_input_parameters)
+        simulation_input = BaseTools.jsonable_encoder(SimulationInput(**simulation_input_parameters))
         with open(output_path, "w") as output_file:
             json.dump(output_file, simulation_input)

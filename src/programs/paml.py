@@ -290,6 +290,6 @@ class Paml(Program):
                                        "alpha": 0,
                                        "ngamcat": 0}
         simulation_input_parameters.update(additional_simulation_parameters)
-        simulation_input = SimulationInput(**simulation_input_parameters)
+        simulation_input = BaseTools.jsonable_encoder(SimulationInput(**simulation_input_parameters))
         with open(output_path, "w") as output_file:
             json.dump(output_file, simulation_input)

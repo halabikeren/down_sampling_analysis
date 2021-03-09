@@ -91,12 +91,13 @@ class Busted(Program):
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         branch_lengths_data = inference_results["branch attributes"]["0"]
         tree_str = inference_results["input"]["trees"]["0"]
-        tree = Tree(tree_str, format=0)
+        tree = Tree(f"{tree_str};",format=1)
         tree_length = 0
         for node in tree.traverse():
-            required_branch_length = branch_lengths_data[node.name][by_model]
-            node.dist = required_branch_length
-            tree_length += required_branch_length
+            if node.name != "":
+                required_branch_length = branch_lengths_data[node.name][by_model]
+                node.dist = required_branch_length
+                tree_length += required_branch_length
         inference_results["tree_length"] = tree_length
         tree.write(outfile=output_path, format=5)
 
@@ -113,8 +114,8 @@ class Busted(Program):
             results = json.load(json_file)
         codon_freq_vector = results["fits"]["MG94xREV with separate rates for branch sets"]["Equilibrium frequencies"]
         nuc = ["A", "C", "G", "T"]
-        stop_codons = ["UAG", "UAA", "UGA"]
-        codon_hyphy_order = [f"{i}{j}{k}" for i in nuc for j in nuc for k in nuc if not f"{i}{j}{k}" in stop_codons]
+        stop_codons = ["TAG", "TAA", "TGA"]
+        codon_hyphy_order = [f"{i}{j}{k}" for i in nuc for j in nuc for k in nuc if f"{i}{j}{k}" not in stop_codons]
         results["fits"]["MG94xREV with separate rates for branch sets"]["Equilibrium frequencies"] = {codon_hyphy_order[i]: codon_freq_vector[i][0] for i in range(len(codon_hyphy_order))}
         for stop_codon in stop_codons:
             results["fits"]["MG94xREV with separate rates for branch sets"]["Equilibrium frequencies"][stop_codon] = 0
@@ -145,7 +146,7 @@ class Busted(Program):
                                        "alpha": 0,
                                        "ngamcat": 0}
         simulation_input_parameters.update(additional_simulation_parameters)
-        simulation_input = SimulationInput(**simulation_input_parameters)
+        simulation_input = BaseTools.jsonable_encoder(SimulationInput(**simulation_input_parameters))
         with open(output_path, "w") as output_file:
             json.dump(output_file, simulation_input)
 

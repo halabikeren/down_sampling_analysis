@@ -16,7 +16,7 @@ class SimulationInput(BaseModel):
     sequence_data_type: SequenceDataType  # the type of provided sequence data in the form of SequenceDataType
     substitution_model: str  # substitution model. will be build as a enum later
     substitution_model_params: t.Dict[
-        t.Tuple[str, str], float]  # maps tuples of two states to the rate of substitution between them
+        t.Any, float]  # maps tuples of two states to the rate of substitution between them
     states_frequencies: t.Dict[
         str, float]  # maps state (character / triplet of characters in case of codons) to their frequencies
     tree_rooted: bool = True
@@ -128,5 +128,6 @@ class SimulationInput(BaseModel):
     def validate_data(cls, v):
         new_data = {}
         for key, value in v.items():
-            new_data[tuple([re.sub("\(|\)|\s*", "", item) for item in key.split(",")])] = value
+            if "," in key:
+                new_data[tuple([re.sub("\(|\)|\s*", "", item) for item in key.split(",")])] = value
         return new_data
