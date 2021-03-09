@@ -313,6 +313,8 @@ class BaseTools:
             return BaseTools.jsonable_encoder(obj.dict())
         if isinstance(obj, PosixPath):
             return str(obj)
+        if isinstance(obj, bool):
+            return int(obj)
         if isinstance(obj, Enum):
             return BaseTools.jsonable_encoder(obj.value)
         try:
