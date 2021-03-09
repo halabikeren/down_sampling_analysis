@@ -191,28 +191,28 @@ def prepare_data(sequence_data_path: click.Path,
                                      num_of_repeats=num_of_repeats)
     logger.info(f"{num_of_repeats} samples of size {required_data_size} generated successfully")
     sample_to_output = dict()
-    for path in sampled_data_paths:
+    for input_path in sampled_data_paths:
         if additional_program_parameters and os.path.exists(additional_program_parameters):
             with open(additional_program_parameters, "r") as input_file:
                 additional_program_parameters = json.load(input_file)
-        working_dir = f"{os.path.dirname(path)}/"
+        working_dir = f"{os.path.dirname(input_path)}/"
         program_output_path = working_dir if program_name == "phyml" or program_name == "busted" else f"{working_dir}/paml.out"
         alignment_path = str(sequence_data_path).replace(".fas", "_aligned.fas")
         completion_validator_path = None
         if not output_exists(program_name=program_name, output_dir=program_output_path):
-            logger.info(f"executing program on sample {path}")
+            logger.info(f"executing program on sample {input_path}")
             completion_validator_path = run_program(
-                program_name=program_name, sequence_data_path=path, alignment_path=alignment_path, sequence_data_type=sequence_data_type,
+                program_name=program_name, sequence_data_path=input_path, alignment_path=alignment_path, sequence_data_type=sequence_data_type,
                 program_output_path=program_output_path, additional_params=additional_program_parameters)
-        sample_to_output[path] = {"alignment_path": alignment_path, "program_output_path": program_output_path,
+        sample_to_output[input_path] = {"alignment_path": alignment_path, "program_output_path": program_output_path,
                                   "job_output_dir": os.path.dirname(sequence_data_path)}
         if completion_validator_path:
-            sample_to_output[path]["completion_validator_path"] = completion_validator_path
+            sample_to_output[input_path]["completion_validator_path"] = completion_validator_path
 
     # wait for the program to finish
-    for path in sample_to_output:
-        if "completion_validator_path" in sample_to_output[path]:
-            while not os.path.exists(sample_to_output[path]["completion_validator_path"]):
+    for input_path in sample_to_output:
+        if "completion_validator_path" in sample_to_output[input_path]:
+            while not os.path.exists(sample_to_output[input_path]["completion_validator_path"]):
                 sleep(10)
     logger.info("execution of program on all samples is complete")
 
@@ -224,21 +224,21 @@ def prepare_data(sequence_data_path: click.Path,
     else:
         additional_simulation_parameters = dict()
     program_to_exec = program_to_callable[program_name]()
-    for path in sample_to_output:
-        output = program_to_exec.parse_output(output_path=sample_to_output[path]["program_output_path"],
-                                              job_output_dir=sample_to_output[path]["job_output_dir"])
+    for input_path in sample_to_output:
+        output = program_to_exec.parse_output(output_path=sample_to_output[input_path]["program_output_path"],
+                                              job_output_dir=sample_to_output[input_path]["job_output_dir"])
         if not "simulations_output_dir" in additional_simulation_parameters:
-            additional_simulation_parameters["simulations_output_dir"] = f"{os.path.dirname(path)}/simulations/"
+            additional_simulation_parameters["simulations_output_dir"] = f"{os.path.dirname(input_path)}/simulations/"
         os.makedirs(additional_simulation_parameters["simulations_output_dir"], exist_ok=True)
         if not "sequence_data_type" in additional_simulation_parameters:
             additional_simulation_parameters["sequence_data_type"] = sequence_data_type
         if not "seq_len" in additional_simulation_parameters:
             additional_simulation_parameters["seq_len"] = len(
-                list(SeqIO.parse(sample_to_output[path]["alignment_path"], "fasta"))[0].seq)
+                list(SeqIO.parse(sample_to_output[input_path]["alignment_path"], "fasta"))[0].seq)
         if not "ntaxa" in additional_simulation_parameters:
             additional_simulation_parameters["ntaxa"] = len(full_data)
         program_to_exec.write_output_to_simulation_pipeline_json(program_output=output,
-                                                                 output_path=f"{os.path.dirname(path)}/simulations.json",
+                                                                 output_path=f"{os.path.dirname(input_path)}/simulations.json",
                                                                  additional_simulation_parameters=additional_simulation_parameters)
         logger.info(f"parsing complete")
 
