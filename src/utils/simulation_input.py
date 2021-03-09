@@ -16,7 +16,7 @@ class SimulationInput(BaseModel):
     sequence_data_type: SequenceDataType  # the type of provided sequence data in the form of SequenceDataType
     substitution_model: str  # substitution model. will be build as a enum later
     substitution_model_params: t.Dict[
-        t.Any, float]  # maps tuples of two states to the rate of substitution between them
+        t.Any, t.Any]  # maps tuples of two states to the rate of substitution between them
     states_frequencies: t.Dict[
         str, float]  # maps state (character / triplet of characters in case of codons) to their frequencies
     tree_rooted: bool = True
@@ -130,4 +130,6 @@ class SimulationInput(BaseModel):
         for key, value in v.items():
             if "," in key:
                 new_data[tuple([re.sub("\(|\)|\s*", "", item) for item in key.split(",")])] = value
+            else:
+                new_data[key] = value
         return new_data
