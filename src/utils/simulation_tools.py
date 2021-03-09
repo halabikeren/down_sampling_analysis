@@ -93,9 +93,10 @@ class SimulationTools:
             a = SimulationTools.get_substitution_parameter(state_1="T", state_2="C", parameters=simulation_input.substitution_model_params)
             k = a * (simulation_input.states_frequencies["T"]+simulation_input.states_frequencies["C"]) - 1
             substitution_params_str += f" {k}"
-        elif simulation_input.substitution_model == "": # codon model
+        elif simulation_input.substitution_model == "":  # codon model
             substitution_params_str += f"{simulation_input.substitution_model_params['kappa']}\n"
-            selection_parameters_str = " ".join([simulation_input.substitution_model_params["selection_parameters"][item]["prop"] for item in simulation_input.substitution_model_params["selection_parameters"]][:-1]) + "\n" + " ".join([simulation_input.substitution_model_params["selection_parameters"][item]["w"] for item in simulation_input.substitution_model_params["selection_parameters"]])
+            ncat = len(simulation_input.substitution_model_params["selection_parameters"].keys())
+            selection_parameters_str = " ".join([simulation_input.substitution_model_params["selection_parameters"][str(cat)]["prop"] for cat in range(ncat-1)]) + "\n" + " ".join([simulation_input.substitution_model_params["selection_parameters"][str(cat)]["w"] for cat in range(ncat)])
             substitution_params_str += selection_parameters_str
         return substitution_params_str
 
