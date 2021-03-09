@@ -151,6 +151,7 @@ class SimulationTools:
         """
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         SimulationTools.check_model_legality(simulation_input)
+        rates_str = f"[rates]     {simulation_input.pinv} {simulation_input.alpha} {simulation_input.ngamcat}" if simulation_input.sequence_data_type != SequenceDataType.CODON else ""
         control_content = f"""[TYPE] {'NUCLEOTIDE' if simulation_input.sequence_data_type == SequenceDataType.NUC else ('CODON' if simulation_input.sequence_data_type == SequenceDataType.CODON else 'AMINOACID')} 1
                                         [SETTINGS]
                                             [ancestralprint]    NEW
@@ -162,7 +163,7 @@ class SimulationTools:
                                         [MODEL]    model
                                           [submodel]  {simulation_input.substitution_model} {SimulationTools.parse_simulation_substitution_parameters(simulation_input=simulation_input)}
                                           [statefreq] {SimulationTools.parse_states_frequencies(simulation_input=simulation_input)}
-                                          [rates]     {simulation_input.pinv} {simulation_input.alpha} {simulation_input.ngamcat}
+                                          {rates_str}
 
                                         [TREE] tree {SimulationTools.parse_simulation_tree(simulation_input=simulation_input)}
 
