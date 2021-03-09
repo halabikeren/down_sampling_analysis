@@ -156,5 +156,6 @@ class PhyML(Program):
                                              "ngamcat": len(program_output["relative_rates"].keys())})
         simulation_input_parameters.update(additional_simulation_parameters)
         simulation_input = BaseTools.jsonable_encoder(SimulationInput(**simulation_input_parameters))
+        clean_simulation_input = {k: v for k, v in simulation_input.items() if v is not None}
         with open(output_path, "w") as output_file:
             json.dump(output_file, simulation_input)
