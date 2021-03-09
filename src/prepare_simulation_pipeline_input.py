@@ -228,7 +228,7 @@ def prepare_data(sequence_data_path: click.Path,
         output = program_to_exec.parse_output(output_path=sample_to_output[path]["program_output_path"],
                                               job_output_dir=sample_to_output[path]["job_output_dir"])
         if not "simulations_output_dir" in additional_simulation_parameters:
-            additional_simulation_parameters["simulations_output_dir"] = f"{output_dir}/simulations/"
+            additional_simulation_parameters["simulations_output_dir"] = f"{os.path.dirname(path)}/simulations/"
         if not "sequence_data_type" in additional_simulation_parameters:
             additional_simulation_parameters["sequence_data_type"] = sequence_data_type
         if not "seq_len" in additional_simulation_parameters:
