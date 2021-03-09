@@ -233,7 +233,7 @@ def prepare_data(sequence_data_path: click.Path,
             additional_simulation_parameters["sequence_data_type"] = sequence_data_type
         if not "seq_len" in additional_simulation_parameters:
             additional_simulation_parameters["seq_len"] = len(
-                list(SeqIO.parse(sample_to_output[path]["alignment_path"], "fasta")[0].seq))
+                list(SeqIO.parse(sample_to_output[path]["alignment_path"], "fasta"))[0].seq)
         if not "ntaxa" in additional_simulation_parameters:
             additional_simulation_parameters["ntaxa"] = len(full_data)
         program_to_exec.write_output_to_simulation_pipeline_json(program_output=output,
