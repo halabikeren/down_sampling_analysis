@@ -373,9 +373,7 @@ class Pipeline:
                         priority=pipeline_input.priority,
                         queue=pipeline_input.queue,
                         wait_until_complete=False,
-                        get_completion_validator=True,
-                        control_file_path=f"{full_data_program_aux_dir}/input.ctl",
-                        input_tree_path=f"{full_data_program_aux_dir}/tree.nwk"
+                        get_completion_validator=True
                     )
                     completion_validators.append(completion_validator_path)
                 else:
@@ -384,8 +382,6 @@ class Pipeline:
                         output_path=output_path,
                         aux_dir=full_data_program_aux_dir,
                         additional_params=full_data_program_params,
-                        control_file_path=f"{full_data_program_aux_dir}/input.ctl",
-                        input_tree_path=f"{full_data_program_aux_dir}/tree.nwk"
                     )
 
             # execute program on each sample
