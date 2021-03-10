@@ -34,7 +34,7 @@ class Busted(Program):
         cluster_data_dir: str,
         sequence_data_type: SequenceDataType = SequenceDataType.CODON,
         input_tree_path: str = f"{os.getcwd()}/hyphy_tree.nwk"
-    ) -> str:
+    ) -> t.List[str]:
         """
           :param input_path: path to the input of the program
           :param output_path: path to the output of the program
@@ -70,7 +70,7 @@ class Busted(Program):
         )
 
         cmd = f"printf '1\\n5\\n{program_input_path}\\n{input_tree_path}\\n' | hyphy"
-        return cmd
+        return [cmd]
 
     @staticmethod
     def parse_reference_data(input_path: str) -> t.Dict[str, t.Any]:

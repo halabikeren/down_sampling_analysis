@@ -8,8 +8,6 @@ class TestPAML(unittest.TestCase):
     input_path = f"/data/test/codon_aligned_seq_data.fas"
     output_path = "/data/test/paml.out"
     aux_dir = "/data/test/paml_aux/"
-    tree_path = "/data/test/paml_tree.nwk"
-    control_filepath = "/data/test/paml.ctl"
 
     def test_creation(self):
         prog = Paml()
@@ -21,8 +19,6 @@ class TestPAML(unittest.TestCase):
             output_path=self.output_path,
             aux_dir=self.aux_dir,
             additional_params={"NSsites": "3"},
-            input_tree_path=self.tree_path,
-            control_file_path=self.control_filepath
         )
         self.assertTrue(os.path.exists(self.output_path))
 
@@ -33,8 +29,6 @@ class TestPAML(unittest.TestCase):
             output_path=self.output_path,
             aux_dir=self.aux_dir,
             additional_params={"NSsites": "3"},
-            input_tree_path=self.tree_path,
-            control_file_path=self.control_filepath
         )
         result = prog.parse_output(self.output_path)
         neb_positive_selection_analysis = pd.DataFrame.from_dict(result["NEB_positive_selection_analysis"])

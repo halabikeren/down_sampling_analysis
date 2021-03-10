@@ -36,7 +36,7 @@ class PhyML(Program):
             cluster_data_dir: str,
             sequence_data_type: SequenceDataType,
             output_dir: str
-    ) -> str:
+    ) -> t.List[str]:
         """
         :param input_path: path to the input of the program
         :param output_path: path to the output of the program
@@ -55,7 +55,7 @@ class PhyML(Program):
         program_output_dir = output_dir if not parallelize else output_dir.replace(os.environ["container_data_dir"],
                                                                                    cluster_data_dir)
         default_model = "WAG" if sequence_data_type == SequenceDataType.AA else "GTR"
-        cmd = f"cd {program_output_dir}\nphyml {self.input_param_name} {program_input_path} -d {'aa' if sequence_data_type == SequenceDataType.AA else 'nt'} -m {additional_params['model'] if 'model' in additional_params else default_model} -c {additional_params['ncat'] if 'ncat' in additional_params else 16}"
+        cmd = [f"cd {program_output_dir}", f"phyml {self.input_param_name} {program_input_path} -d {'aa' if sequence_data_type == SequenceDataType.AA else 'nt'} -m {additional_params['model'] if 'model' in additional_params else default_model} -c {additional_params['ncat'] if 'ncat' in additional_params else 16}"]
         return cmd
 
     @staticmethod

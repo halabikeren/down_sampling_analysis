@@ -39,7 +39,7 @@ class Paml(Program):
         sequence_data_type: SequenceDataType = SequenceDataType.CODON,
         control_file_path: str = f"{os.getcwd()}/paml.ctl",
         input_tree_path: str = f"{os.getcwd()}/paml_tree.nwk"
-    ) -> str:
+    ) -> t.List[str]:
         """
         :param input_path: path to the input of the program
         :param output_path: path to the output of the program
@@ -49,7 +49,7 @@ class Paml(Program):
         :param sequence_data_type: indicates the type of
         :param control_file_path: path in which a control file will be generated
         :param input_tree_path: path in which the input tree for paml will be generated
-        :return: a string representing the command
+        :return: a list of strings representing the command
         """
         program_input_path = (
             input_path
@@ -89,7 +89,7 @@ class Paml(Program):
             sequence_data_type=sequence_data_type,
         )
         control_file_path = control_file_path.replace(shared_dir, "./").replace("//", "/")
-        return f"cd {shared_dir}\n{self.program_exe} {control_file_path}"
+        return [f"cd {shared_dir}", f"{self.program_exe} {control_file_path}"]
 
     @staticmethod
     def set_control_file(

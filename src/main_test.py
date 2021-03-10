@@ -4,6 +4,7 @@ from tests import TestPDA, TestCDHIT, TestRate4ite, TestRandom, TestPAML, TestPi
 
 TESTS = [TestCDHIT, TestPDA, TestRandom, TestRate4ite, TestPAML, TestPipeline, TestSimulationPipeline]
 
+
 suite = unittest.TestSuite()
 loader = unittest.TestLoader()
 for test in TESTS:

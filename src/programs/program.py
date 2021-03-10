@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from time import time
 import pandas as pd
+
 from utils import Job
 import json
 
@@ -72,7 +73,7 @@ class Program:
             parallelize: bool,
             cluster_data_dir: str,
             **kwargs,
-    ) -> str:
+    ) -> t.List[str]:
         """
         :param input_path: path to the input of the program
         :param output_path: path to the output of the program
@@ -100,7 +101,7 @@ class Program:
         else:
             additional_params_str = ""
         command = f"{self.program_exe if not parallelize else self.cluster_program_exe} {input_str} {output_str} {additional_params_str} "
-        return command
+        return [command]
 
     def exec(
             self,
@@ -114,7 +115,6 @@ class Program:
             queue: str = "itaym",
             wait_until_complete: bool = False,
             get_completion_validator: bool = True,
-            **kwargs
     ) -> t.Union[float, str]:
         """
         :param input_path: path to alignment file
@@ -129,10 +129,16 @@ class Program:
         :param get_completion_validator: boolean indicating weather a validator file should be generated upon job completion (recommended: True)
         :return: either the duration of the command in minutes, if no parallelization was selected, or the path to the touch file that is used for validation of job completion in case of parallelization
         """
-        os.chdir(os.path.dirname(input_path))
+        additional_args = dict()
+        from .paml import Paml
+        from .busted import Busted
+        if type(self) in [Paml, Busted]:
+            additional_args["input_tree_path"] = f"{os.path.dirname(input_path)}/prog_tree.nwk"
+        if type(self) is Paml:
+            additional_args["control_file_path"] = f"{os.path.dirname(input_path)}/paml.ctl"
         command = self.set_command(
             input_path=input_path, output_path=output_path, additional_params=additional_params,
-            parallelize=parallelize, cluster_data_dir=cluster_data_dir, **kwargs)
+            parallelize=parallelize, cluster_data_dir=cluster_data_dir, **additional_args)
         os.makedirs(aux_dir, exist_ok=True)
 
         if os.path.exists(output_path):
@@ -141,13 +147,18 @@ class Program:
 
         if not parallelize:
             start_time = time()
-            os.chdir(aux_dir)  # move to aux dir as rate4site generates extra files in current running directory
-            res = os.system(f"{command} > /dev/null 2>&1")  # for some reason, rate4 prints some logs into the stderr,
-            # making the typical test (raise error i=f stderr > 0) invalid in this case
-            if res != 0:
-                raise RuntimeError(
-                    f"command {command} failed to execute."
-                )
+            if type(self) is not Paml:
+                os.chdir(aux_dir)  # move to aux dir as rate4site generates extra files in current running directory
+            for cmd in command:
+                if "cd " in cmd:
+                    os.chdir(cmd.replace("cd ", ""))
+                else:
+                    res = os.system(f"{cmd} > /dev/null 2>&1")  # for some reason, rate4 prints some logs into the stderr,
+                    # making the typical test (raise error i=f stderr > 0) invalid in this case
+                    if res != 0:
+                        raise RuntimeError(
+                            f"command {cmd} failed to execute."
+                        )
             end_time = time()
             return (end_time - start_time) / 60
         else:
@@ -156,10 +167,7 @@ class Program:
                 '''timestamp() {
                       date +"%T" # current time
                     }
-                    timestamp''',
-                command,
-                'timestamp',
-            ]
+                    timestamp'''] + command + ['timestamp']
 
             job = Job(
                 name=self.name,
