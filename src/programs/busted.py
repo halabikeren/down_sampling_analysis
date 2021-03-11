@@ -55,6 +55,7 @@ class Busted(Program):
             if not parallelize
             else output_path.replace(os.environ["container_data_dir"], cluster_data_dir)
         )
+        program_output_path = program_output_path if os.path.isdir(program_output_path) else os.path.dirname(program_output_path)
         self.set_additional_params(
             additional_params, parallelize, cluster_data_dir, return_as_str=False
         )
@@ -70,7 +71,7 @@ class Busted(Program):
         )
 
         cmd = f"printf '1\\n5\\n{program_input_path}\\n{input_tree_path}\\n' | hyphy"
-        return [cmd]
+        return [cmd, f"mv {program_input_path}.BUSTED.json {program_output_path}"]
 
     @staticmethod
     def parse_reference_data(input_path: str) -> t.Dict[str, t.Any]:
@@ -109,6 +110,7 @@ class Busted(Program):
         :param job_output_dir: path from which the job was submitted
         :return:
         """
+        output_dir = output_path if os.path.isdir(output_path) else os.path.dirname(output_path)
         output_path = [f"{output_path}/{path}" for path in os.listdir(output_path) if "BUSTED" in path][0]
         with open(output_path, "r") as json_file:
             results = json.load(json_file)
