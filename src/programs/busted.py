@@ -92,7 +92,7 @@ class Busted(Program):
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         branch_lengths_data = inference_results["branch attributes"]["0"]
         tree_str = inference_results["input"]["trees"]["0"]
-        tree = Tree(f"{tree_str};",format=1)
+        tree = Tree(f"{tree_str};", format=1)
         tree_length = 0
         for node in tree.traverse():
             if node.name != "":

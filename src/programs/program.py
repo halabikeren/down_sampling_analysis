@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from time import time
 import pandas as pd
+import re
 
 from utils import Job
 import json
@@ -133,9 +134,9 @@ class Program:
         from .paml import Paml
         from .busted import Busted
         if type(self) in [Paml, Busted]:
-            additional_args["input_tree_path"] = input_path.replace(".fasta", "_tree.nwk")
+            additional_args["input_tree_path"] = re.sub("\.fas(.*?)", "_tree.nwk", input_path)
         if type(self) is Paml:
-            additional_args["control_file_path"] = input_path.replace(".fasta", "_paml.ctl")
+            additional_args["control_file_path"] = re.sub("\.fas(.*?)", "_paml.ctl", input_path)
         command = self.set_command(
             input_path=input_path, output_path=output_path, additional_params=additional_params,
             parallelize=parallelize, cluster_data_dir=cluster_data_dir, **additional_args)
