@@ -133,9 +133,9 @@ class Program:
         from .paml import Paml
         from .busted import Busted
         if type(self) in [Paml, Busted]:
-            additional_args["input_tree_path"] = f"{os.path.dirname(input_path)}/prog_tree.nwk"
+            additional_args["input_tree_path"] = input_path.replace(".fasta", "_tree.nwk")
         if type(self) is Paml:
-            additional_args["control_file_path"] = f"{os.path.dirname(input_path)}/paml.ctl"
+            additional_args["control_file_path"] = input_path.replace(".fasta", "_paml.ctl")
         command = self.set_command(
             input_path=input_path, output_path=output_path, additional_params=additional_params,
             parallelize=parallelize, cluster_data_dir=cluster_data_dir, **additional_args)
