@@ -206,9 +206,10 @@ class SimulationTools:
                     simulation_tree = Tree(tree_file.read())
                 simulation_tree.write(outfile=tree_path, format=1)
             pipeline_json_input["tree_path"] = tree_path
-        pipeline_json_input["reference_data_paths"] = {"rate4site": f"{os.getcwd()}/seq_data_RATES.txt",
-                                                       "paml": f"{os.getcwd()}/seq_data_RATES.txt",
-                                                       "fastml": f"{os.getcwd()}/seq_data_ANCESTRAL_1.fasta"}
+        from programs import ProgramName
+        pipeline_json_input["reference_data_paths"] = {ProgramName.RATE4SITE.value: f"{os.getcwd()}/seq_data_RATES.txt",
+                                                       ProgramName.BUSTED.value: f"{os.getcwd()}/seq_data_RATES.txt"}
+                                                       # "fastml": f"{os.getcwd()}/seq_data_ANCESTRAL_1.fasta"}
         with open(output_path, "w") as json_file:
             json.dump(pipeline_json_input, json_file)
 
