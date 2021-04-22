@@ -225,8 +225,8 @@ def exec_pipeline_on_simulations(input_path: click.Path):
             except Exception as e:
                 logger.error(f"Failed to load dataframe from {df_path} due to error {e}")
         full_df = pd.concat(data)
-        full_df["full_bias"] = full_df["full_result"] - full_df["result"]
-        full_df["simulated_bias"] = full_df["simulated"] - full_df["result"]
+        full_df["full_bias"] = full_df["result"] - full_df["full_result"]
+        full_df["simulated_bias"] = full_df["result"] - full_df["simulated"]
         full_df_grouped = full_df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index()
         full_df_grouped.to_csv(f"{simulation_params['simulations_output_dir']}/{program}_aggregated_data.csv")
 
