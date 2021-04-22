@@ -110,8 +110,6 @@ class Busted(Program):
         :param job_output_dir: path from which the job was submitted
         :return:
         """
-        output_dir = output_path if os.path.isdir(output_path) else os.path.dirname(output_path)
-        output_path = [f"{output_path}/{path}" for path in os.listdir(output_path) if "BUSTED" in path][0]
         with open(output_path, "r") as json_file:
             results = json.load(json_file)
         codon_freq_vector = results["fits"]["MG94xREV with separate rates for branch sets"]["Equilibrium frequencies"]
