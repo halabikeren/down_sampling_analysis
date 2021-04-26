@@ -208,7 +208,7 @@ class SimulationTools:
             pipeline_json_input["tree_path"] = tree_path
         from programs import ProgramName
         pipeline_json_input["reference_data_paths"] = {ProgramName.RATE4SITE.value: f"{os.getcwd()}/seq_data_RATES.txt",
-                                                       ProgramName.BUSTED.value: f"{os.getcwd()}/seq_data_RATES.txt"}
+                                                       ProgramName.BUSTED.value: f"{os.getcwd()}/control.txt"}
                                                        # "fastml": f"{os.getcwd()}/seq_data_ANCESTRAL_1.fasta"}
         with open(output_path, "w") as json_file:
             json.dump(pipeline_json_input, json_file)
