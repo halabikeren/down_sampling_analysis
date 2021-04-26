@@ -186,10 +186,13 @@ def prepare_data(sequence_data_path: click.Path,
     logger.info("Data loaded successfully")
     remove_duplicates(sequence_records=full_data)
     logger.info("Accession duplicates removed from data")
-    sampled_data_paths = sample_data(full_data=full_data, output_dir=output_dir,
-                                     required_data_size=required_data_size,
-                                     num_of_repeats=num_of_repeats)
-    logger.info(f"{num_of_repeats} samples of size {required_data_size} generated successfully")
+    if not os.path.exists(output_dir):
+        sampled_data_paths = sample_data(full_data=full_data, output_dir=output_dir,
+                                         required_data_size=required_data_size,
+                                         num_of_repeats=num_of_repeats)
+        logger.info(f"{num_of_repeats} samples of size {required_data_size} generated successfully")
+    else:
+        sampled_data_paths = [f"{output_dir}/{path}" for path in os.listdir(output_dir)]
     sample_to_output = dict()
     for input_path in sampled_data_paths:
         if additional_program_parameters and os.path.exists(additional_program_parameters):
