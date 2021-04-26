@@ -242,7 +242,7 @@ def prepare_data(sequence_data_path: click.Path,
         program_to_exec.write_output_to_simulation_pipeline_json(program_output=output,
                                                                  output_path=f"{os.path.dirname(input_path)}/simulations.json",
                                                                  additional_simulation_parameters=additional_simulation_parameters)
-        logger.info(f"parsing complete")
+        logger.info(f"parsing complete, json written to {os.path.dirname(input_path)}/simulations.json")
 
 
 if __name__ == '__main__':
