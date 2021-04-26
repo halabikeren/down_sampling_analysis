@@ -1,14 +1,21 @@
+import re
 import typing as t
 from dataclasses import dataclass
 import os
 from ete3 import Tree
 import json
+import pandas as pd
 from utils import SequenceDataType, TreeReconstructionMethod, BaseTools, SimulationInput
 from .program import Program
 
 from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())
+
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 
 @dataclass
@@ -79,7 +86,24 @@ class Busted(Program):
         :param input_path: path to the reference data
         :return: a dictionary with the parsed reference data
         """
-        pass
+        parameter_to_regex = {"kappa": re.compile("\[submodel\]\s*(\d*\.?\d*)", re.DOTALL),
+                              "omegas": re.compile("\[submodel\].*?\n.*?\n(.*?)\n", re.DOTALL),
+                              "omegas_proportions": re.compile("\[submodel\].*?\n(.*?)\n", re.DOTALL),
+                              "states_frequencies": re.compile("\[statefreq\](.*?)\n"),
+                              "tree": re.compile("\[TREE\][^\(]*(.*?)\n", re.DOTALL)}
+        reference_data = dict()
+        with open(input_path, "r") as infile:
+            content = infile.read()
+        reference_data["kappa"] = float(parameter_to_regex["kappa"].search(content).group(1))
+        reference_data["omegas_to_props"] = dict()
+        omegas = [float(item) for item in parameter_to_regex["omegas_proportions"].search(content).group(1).split("\s*")]
+        omegas_proportions = [float(item) for item in parameter_to_regex["omegas_proportions"].search(content).group(1).split("\s*")]
+        prop_last_omega = 1 - sum(omegas_proportions)
+        omegas_proportions.append(prop_last_omega)
+        for i in range(len(omegas)):
+            reference_data["omegas_to_props"][omegas[i]] = omegas_proportions[i]
+        reference_data["tree"] = parameter_to_regex["tree"].search().group(1)
+        return reference_data
 
     @staticmethod
     def write_inferred_tree(inference_results: t.Dict[str, t.Any], output_path: str, by_model: str = "unconstrained"):
@@ -134,8 +158,8 @@ class Busted(Program):
         transitions_rates = sum([program_output["fits"]["Nucleotide GTR"]["Rate Distributions"][f"Substitution rate from nucleotide {transition[0]} to nucleotide {transition[1]}"] for transition in [("A", "G"), ("C", "T")]])
         transversions_rates = sum([program_output["fits"]["Nucleotide GTR"]["Rate Distributions"][f"Substitution rate from nucleotide {transversion[0]} to nucleotide {transversion[1]}"] for transversion in [("A", "C"), ("A", "T"), ("C", "G"), ("G", "T")]])
         kappa = transversions_rates / transitions_rates
-        hyphy_selection_parameters = program_output["fits"]["Unconstrained model"]["Rate Distributions"]["Synonymous site-to-site rates"]
-        simulation_selection_parameters = {int(cat): {"prop": hyphy_selection_parameters[cat]["proportion"], "w": hyphy_selection_parameters[cat]["rate"]} for cat in hyphy_selection_parameters}
+        hyphy_selection_parameters = program_output["fits"]["Unconstrained model"]["Rate Distributions"]["Test"]
+        simulation_selection_parameters = {int(cat): {"prop": hyphy_selection_parameters[cat]["proportion"], "w": hyphy_selection_parameters[cat]["omega"]} for cat in hyphy_selection_parameters}
         simulation_input_parameters = {"substitution_model": "",
                                        "substitution_model_params": {"kappa": kappa, "selection_parameters": simulation_selection_parameters},
                                        "states_frequencies": program_output["fits"]["MG94xREV with separate rates for branch sets"]["Equilibrium frequencies"],
@@ -151,3 +175,24 @@ class Busted(Program):
         with open(output_path, "w") as output_file:
             json.dump(obj=clean_simulation_input, fp=output_file)
 
+    @staticmethod
+    def get_error(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], use_relative_error: bool = True,
+                  use_normalized_rates: bool = False, penalize_by_std: bool = False) -> pd.Series:
+        """
+        :param reference_data: reference data to compute results by reference to
+        :param test_data: test data to compare to the reference data
+        :param use_relative_error: indicates weather absolute or relative error should be used
+        :param use_normalized_rates: indicates weather normalized rates should be used for error computation or denormalized rates
+        :param penalize_by_std: boolean indicating weather to penalize by std or not
+        :return: the output of pd series with indices as the members for which error it assessed (be it positions in a sequence of sequences) and the values are the error values computed for them
+        """
+    pass
+
+    @staticmethod
+    def get_result(data: t.Dict[str, t.Any], use_normalized_rates: bool = False) -> pd.Series:
+        """
+        :param data: dictionary mapping results
+        :param use_normalized_rates: indicates weather normalized rates should be used for error computation or denormalized rates
+        :return: the relevant data to compute error for
+        """
+        pass
