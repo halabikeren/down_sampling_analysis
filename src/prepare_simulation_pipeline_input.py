@@ -74,9 +74,10 @@ def run_program(program_name: ProgramName, sequence_data_path: click.Path, align
     """
 
     # align the data
-    BaseTools.align(input_path=sequence_data_path, output_path=alignment_path,
-                    sequence_data_type=sequence_data_type,
-                    alignment_method=AlignmentMethod.MAFFT)
+    if not os.path.exists(alignment_path):
+        BaseTools.align(input_path=sequence_data_path, output_path=alignment_path,
+                        sequence_data_type=sequence_data_type,
+                        alignment_method=AlignmentMethod.MAFFT)
 
     # create a program instance
     program_to_exec = program_to_callable[program_name]()
@@ -126,6 +127,16 @@ def output_exists(program_name: str, output_dir: str) -> bool:
               help="type of sequence data",
               type=click.Choice(['nucleotide', 'codon', 'amino_acid']),
               required=True)
+@click.option("--is_data_aligned",
+              help="boolean indicating weather input is already aligned",
+              type=bool,
+              required=False,
+              default=False)
+@click.option("--sample_input",
+              help="boolean indicating weather input should be down-sampled to reduce input size or not",
+              type=bool,
+              required=False,
+              default=True)
 @click.option("--required_data_size",
               help="integer of the required data size",
               type=int,
@@ -158,6 +169,8 @@ def output_exists(program_name: str, output_dir: str) -> bool:
               required=True)
 def prepare_data(sequence_data_path: click.Path,
                  sequence_data_type: str,
+                 sample_input: bool,
+                 is_data_aligned: bool,
                  required_data_size: int,
                  num_of_repeats: int,
                  output_dir: click.Path,
@@ -184,34 +197,40 @@ def prepare_data(sequence_data_path: click.Path,
     os.makedirs(output_dir, exist_ok=True)
     full_data = list(SeqIO.parse(sequence_data_path, "fasta"))
     logger.info("Data loaded successfully")
-    remove_duplicates(sequence_records=full_data)
+    try: # duplicates removed is meant for data downloaded from VIPRDB only and will fail for any other type of data
+        remove_duplicates(sequence_records=full_data)
+    except Exception as e:
+        pass
     logger.info("Accession duplicates removed from data")
-    if not os.path.exists(output_dir):
-        sampled_data_paths = sample_data(full_data=full_data, output_dir=output_dir,
-                                         required_data_size=required_data_size,
-                                         num_of_repeats=num_of_repeats)
-        logger.info(f"{num_of_repeats} samples of size {required_data_size} generated successfully")
-    else:
+    if sample_input:
+        # create sampled datasets
         sampled_data_paths = [f"{output_dir}/{path}" for path in os.listdir(output_dir)]
+        if not os.path.exists(output_dir):
+            sampled_data_paths = sample_data(full_data=full_data, output_dir=output_dir,
+                                             required_data_size=required_data_size,
+                                             num_of_repeats=num_of_repeats)
+            logger.info(f"{num_of_repeats} samples of size {required_data_size} generated successfully")
+    else:
+        sampled_data_paths = [sequence_data_path]
+    # execute program on dataset
     sample_to_output = dict()
     for input_path in sampled_data_paths:
         if additional_program_parameters and os.path.exists(additional_program_parameters):
             with open(additional_program_parameters, "r") as input_file:
                 additional_program_parameters = json.load(input_file)
-        working_dir = f"{os.path.dirname(input_path)}/"
-        program_output_path = working_dir if program_name == "phyml" or program_name == "busted" else f"{working_dir}/paml.out"
+        working_dir = input_path if os.path.isdir(input_path) else f"{os.path.dirname(input_path)}/"
         alignment_path = str(sequence_data_path).replace(".fas", "_aligned.fas")
-        completion_validator_path = None
-        if not output_exists(program_name=program_name, output_dir=program_output_path):
-            logger.info(f"executing program on sample {input_path}")
-            completion_validator_path = run_program(
-                program_name=program_name, sequence_data_path=input_path, alignment_path=alignment_path, sequence_data_type=sequence_data_type,
-                program_output_path=program_output_path, additional_params=additional_program_parameters)
+        if is_data_aligned:
+            alignment_path = input_path
+        program_output_path = working_dir if program_name in ["phyml", "busted"] else f"{working_dir}/paml.out"
+        logger.info(f"executing program on sample {input_path}")
+        completion_validator_path = run_program(
+            program_name=program_name, sequence_data_path=input_path, alignment_path=alignment_path, sequence_data_type=sequence_data_type,
+            program_output_path=program_output_path, additional_params=additional_program_parameters)
         sample_to_output[input_path] = {"alignment_path": alignment_path, "program_output_path": program_output_path,
-                                  "job_output_dir": os.path.dirname(sequence_data_path)}
+                              "job_output_dir": os.path.dirname(sequence_data_path)}
         if completion_validator_path:
             sample_to_output[input_path]["completion_validator_path"] = completion_validator_path
-
     # wait for the program to finish
     for input_path in sample_to_output:
         if "completion_validator_path" in sample_to_output[input_path]:
@@ -220,7 +239,7 @@ def prepare_data(sequence_data_path: click.Path,
     logger.info("execution of program on all samples is complete")
 
     # write simulations pipeline input according to the output of the program
-    logger.info(f"parsing program output ro simulation inputs")
+    logger.info(f"parsing program output to simulation inputs")
     if additional_simulation_parameters and os.path.exists(additional_simulation_parameters):
         with open(additional_simulation_parameters, "r") as input_file:
             additional_simulation_parameters = json.load(input_file)
@@ -228,6 +247,7 @@ def prepare_data(sequence_data_path: click.Path,
         additional_simulation_parameters = dict()
     program_to_exec = program_to_callable[program_name]()
     for input_path in sample_to_output:
+        logger.info(f"parsing output for {input_path}")
         output = program_to_exec.parse_output(output_path=sample_to_output[input_path]["program_output_path"],
                                               job_output_dir=sample_to_output[input_path]["job_output_dir"])
         additional_simulation_parameters["simulations_output_dir"] = f"{os.path.dirname(input_path)}/simulations/"
@@ -239,7 +259,8 @@ def prepare_data(sequence_data_path: click.Path,
                 list(SeqIO.parse(sample_to_output[input_path]["alignment_path"], "fasta"))[0].seq) // (3 if sequence_data_type == SequenceDataType.CODON else 1)
         if not "ntaxa" in additional_simulation_parameters:
             additional_simulation_parameters["ntaxa"] = len(full_data)
-        program_to_exec.write_output_to_simulation_pipeline_json(program_output=output,
+        working_dir = input_path if os.path.isdir(input_path) else os.path.dirname(input_path)
+        program_to_exec.write_output_to_simulation_pipeline_json(program_output=working_dir,
                                                                  output_path=f"{os.path.dirname(input_path)}/simulations.json",
                                                                  additional_simulation_parameters=additional_simulation_parameters)
         logger.info(f"parsing complete, json written to {os.path.dirname(input_path)}/simulations.json")
