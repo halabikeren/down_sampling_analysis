@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Rate4Site(Program):
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.name = "rate4site"
@@ -46,7 +45,7 @@ class Rate4Site(Program):
 
     @staticmethod
     def parse_output(
-            output_path: str, job_output_dir: str = os.getcwd()
+        output_path: str, job_output_dir: str = os.getcwd()
     ) -> t.Dict[str, t.Any]:
         """
         :param output_path
@@ -54,7 +53,9 @@ class Rate4Site(Program):
         :return: None. parses the output file into a json form and saves it into self.result
         """
         # TO DO: parse non normalized rates (required for comparison to simulated rates)
-        result = super(Rate4Site, Rate4Site).parse_output(output_path=output_path, job_output_dir=job_output_dir)
+        result = super(Rate4Site, Rate4Site).parse_output(
+            output_path=output_path, job_output_dir=job_output_dir
+        )
         with open(output_path, "r") as output_file:
             output_content = output_file.read()
         output_regex = re.compile(
@@ -68,7 +69,9 @@ class Rate4Site(Program):
         denormalized_rates_by_position_path = f"{job_output_dir}/r4sOrig.res"
         with open(denormalized_rates_by_position_path, "r") as output_file:
             output_content = output_file.read()
-        result["denormalized_rate_by_position"] = Rate4Site.parse_rates(output_regex.search(output_content).group(3))
+        result["denormalized_rate_by_position"] = Rate4Site.parse_rates(
+            output_regex.search(output_content).group(3)
+        )
         return result
 
     @staticmethod
@@ -88,8 +91,13 @@ class Rate4Site(Program):
         return reference_data
 
     @staticmethod
-    def get_error(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], use_relative_error: bool = True,
-                  use_normalized_rates: bool = False, penalize_by_std: bool = False) -> pd.Series:
+    def get_error(
+        reference_data: t.Dict[str, t.Any],
+        test_data: t.Dict[str, t.Any],
+        use_relative_error: bool = True,
+        use_normalized_rates: bool = False,
+        penalize_by_std: bool = False,
+    ) -> pd.Series:
         """
         :param reference_data: reference data to compute results by reference to
         :param test_data: test data to compare to the reference data
@@ -107,21 +115,30 @@ class Rate4Site(Program):
         reference_positions = list(reference_df["position"].values)
         if len(test_positions) < len(reference_positions):
             logger.error(
-                f"Number of positions in test data is {len(test_positions)} and is inconsistent with the number of positions in the reference data {len(reference_positions)}")
+                f"Number of positions in test data is {len(test_positions)} and is inconsistent with the number of positions in the reference data {len(reference_positions)}"
+            )
             raise ValueError(
-                f"Number of positions in test data is {len(test_positions)} and is inconsistent with the number of positions in the reference data {len(reference_positions)}")
+                f"Number of positions in test data is {len(test_positions)} and is inconsistent with the number of positions in the reference data {len(reference_positions)}"
+            )
         reference_df = reference_df.loc[reference_df["position"].isin(test_positions)]
         absolute_error = abs(reference_df["rate"] - test_df["rate"])
-        relative_error = absolute_error / (reference_df["rate"] + 0.0001)  # add a small number in case the simulated rate is 0
+        relative_error = absolute_error / (
+            reference_df["rate"] + 0.0001
+        )  # add a small number in case the simulated rate is 0
         if penalize_by_std:
-            return relative_error * (abs(reference_df["std"] - test_df["std"])) / reference_df[
-                "std"]  # will punish error with low test std more than one without
+            return (
+                relative_error
+                * (abs(reference_df["std"] - test_df["std"]))
+                / reference_df["std"]
+            )  # will punish error with low test std more than one without
         if use_relative_error:
             return relative_error
         return absolute_error
 
     @staticmethod
-    def get_result(data: t.Dict[str, t.Any], use_normalized_rates: bool = False) -> pd.Series:
+    def get_result(
+        data: t.Dict[str, t.Any], use_normalized_rates: bool = False
+    ) -> pd.Series:
         """
         :param data: dictionary mapping results
         :param use_normalized_rates: indicates weather normalized rates should be used for error computation or denormalized rates

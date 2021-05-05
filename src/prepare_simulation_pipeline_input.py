@@ -260,7 +260,7 @@ def prepare_data(sequence_data_path: click.Path,
         if not "ntaxa" in additional_simulation_parameters:
             additional_simulation_parameters["ntaxa"] = len(full_data)
         working_dir = input_path if os.path.isdir(input_path) else os.path.dirname(input_path)
-        program_to_exec.write_output_to_simulation_pipeline_json(program_output=working_dir,
+        program_to_exec.write_output_to_simulation_pipeline_json(program_output=output,
                                                                  output_path=f"{os.path.dirname(input_path)}/simulations.json",
                                                                  additional_simulation_parameters=additional_simulation_parameters)
         logger.info(f"parsing complete, json written to {os.path.dirname(input_path)}/simulations.json")

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class Busted(Program):
+class Meme(Program):
     def __init__(self):
         super().__init__()
         self.name = "hyphy"
@@ -76,8 +76,8 @@ class Busted(Program):
             self.tree_reconstruction_prams,
         )
 
-        cmd = f"printf '1\\n5\\n{program_input_path}\\n{input_tree_path}\\n' | hyphy"
-        return [cmd, f"cp -r {program_input_path}.BUSTED.json {program_output_path}"]
+        cmd = f"printf '1\\n1\\n{program_input_path}\\n{input_tree_path}\\n' | hyphy"
+        return [cmd, f"cp -r {program_input_path}.MEME.json {program_output_path}"]
 
     @staticmethod
     def parse_reference_data(input_path: str) -> t.Dict[str, t.Any]:
@@ -190,7 +190,7 @@ class Busted(Program):
                 "Equilibrium frequencies"
             ][stop_codon] = 0
         results["tree_path"] = f"{os.path.dirname(output_path)}/busted_tree.nwk"
-        Busted.write_inferred_tree(
+        Meme.write_inferred_tree(
             inference_results=results, output_path=results["tree_path"]
         )
         return results

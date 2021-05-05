@@ -27,15 +27,16 @@ class Program:
     output_param_name: str = ""  # maps parameter name to parameter value
 
     def __init__(
-            self):  # set to allow inheriting classes to receive additional arguments for setting additional
+        self,
+    ):  # set to allow inheriting classes to receive additional arguments for setting additional
         pass
 
     @staticmethod
     def set_additional_params(
-            additional_params: t.Optional[t.Dict[str, str]],
-            parallelize: bool,
-            cluster_data_dir: str,
-            return_as_str: bool = True,
+        additional_params: t.Optional[t.Dict[str, str]],
+        parallelize: bool,
+        cluster_data_dir: str,
+        return_as_str: bool = True,
     ) -> t.Optional[str]:
         """
         :param additional_params: dictionary mapping names to values f additional parameters for the program
@@ -51,12 +52,18 @@ class Program:
         additional_params_str = ""
         if additional_params:
             for field in additional_params:
-                if "/" in additional_params[field]:
-                    additional_params[field] = (
-                        f"{os.environ['container_data_dir']}{additional_params[field]}"
-                        if not parallelize
-                        else f"{cluster_data_dir}{additional_params[field]}"
-                    )
+                if parallelize and not additional_params[field].startswith(
+                    cluster_data_dir
+                ):
+                    additional_params[
+                        field
+                    ] = f"{cluster_data_dir}/{additional_params[field]}"
+                elif not parallelize and not additional_params[field].startswith(
+                    os.environ["container_data_dir"]
+                ):
+                    additional_params[
+                        field
+                    ] = f"{os.environ['container_data_dir']}/{additional_params[field]}"
                 additional_params_str = " ".join(
                     [
                         f"{param_name} {additional_params[param_name]}"
@@ -67,13 +74,13 @@ class Program:
                 return additional_params_str
 
     def set_command(
-            self,
-            input_path: str,
-            output_path: str,
-            additional_params: t.Optional[t.Dict[str, str]],
-            parallelize: bool,
-            cluster_data_dir: str,
-            **kwargs,
+        self,
+        input_path: str,
+        output_path: str,
+        additional_params: t.Optional[t.Dict[str, str]],
+        parallelize: bool,
+        cluster_data_dir: str,
+        **kwargs,
     ) -> t.List[str]:
         """
         :param input_path: path to the input of the program
@@ -96,26 +103,29 @@ class Program:
         input_str = f"{self.input_param_name} {program_input_path}"
         output_str = f"{self.output_param_name} {program_output_path}"
         if additional_params:
-            additional_params_str = self.set_additional_params(additional_params=additional_params,
-                                                               parallelize=parallelize,
-                                                               cluster_data_dir=cluster_data_dir, return_as_str=True)
+            additional_params_str = self.set_additional_params(
+                additional_params=additional_params,
+                parallelize=parallelize,
+                cluster_data_dir=cluster_data_dir,
+                return_as_str=True,
+            )
         else:
             additional_params_str = ""
         command = f"{self.program_exe if not parallelize else self.cluster_program_exe} {input_str} {output_str} {additional_params_str} "
         return [command]
 
     def exec(
-            self,
-            input_path: str,
-            output_path: str,
-            aux_dir: str,
-            additional_params: t.Optional[t.Dict[str, str]] = None,
-            parallelize: bool = False,
-            cluster_data_dir: t.Optional[str] = None,
-            priority: int = 0,
-            queue: str = "itaym",
-            wait_until_complete: bool = False,
-            get_completion_validator: bool = True,
+        self,
+        input_path: str,
+        output_path: str,
+        aux_dir: str,
+        additional_params: t.Optional[t.Dict[str, str]] = None,
+        parallelize: bool = False,
+        cluster_data_dir: t.Optional[str] = None,
+        priority: int = 0,
+        queue: str = "itaym",
+        wait_until_complete: bool = False,
+        get_completion_validator: bool = True,
     ) -> t.Union[float, str]:
         """
         :param input_path: path to alignment file
@@ -133,42 +143,61 @@ class Program:
         additional_args = dict()
         from .paml import Paml
         from .busted import Busted
+
         if type(self) in [Paml, Busted]:
-            additional_args["input_tree_path"] = re.sub("\.fas(.*?)", "_tree.nwk", input_path)
+            additional_args["input_tree_path"] = re.sub(
+                "\.fas[^.]*", "_tree.nwk", input_path
+            )
         if type(self) is Paml:
-            additional_args["control_file_path"] = re.sub("\.fas(.*?)", "_paml.ctl", input_path)
+            additional_args["control_file_path"] = re.sub(
+                "\.fas[^.]*", "_paml.ctl", input_path
+            )
         command = self.set_command(
-            input_path=input_path, output_path=output_path, additional_params=additional_params,
-            parallelize=parallelize, cluster_data_dir=cluster_data_dir, **additional_args)
+            input_path=input_path,
+            output_path=output_path,
+            additional_params=additional_params,
+            parallelize=parallelize,
+            cluster_data_dir=cluster_data_dir,
+            **additional_args,
+        )
         os.makedirs(aux_dir, exist_ok=True)
 
         if os.path.exists(output_path):
-            logger.info(f"{self.name} output already exists at {output_path} and will not be generated again")
+            logger.info(
+                f"{self.name} output already exists at {output_path} and will not be generated again"
+            )
             return
 
         if not parallelize:
             start_time = time()
             if type(self) is not Paml:
-                os.chdir(aux_dir)  # move to aux dir as rate4site generates extra files in current running directory
+                os.chdir(
+                    aux_dir
+                )  # move to aux dir as rate4site generates extra files in current running directory
             for cmd in command:
                 if "cd " in cmd:
                     os.chdir(cmd.replace("cd ", ""))
                 else:
-                    res = os.system(f"{cmd} > /dev/null 2>&1")  # for some reason, rate4 prints some logs into the stderr,
+                    res = os.system(
+                        f"{cmd} > /dev/null 2>&1"
+                    )  # for some reason, rate4 prints some logs into the stderr,
                     # making the typical test (raise error i=f stderr > 0) invalid in this case
                     if res != 0:
-                        raise RuntimeError(
-                            f"command {cmd} failed to execute."
-                        )
+                        raise RuntimeError(f"command {cmd} failed to execute.")
             end_time = time()
             return (end_time - start_time) / 60
         else:
-            commands = [
-                f"cd {aux_dir.replace(os.environ['container_data_dir'], cluster_data_dir)}",
-                '''timestamp() {
+            commands = (
+                [
+                    f"cd {aux_dir.replace(os.environ['container_data_dir'], cluster_data_dir)}",
+                    """timestamp() {
                       date +"%T" # current time
                     }
-                    timestamp'''] + command + ['timestamp']
+                    timestamp""",
+                ]
+                + command
+                + ["timestamp"]
+            )
 
             job = Job(
                 name=self.name,
@@ -185,7 +214,9 @@ class Program:
             return completion_validator
 
     @staticmethod
-    def parse_output(output_path: str, job_output_dir: t.Optional[str] = None) -> t.Dict[str, t.Any]:
+    def parse_output(
+        output_path: str, job_output_dir: t.Optional[str] = None
+    ) -> t.Dict[str, t.Any]:
         """
         :param output_path: path holding the output of the program
         :param job_output_dir: directory holding the output of the job, in case parallelization was chosen
@@ -199,7 +230,14 @@ class Program:
         result = {"raw_output": output_content}
 
         if job_output_dir:
-            paths_by_time = sorted([job_output_dir + path for path in os.listdir(job_output_dir) if ".OU" in path], key=os.path.getmtime)
+            paths_by_time = sorted(
+                [
+                    f"{job_output_dir}/{path}"
+                    for path in os.listdir(job_output_dir)
+                    if ".OU" in path
+                ],
+                key=os.path.getmtime,
+            )
             if len(paths_by_time) > 0:
                 job_output_path = paths_by_time[0]
                 with open(job_output_path, "r") as job_output_file:
@@ -224,7 +262,9 @@ class Program:
         return result
 
     @staticmethod
-    def write_result_json(input_path: str, job_output_dir: t.Optional[str], output_path: str):
+    def write_result_json(
+        input_path: str, job_output_dir: t.Optional[str], output_path: str
+    ):
         """
         :param input_path: path to file with the raw program results
         :param job_output_dir: path to the job's output which holds duration measures in case of parallelization
@@ -233,12 +273,16 @@ class Program:
         """
         output_dir = os.path.dirname(output_path)
         os.makedirs(output_dir, exist_ok=True)
-        result = Program.parse_output(input_path=input_path, job_output_dir=job_output_dir)
+        result = Program.parse_output(
+            input_path=input_path, job_output_dir=job_output_dir
+        )
         with open(output_path, "w") as output:
             json.dump(result, output)
 
     @staticmethod
-    def get_error(reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], **kwargs) -> pd.Series:
+    def get_error(
+        reference_data: t.Dict[str, t.Any], test_data: t.Dict[str, t.Any], **kwargs
+    ) -> pd.Series:
         """
         :param reference_data: reference data to compute results by reference to
         :param test_data: test data to compare to the reference data
@@ -255,7 +299,11 @@ class Program:
         pass  # will be overloaded by inheriting classes
 
     @staticmethod
-    def write_output_to_simulation_pipeline_json(program_output: t.Dict[str, t.Any], output_path: str, additional_simulation_parameters: t.Dict[str, t.Any]):
+    def write_output_to_simulation_pipeline_json(
+        program_output: t.Dict[str, t.Any],
+        output_path: str,
+        additional_simulation_parameters: t.Dict[str, t.Any],
+    ):
         """
         :param program_output: output of the program to translate to simulation params
         :param output_path: output path for simulation pipeline input json

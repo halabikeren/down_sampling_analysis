@@ -56,8 +56,11 @@ class BaseTools:
             node.dist *= rescaling_factor
 
     @staticmethod
-    def simplify_names(input_path: str, output_path: str, names_translator: t.Optional[t.Dict[str, str]] = None) -> \
-    t.Optional[t.Dict[str, str]]:
+    def simplify_names(
+        input_path: str,
+        output_path: str,
+        names_translator: t.Optional[t.Dict[str, str]] = None,
+    ) -> t.Optional[t.Dict[str, str]]:
         """
         :param input_path: path with the original sequence names
         :param output_path:  path to which the sequences with the new names will be written
@@ -79,9 +82,13 @@ class BaseTools:
                 SeqIO.write(seq_records, output_path, "fasta")
                 return new_to_orig_name
             else:
-                reversed_names_translator = {names_translator[key]: key for key in names_translator}
+                reversed_names_translator = {
+                    names_translator[key]: key for key in names_translator
+                }
                 for record in seq_records:
-                    record.description = record.name = record.id = reversed_names_translator[record.description]
+                    record.description = (
+                        record.name
+                    ) = record.id = reversed_names_translator[record.description]
                 SeqIO.write(seq_records, output_path, "fasta")
         else:
             with open(input_path, "r") as infile:
@@ -98,7 +105,9 @@ class BaseTools:
                 tree.write(outfile=output_path)
                 return new_to_orig_name
             else:
-                reversed_names_translator = {names_translator[key]: key for key in names_translator}
+                reversed_names_translator = {
+                    names_translator[key]: key for key in names_translator
+                }
                 for leaf in tree_leaves:
                     leaf.name = reversed_names_translator[leaf.name]
                 tree.write(outfile=output_path)
@@ -118,7 +127,7 @@ class BaseTools:
 
     @staticmethod
     def reverse_translate(
-            unaligned_codon_path: str, aligned_aa_path: str, aligned_codon_path: str
+        unaligned_codon_path: str, aligned_aa_path: str, aligned_codon_path: str
     ):
         """
         :param unaligned_codon_path: path to non-aligned coding sequences
@@ -141,9 +150,11 @@ class BaseTools:
             codon_index = 0
             while aa_index < len(aligned_aa_record.seq):
                 if aligned_aa_record.seq[aa_index] != "-":
-                    aligned_codon_record_seq += str(unaligned_codon_record.seq[
-                                                    codon_index * 3: codon_index * 3 + 3
-                                                    ])
+                    aligned_codon_record_seq += str(
+                        unaligned_codon_record.seq[
+                            codon_index * 3 : codon_index * 3 + 3
+                        ]
+                    )
                     codon_index += 1
                 else:
                     aligned_codon_record_seq += "---"
@@ -154,11 +165,11 @@ class BaseTools:
 
     @staticmethod
     def align(
-            input_path: str,
-            output_path: str,
-            sequence_data_type: SequenceDataType,
-            alignment_method: AlignmentMethod,
-            alignment_params: t.Optional[t.Dict[str, t.Any]] = None,
+        input_path: str,
+        output_path: str,
+        sequence_data_type: SequenceDataType,
+        alignment_method: AlignmentMethod,
+        alignment_params: t.Optional[t.Dict[str, t.Any]] = None,
     ):
         """
         Aligns sequence data according to given method
@@ -169,7 +180,7 @@ class BaseTools:
         :return:
         """
         if os.path.exists(output_path) and (
-                os.path.getsize(output_path) > os.path.getsize(input_path)
+            os.path.getsize(output_path) > os.path.getsize(input_path)
         ):
             logger.info(
                 f"{output_path} already exists. The program will assume it is complete"
@@ -180,8 +191,8 @@ class BaseTools:
         alignment_input_path = input_path
         alignment_output_path = output_path
         if (
-                sequence_data_type == SequenceDataType.CODON
-                and alignment_method == AlignmentMethod.MAFFT
+            sequence_data_type == SequenceDataType.CODON
+            and alignment_method == AlignmentMethod.MAFFT
         ):
             alignment_input_path = input_path.replace(".fasta", "_translated.fasta")
             BaseTools.translate(
@@ -203,9 +214,12 @@ class BaseTools:
                 ]
             )
         if os.path.exists(alignment_output_path) and (
-                os.path.getsize(alignment_output_path) > os.path.getsize(alignment_input_path)
+            os.path.getsize(alignment_output_path)
+            > os.path.getsize(alignment_input_path)
         ):
-            logger.info(f"Temporary alignment {alignment_output_path} already exists and will not be recreated.")
+            logger.info(
+                f"Temporary alignment {alignment_output_path} already exists and will not be recreated."
+            )
         else:
             process = os.system(cmd)
             if process != 0:
@@ -213,8 +227,8 @@ class BaseTools:
                     f"failed to align {alignment_output_path} with {alignment_method.value}"
                 )
         if (
-                alignment_method == AlignmentMethod.MAFFT
-                and sequence_data_type == SequenceDataType.CODON
+            alignment_method == AlignmentMethod.MAFFT
+            and sequence_data_type == SequenceDataType.CODON
         ):
             BaseTools.reverse_translate(
                 input_path,
@@ -226,11 +240,11 @@ class BaseTools:
 
     @staticmethod
     def build_tree(
-            input_path: str,
-            output_path: str,
-            sequence_data_type: SequenceDataType,
-            tree_reconstruction_method: TreeReconstructionMethod,
-            tree_reconstruction_params: t.Optional[t.Dict[str, t.Any]] = None,
+        input_path: str,
+        output_path: str,
+        sequence_data_type: SequenceDataType,
+        tree_reconstruction_method: TreeReconstructionMethod,
+        tree_reconstruction_params: t.Optional[t.Dict[str, t.Any]] = None,
     ):
         """
         :param input_path path to aligned sequence data in a fasta format
@@ -261,7 +275,9 @@ class BaseTools:
                 else "3\\n3"
             )
             cmd = f"printf '12\\n1\\n1\\n{sequence_data_type_hyphy}\\n{input_path}\\n1\\n{dist_method_hyphy}\\ny\\n{output_path}\\n' | hyphy"
-            process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process = subprocess.Popen(
+                cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
             if len(process.stderr.read()) > 0:
                 raise IOError(
                     f"failed to reconstruct {tree_reconstruction_method.value} tree with hyphy due to error {process.stderr.read()}. Execution output is {process.stdout.read()}"
@@ -293,7 +309,9 @@ class BaseTools:
                 else 4
             )
             cmd = f"raxmlHPC -s {input_path} -n out -m {model} -c {num_of_categories}"
-            process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            process = subprocess.Popen(
+                cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
             if len(process.stderr.read()) > 0:
                 raise IOError(
                     f"failed to reconstruct ML tree with raxml due to error {process.stderr.read()}. Execution output is {process.stdout.read()}"
@@ -306,7 +324,10 @@ class BaseTools:
         if isinstance(obj, BaseTools.JSONABLE_OK):
             return obj
         if isinstance(obj, dict):
-            return {BaseTools.jsonable_encoder(key): BaseTools.jsonable_encoder(value) for key, value in obj.items()}
+            return {
+                BaseTools.jsonable_encoder(key): BaseTools.jsonable_encoder(value)
+                for key, value in obj.items()
+            }
         if isinstance(obj, BaseTools.SEQUENCES):
             return [BaseTools.jsonable_encoder(item) for item in obj]
         if isinstance(obj, BaseModel):
@@ -320,6 +341,8 @@ class BaseTools:
         try:
             encoder = BaseTools.ENCODERS_BY_TYPE[type(obj)]
         except KeyError:
-            raise TypeError(f"Object of type '{obj.__class__.__name__}' is not serializable")
+            raise TypeError(
+                f"Object of type '{obj.__class__.__name__}' is not serializable"
+            )
         else:
             return encoder(obj)

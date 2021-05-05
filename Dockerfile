@@ -23,8 +23,9 @@ RUN echo 'alias rate4site="~/rate4site_doublerep"' >> ~/.bashrc
 RUN echo 'alias indelible="~/indelible"' >> ~/.bashrc
 
 # install python packages
+RUN pip install --upgrade pip
 COPY requirements.txt /temp/requirements.txt
-RUN pip install -r /temp/requirements.txt
+RUN pip install  --no-cache-dir -r /temp/requirements.txt
 
 # clear matplotlib cache to avoid warning: https://github.com/ocropus/ocropy/issues/204
 RUN rm -rf ~/.matplotlib

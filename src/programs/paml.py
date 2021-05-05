@@ -17,9 +17,7 @@ load_dotenv(find_dotenv())
 
 @dataclass
 class Paml(Program):
-
-    def __init__(
-        self):
+    def __init__(self):
         super().__init__()
         self.name = "paml"
         self.program_exe = os.environ["paml"]
@@ -38,7 +36,7 @@ class Paml(Program):
         cluster_data_dir: str,
         sequence_data_type: SequenceDataType = SequenceDataType.CODON,
         control_file_path: str = f"{os.getcwd()}/paml.ctl",
-        input_tree_path: str = f"{os.getcwd()}/paml_tree.nwk"
+        input_tree_path: str = f"{os.getcwd()}/paml_tree.nwk",
     ) -> t.List[str]:
         """
         :param input_path: path to the input of the program
@@ -53,12 +51,12 @@ class Paml(Program):
         """
         program_input_path = (
             input_path
-            if not parallelize
+            if not parallelize or not os.environ["in_container"]
             else input_path.replace(os.environ["container_data_dir"], cluster_data_dir)
         )
         program_output_path = (
             output_path
-            if not parallelize
+            if not parallelize or not os.environ["in_container"]
             else output_path.replace(os.environ["container_data_dir"], cluster_data_dir)
         )
         self.set_additional_params(
@@ -75,10 +73,21 @@ class Paml(Program):
             self.tree_reconstruction_prams,
         )
         # shorted file paths for paml (gives up upon receiving file paths > 120 chars)
-        shared_dir = os.path.commonprefix([program_input_path, input_tree_path, program_output_path, control_file_path])
-        program_input_path = program_input_path.replace(shared_dir, "./").replace("//", "/")
+        shared_dir = os.path.commonprefix(
+            [
+                program_input_path,
+                input_tree_path,
+                program_output_path,
+                control_file_path,
+            ]
+        )
+        program_input_path = program_input_path.replace(shared_dir, "./").replace(
+            "//", "/"
+        )
         input_tree_path = input_tree_path.replace(shared_dir, "./").replace("//", "/")
-        program_output_path = program_output_path.replace(shared_dir, "./").replace("//", "/")
+        program_output_path = program_output_path.replace(shared_dir, "./").replace(
+            "//", "/"
+        )
 
         self.set_control_file(
             program_input_path,
@@ -88,7 +97,9 @@ class Paml(Program):
             additional_params,
             sequence_data_type=sequence_data_type,
         )
-        control_file_path = control_file_path.replace(shared_dir, "./").replace("//", "/")
+        control_file_path = control_file_path.replace(shared_dir, "./").replace(
+            "//", "/"
+        )
         return [f"cd {shared_dir}", f"{self.program_exe} {control_file_path}"]
 
     @staticmethod
@@ -188,27 +199,66 @@ class Paml(Program):
 
     @staticmethod
     def parse_codon_frequencies(content: str) -> t.Dict[str, float]:
-        states_frequencies_regex = re.compile("Codon\s*position\s*x\s*base\s*\(3x4\)\s*table\,\s*overall.*?position\s*1\:\s*T\:\s*(\d*\.?\d*)\s*C\:\s*(\d*\.?\d*)\s*A\:\s*(\d*\.?\d*)\s*G\:\s*(\d*\.?\d*)\s*.*?position\s*2\:\s*T\:\s*(\d*\.?\d*)\s*C\:\s*(\d*\.?\d*)\s*A\:\s*(\d*\.?\d*)\s*G\:\s*(\d*\.?\d*)\s*position\s*3\:\s*T\:\s*(\d*\.?\d*)\s*C\:\s*(\d*\.?\d*)\s*A\:\s*(\d*\.?\d*)\s*G\:\s*(\d*\.?\d*)\s*", re.MULTILINE | re.DOTALL)
+        states_frequencies_regex = re.compile(
+            "Codon\s*position\s*x\s*base\s*\(3x4\)\s*table\,\s*overall.*?position\s*1\:\s*T\:\s*(\d*\.?\d*)\s*C\:\s*(\d*\.?\d*)\s*A\:\s*(\d*\.?\d*)\s*G\:\s*(\d*\.?\d*)\s*.*?position\s*2\:\s*T\:\s*(\d*\.?\d*)\s*C\:\s*(\d*\.?\d*)\s*A\:\s*(\d*\.?\d*)\s*G\:\s*(\d*\.?\d*)\s*position\s*3\:\s*T\:\s*(\d*\.?\d*)\s*C\:\s*(\d*\.?\d*)\s*A\:\s*(\d*\.?\d*)\s*G\:\s*(\d*\.?\d*)\s*",
+            re.MULTILINE | re.DOTALL,
+        )
         match = states_frequencies_regex.search(content)
         # extract F3X4 parameters
-        f3x4_parameters = {"pos1": {"T": float(match.group(1)), "C": float(match.group(2)), "A": float(match.group(3)), "G": float(match.group(4))},
-                           "pos2": {"T": float(match.group(5)), "C": float(match.group(6)), "A": float(match.group(7)), "G": float(match.group(8))},
-                           "pos3": {"T": float(match.group(9)), "C": float(match.group(10)), "A": float(match.group(11)), "G": float(match.group(12))}}
+        f3x4_parameters = {
+            "pos1": {
+                "T": float(match.group(1)),
+                "C": float(match.group(2)),
+                "A": float(match.group(3)),
+                "G": float(match.group(4)),
+            },
+            "pos2": {
+                "T": float(match.group(5)),
+                "C": float(match.group(6)),
+                "A": float(match.group(7)),
+                "G": float(match.group(8)),
+            },
+            "pos3": {
+                "T": float(match.group(9)),
+                "C": float(match.group(10)),
+                "A": float(match.group(11)),
+                "G": float(match.group(12)),
+            },
+        }
         # compute codon frequencies according to them
-        codons = list(itertools.combinations(["T", "C", "A", "G"], 3))
-        codon_frequencies = {codon: f3x4_parameters["pos1"][codon[0]]*f3x4_parameters["pos2"][codon[1]]*f3x4_parameters["pos3"][codon[2]] for codon in codons}
+        nucleotides = ["T", "C", "A", "G"]
+        stop_codons = ["TAG", "TAA", "TGA"]
+        codons = [
+            "".join([nuc1, nuc2, nuc3])
+            for nuc1 in nucleotides
+            for nuc2 in nucleotides
+            for nuc3 in nucleotides
+        ]
+        codon_frequencies = {
+            codon: (
+                0
+                if codon in stop_codons
+                else f3x4_parameters["pos1"][codon[0]]
+                * f3x4_parameters["pos2"][codon[1]]
+                * f3x4_parameters["pos3"][codon[2]]
+            )
+            for codon in codons
+        }
         return codon_frequencies
 
-
     @staticmethod
-    def parse_output(output_path: str, job_output_dir: t.Optional[str] = None) -> t.Dict[str, t.Any]:
+    def parse_output(
+        output_path: str, job_output_dir: t.Optional[str] = None
+    ) -> t.Dict[str, t.Any]:
         """
         the parser is currently compatible only with site-models
         :param output_path:
         :param job_output_dir:
         :return:
         """
-        result = super(Paml, Paml).parse_output(output_path=output_path, job_output_dir=job_output_dir)
+        result = super(Paml, Paml).parse_output(
+            output_path=output_path, job_output_dir=job_output_dir
+        )
         with open(output_path, "r") as outfile:
             content = outfile.read()
 
@@ -252,12 +302,13 @@ class Paml(Program):
         inferred_w_content = inferred_w_regex.search(content).group(1)
         [props, ws] = [res.split("  ")[1:] for res in inferred_w_content.split("\n")]
         result["selection_parameters"] = {
-            cat + 1: {"prop": float(props[cat]), "w": float(ws[cat])} for cat in range(len(ws))
+            cat: {"prop": float(props[cat]), "w": float(ws[cat])}
+            for cat in range(len(ws))
         }
 
         duration_regex = re.compile("Time used:\s*(\d*\:\d*)", re.MULTILINE | re.DOTALL)
-        result["duration(minutes)"] = float((
-            duration_regex.search(content).group(1).replace(":", "."))
+        result["duration(minutes)"] = float(
+            (duration_regex.search(content).group(1).replace(":", "."))
         )
         kappa_regex = re.compile("kappa\s*\(ts\/tv\)\s= \s(\d*\.?\d*)")
         result["kappa"] = float(kappa_regex.search(content).group(1))
@@ -273,24 +324,38 @@ class Paml(Program):
         return result
 
     @staticmethod
-    def write_output_to_simulation_pipeline_json(program_output: t.Dict[str, t.Any], output_path: str, additional_simulation_parameters: t.Dict[str, t.Any]):
+    def write_output_to_simulation_pipeline_json(
+        program_output: t.Dict[str, t.Any],
+        output_path: str,
+        additional_simulation_parameters: t.Dict[str, t.Any],
+    ):
         """
         :param program_output: output of the program to translate to simulation params
         :param output_path: output path for simulation pipeline input json
         :param additional_simulation_parameters:  additional parameters
         :return:
         """
-        simulation_input_parameters = {"substitution_model": "",
-                                       "substitution_model_params": {"kappa": program_output["kappa"], "selection_parameters": program_output["selection_parameters"]},
-                                       "states_frequencies": program_output["states_frequencies"],
-                                       "tree_random": False,
-                                       "tree_length": program_output["tree_length"],
-                                       "simulation_tree_path": program_output["tree_path"],
-                                       "pinv": 0,
-                                       "alpha": 0,
-                                       "ngamcat": 0}
+        substitution_model_params_values = {
+            "kappa": program_output["kappa"],
+            "selection_parameters": program_output["selection_parameters"],
+        }
+        simulation_input_parameters = {
+            "substitution_model": "",
+            "substitution_model_params": substitution_model_params_values,
+            "states_frequencies": program_output["states_frequencies"],
+            "tree_random": False,
+            "tree_length": program_output["tree_length"],
+            "simulation_tree_path": program_output["tree_path"],
+            "pinv": 0,
+            "alpha": 0,
+            "ngamcat": 0,
+        }
         simulation_input_parameters.update(additional_simulation_parameters)
-        simulation_input = BaseTools.jsonable_encoder(SimulationInput(**simulation_input_parameters))
-        clean_simulation_input = {k: v for k, v in simulation_input.items() if v is not None}
+        simulation_input = BaseTools.jsonable_encoder(
+            SimulationInput(**simulation_input_parameters)
+        )
+        clean_simulation_input = {
+            k: v for k, v in simulation_input.items() if v is not None
+        }
         with open(output_path, "w") as output_file:
             json.dump(obj=clean_simulation_input, fp=output_file)
