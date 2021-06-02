@@ -110,7 +110,7 @@ class BaseTools:
                 }
                 for leaf in tree_leaves:
                     leaf.name = reversed_names_translator[leaf.name]
-                tree.write(outfile=output_path)
+                tree.write(outfile=output_path, format=5)
 
     @staticmethod
     def translate(sequence_records: t.List[SeqIO.SeqRecord], output_path: str):
