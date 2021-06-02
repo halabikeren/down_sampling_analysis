@@ -249,7 +249,7 @@ class BaseTools:
         """
         :param input_path path to aligned sequence data in a fasta format
         :param output_path path in which the tree should be written in newick format
-        :param sequence_data_type either nulceotide, amino_acid or codon
+        :param sequence_data_type either nucleotide, amino_acid or codon
         :param tree_reconstruction_method: enum representing the tree reconstruction method
         :param tree_reconstruction_params: map of parameter names to parameter values
         :return: None
