@@ -68,7 +68,9 @@ class PipelineInput(BaseModel):
     exec_on_full_data: bool = (
         True  # indicates weather the program should be executed on the full dataset
     )
-    reference_data_paths: t.Optional[t.Dict[str, FilePath]] = None  # maps a program to its relevant simulated reference data
+    reference_data_paths: t.Optional[
+        t.Dict[str, t.Dict[str, FilePath]]
+    ] = None  # maps a program to its relevant simulated reference data
     parallelize: bool = False  # indicator weather execution of programs on the samples should be parallelized or not
     cluster_data_dir: t.Optional[str] = None
     priority: int = (

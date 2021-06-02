@@ -35,9 +35,19 @@ class Pda(Sampler):
     ] = None  # sample subtree is saved such that if later on, a larger sample is required, we can simply extend the current one rather than start over
     pd_score: float = 0
 
-    def __init__(self, sequence_data_path: str, tree_path: str, exclude_a_ref_sequence: bool = False, sequences: t.Optional[t.List[SeqIO.SeqRecord]] = None,
-                 taxon_to_weight: t.Optional[t.Dict[str, float]] = None):
-        super(Pda, self).__init__(sequence_data_path=sequence_data_path, tree_path=tree_path, sequences=sequences)
+    def __init__(
+        self,
+        sequence_data_path: str,
+        tree_path: str,
+        exclude_a_ref_sequence: bool = False,
+        sequences: t.Optional[t.List[SeqIO.SeqRecord]] = None,
+        taxon_to_weight: t.Optional[t.Dict[str, float]] = None,
+    ):
+        super(Pda, self).__init__(
+            sequence_data_path=sequence_data_path,
+            tree_path=tree_path,
+            sequences=sequences,
+        )
         self.taxon_to_weight = taxon_to_weight
 
     def compute_taxon_weights(self, aligned_sequences_path: str):
@@ -70,7 +80,7 @@ class Pda(Sampler):
 
     @staticmethod
     def get_max_pd_pair(
-            node: Tree, node_to_height: t.Dict[str, t.Tuple[float, str]]
+        node: Tree, node_to_height: t.Dict[str, t.Tuple[float, str]]
     ) -> t.Tuple[t.List[str], float]:
         """
         :param node: node under which to two farthest leaves need to be detected
@@ -129,7 +139,7 @@ class Pda(Sampler):
         max_pd_leaves = ["", ""]
         for (leaf_1, leaf_2) in pairs:
             pd_score = self.norm_factor * self.tree.get_distance(leaf_1, leaf_2) + (
-                    self.taxon_to_weight[leaf_1.name] + self.taxon_to_weight[leaf_2.name]
+                self.taxon_to_weight[leaf_1.name] + self.taxon_to_weight[leaf_2.name]
             )
             if pd_score > max_pd_score:
                 max_pd_score = pd_score
@@ -207,7 +217,7 @@ class Pda(Sampler):
                 i += 1
 
     def exec_external_pda(
-            self, k: int, aux_dir: str, is_weighted: bool = False
+        self, k: int, aux_dir: str, is_weighted: bool = False
     ) -> t.List[str]:
         """
         :param k: sample size
@@ -220,14 +230,16 @@ class Pda(Sampler):
         weights_arg = ""
         if is_weighted:
             with open(
-                    f"{os.path.dirname(self.sequences_path)}/weights.txt", "w"
+                f"{os.path.dirname(self.sequences_path)}/weights.txt", "w"
             ) as weights_file:
                 weights_file.write(f"{self.norm_factor}\n")
                 for taxon in self.taxon_to_weight:
                     weights_file.write(f"{taxon}\t{self.taxon_to_weight[taxon]}\n")
             weights_arg += f" -e {os.path.dirname(self.sequences_path)}/weights.txt"
         cmd = f"{os.environ['cluster_pda'] if 'power' in socket.gethostname() else os.environ['pda']} -g -k {k}{weights_arg} {aux_dir}/tree.nwk {aux_dir}/out.pda"
-        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(
+            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         if len(process.stderr.read()) > 0:
             raise RuntimeError(
                 f"PDA failed to properly execute and provide an output file with error {process.stderr.read()} and output is {process.stdout.read()}"
@@ -246,11 +258,11 @@ class Pda(Sampler):
         return sample_members
 
     def get_sample(
-            self,
-            k: int,
-            aux_dir: str,
-            is_weighted: bool = False,
-            use_external: bool = False,
+        self,
+        k: int,
+        aux_dir: str,
+        is_weighted: bool = False,
+        use_external: bool = False,
     ) -> t.List[SeqIO.SeqRecord]:
         """
         computes the most phylogenetically diverse weighted sample based on the greedy algorithm of Steel (2005).
@@ -279,9 +291,17 @@ class Pda(Sampler):
             if is_weighted:
                 self.pd_score += self.taxon_to_weight[sample[0].name]
         else:
-            if (not self.exclude_a_ref_sequence and k > 1) or (self.exclude_a_ref_sequence and k - 1 > 1):
+            if (not self.exclude_a_ref_sequence and k > 1) or (
+                self.exclude_a_ref_sequence and k - 1 > 1
+            ):
                 if self.exclude_a_ref_sequence:
-                    self.tree.prune([leaf for leaf in self.tree.get_leaf_names() if leaf != self.saved_sequence.name])
+                    self.tree.prune(
+                        [
+                            leaf
+                            for leaf in self.tree.get_leaf_names()
+                            if leaf != self.saved_sequence.name
+                        ]
+                    )
                 sample_size = k - 1 if self.exclude_a_ref_sequence else k
                 if not use_external:
                     self.sample_subtree = Tree()
@@ -294,7 +314,11 @@ class Pda(Sampler):
                         sample_size, aux_dir, is_weighted=is_weighted
                     )
             else:  # self.exclude_a_ref_sequence and k-1 == 1:
-                leaves = [leaf for leaf in self.tree.get_leaves() if leaf.name != self.saved_sequence.name]
+                leaves = [
+                    leaf
+                    for leaf in self.tree.get_leaves()
+                    if leaf.name != self.saved_sequence.name
+                ]
                 saved_leaf = self.tree.search_nodes(name=self.saved_sequence.name)[0]
                 most_disant_leaf = leaves[0]
                 max_dist = self.tree.get_distance(saved_leaf, most_disant_leaf)
@@ -310,5 +334,7 @@ class Pda(Sampler):
                 record for record in self.sequences if record.name in sample_members
             ]
             if self.exclude_a_ref_sequence:
-                sample.append(self.saved_sequence)  # saved sequence must be in every sample
+                sample.append(
+                    self.saved_sequence
+                )  # saved sequence must be in every sample
         return sample

@@ -15,7 +15,9 @@ class TestSimulationPipeline(unittest.TestCase):
             simulation_params = json.load(input_file)
         os.makedirs(simulation_params["simulations_output_dir"], exist_ok=True)
         simulation_input = SimulationInput(**simulation_params)
-        self.pipeline_input_json_paths = SimulationTools.simulate(simulation_input=simulation_input)
+        self.pipeline_input_json_paths = SimulationTools.simulate(
+            simulation_input=simulation_input
+        )
 
     def generate_pipeline_inputs(self) -> t.List[PipelineInput]:
         if len(self.pipeline_input_json_paths) == 0:

@@ -451,8 +451,16 @@ class SimulationTools:
         from programs import ProgramName
 
         pipeline_json_input["reference_data_paths"] = {
-            ProgramName.RATE4SITE.value: f"{os.getcwd()}/seq_data_RATES.txt",
-            ProgramName.BUSTED.value: f"{os.getcwd()}/control.txt",
+            ProgramName.RATE4SITE.value: {
+                "per_position_reference": f"{os.getcwd()}/seq_data_RATES.txt"
+            },
+            ProgramName.BUSTED.value: {
+                "parameters_reference": f"{os.getcwd()}/control.txt"
+            },
+            ProgramName.PAML.value: {
+                "parameters_reference": f"{os.getcwd()}/control.txt",
+                "per_position_reference": f"{os.getcwd()}/seq_data_RATES.txt",
+            },
         }
         # "fastml": f"{os.getcwd()}/seq_data_ANCESTRAL_1.fasta"}
         with open(output_path, "w") as json_file:

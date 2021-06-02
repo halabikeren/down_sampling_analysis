@@ -20,7 +20,7 @@ load_dotenv()
 )
 def exec_pipeline(input_path: click.Path):
     """Program to activate down sampling analysis pipeline given parameters input file in a json format.
-        For example of the json format parameters, see data/input_json_parameters.txt"""
+    For example of the json format parameters, see data/input_json_parameters.txt"""
 
     # process input json file
     json_dir = os.path.dirname(input_path)
@@ -58,7 +58,9 @@ def exec_pipeline(input_path: click.Path):
     program_names = [prog.value for prog in pipeline_input.programs]
     logger.info(f"Executing programs {program_names}")
     pipeline.execute_programs(pipeline_input)
-    logger.info(f"Executed program {program_names} on the generated samples successfully.")
+    logger.info(
+        f"Executed program {program_names} on the generated samples successfully."
+    )
 
     pipeline_output_path = f"{pipeline_input.pipeline_dir}/pipeline_output.json"
     logger.info(f"Writing pipeline output to {pipeline_output_path}")

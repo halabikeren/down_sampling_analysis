@@ -30,9 +30,11 @@ class TestRate4ite(unittest.TestCase):
             aux_dir=self.aux_dir,
             additional_params={"-zj": ""},
         )
-        result = prog.parse_output(output_path=self.output_path, job_output_dir=self.aux_dir)
+        result = prog.parse_output(
+            output_path=self.output_path, job_output_dir=self.aux_dir
+        )
         self.assertAlmostEqual(result["alpha"], 4.43237)
-        self.assertTrue(abs(result["log_likelihood"]-(-156.342)) < 0.1)
+        self.assertTrue(abs(result["log_likelihood"] - (-156.342)) < 0.1)
         rates_by_position = pd.DataFrame.from_dict(result["rate_by_position"])
         self.assertEqual(
             rates_by_position.loc[
@@ -41,7 +43,13 @@ class TestRate4ite(unittest.TestCase):
             "G",
         )
         self.assertTrue(
-            abs(rates_by_position.loc[rates_by_position["position"] == 4, "rate"].values[0]-0.7202) < 0.1,
+            abs(
+                rates_by_position.loc[
+                    rates_by_position["position"] == 4, "rate"
+                ].values[0]
+                - 0.7202
+            )
+            < 0.1,
         )
 
     def tearDown(self):

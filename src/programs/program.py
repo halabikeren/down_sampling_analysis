@@ -242,23 +242,34 @@ class Program:
                 job_output_path = paths_by_time[0]
                 with open(job_output_path, "r") as job_output_file:
                     content = job_output_file.readlines()
-                start_time = datetime.strptime(content[0].rstrip(), "%H:%M:%S")
-                end_time = datetime.strptime(content[-1].rstrip(), "%H:%M:%S")
-                duration = (end_time - start_time).total_seconds() / 60
-                result["duration(minutes)"] = duration
+                try:
+                    start_time = datetime.strptime(content[0].rstrip(), "%H:%M:%S")
+                    end_time = datetime.strptime(content[-1].rstrip(), "%H:%M:%S")
+                    duration = (end_time - start_time).total_seconds() / 60
+                    result["duration(minutes)"] = duration
+                except:
+                    pass
 
         return result
 
     @staticmethod
-    def parse_reference_data(input_path: str) -> t.Dict[str, t.Any]:
+    def parse_reference_data(input_paths: t.Dict[str, str]) -> t.Dict[str, t.Any]:
         """
-        :param input_path: path to the reference data
+        :param input_paths: paths to the reference data
         :return: a dictionary with the parsed reference data
         """
         result = dict()
-        if os.path.exists(input_path):
-            with open(input_path, "r") as input_file:
-                result["raw_output"] = input_file.read()
+        result["raw_output"] = dict()
+        if "parameters_reference" in input_paths:
+            input_path = input_paths["parameters_reference"]
+            if os.path.exists(input_path):
+                with open(input_path, "r") as input_file:
+                    result["raw_output"]["parameters"] = input_file.read()
+        if "per_position_reference" in input_paths:
+            input_path = input_paths["per_position_reference"]
+            if os.path.exists(input_path):
+                with open(input_path, "r") as input_file:
+                    result["raw_output"]["position_wise"] = input_file.read()
         return result
 
     @staticmethod

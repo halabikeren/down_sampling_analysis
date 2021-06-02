@@ -1,8 +1,24 @@
 import unittest
 import sys
-from tests import TestPDA, TestCDHIT, TestRate4ite, TestRandom, TestPAML, TestPipeline, TestSimulationPipeline
+from tests import (
+    TestPDA,
+    TestCDHIT,
+    TestRate4ite,
+    TestRandom,
+    TestPAML,
+    TestPipeline,
+    TestSimulationPipeline,
+)
 
-TESTS = [TestCDHIT, TestPDA, TestRandom, TestRate4ite, TestPAML, TestPipeline, TestSimulationPipeline]
+TESTS = [
+    TestCDHIT,
+    TestPDA,
+    TestRandom,
+    TestRate4ite,
+    TestPAML,
+    TestPipeline,
+    TestSimulationPipeline,
+]
 
 
 suite = unittest.TestSuite()

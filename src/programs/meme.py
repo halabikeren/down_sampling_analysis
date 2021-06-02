@@ -80,7 +80,7 @@ class Meme(Program):
         return [cmd, f"cp -r {program_input_path}.MEME.json {program_output_path}"]
 
     @staticmethod
-    def parse_reference_data(input_path: str) -> t.Dict[str, t.Any]:
+    def parse_reference_data(input_paths: t.Dict[str, str]) -> t.Dict[str, t.Any]:
         """
         :param input_path: path to the reference data
         :return: a dictionary with the parsed reference data
@@ -93,6 +93,7 @@ class Meme(Program):
             "tree": re.compile("\[TREE\][^\(]*(.*?)\n", re.DOTALL),
         }
         reference_data = dict()
+        input_path = input_paths["parameters_reference"]
         with open(input_path, "r") as infile:
             content = infile.read()
         reference_data["kappa"] = float(

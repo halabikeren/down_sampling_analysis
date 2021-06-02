@@ -13,8 +13,7 @@ class TestPDA(unittest.TestCase):
     tree = Tree("((A:2,B:1):1,(C:1,(D:8,E:2):2):2);")
 
     def test_unweighted_sample(self):
-        pda = Pda(sequence_data_path=self.sequences_data_path,
-                  tree_path=self.tree_path)
+        pda = Pda(sequence_data_path=self.sequences_data_path, tree_path=self.tree_path)
         expected_sample = {"A", "D", "E"}
         accepted_sample = pda.get_sample(3, self.aux_dir)
         if type(accepted_sample) is str:
@@ -23,8 +22,7 @@ class TestPDA(unittest.TestCase):
         self.assertEqual(accepted_sample, expected_sample)
 
     def test_unweighted_sample_external(self):
-        pda = Pda(sequence_data_path=self.sequences_data_path,
-                  tree_path=self.tree_path)
+        pda = Pda(sequence_data_path=self.sequences_data_path, tree_path=self.tree_path)
         expected_sample = {"A", "D", "E"}
         accepted_sample = pda.get_sample(3, self.aux_dir, use_external=True)
         if type(accepted_sample) is str:
@@ -33,9 +31,11 @@ class TestPDA(unittest.TestCase):
         self.assertEqual(accepted_sample, expected_sample)
 
     def test_null_weighted_sample(self):
-        pda = Pda(sequence_data_path=self.sequences_data_path,
-                  tree_path=self.tree_path,
-                  taxon_to_weight={"A": 1, "B": 1, "C": 1, "D": 1, "E": 1})
+        pda = Pda(
+            sequence_data_path=self.sequences_data_path,
+            tree_path=self.tree_path,
+            taxon_to_weight={"A": 1, "B": 1, "C": 1, "D": 1, "E": 1},
+        )
         expected_sample = {"A", "D", "E"}
         accepted_sample = pda.get_sample(3, self.aux_dir)
         if type(accepted_sample) is str:
@@ -44,9 +44,11 @@ class TestPDA(unittest.TestCase):
         self.assertEqual(accepted_sample, expected_sample)
 
     def test_null_weighted_sample_external(self):
-        pda = Pda(sequence_data_path=self.sequences_data_path,
-                  tree_path=self.tree_path,
-                  taxon_to_weight={"A": 1, "B": 1, "C": 1, "D": 1, "E": 1})
+        pda = Pda(
+            sequence_data_path=self.sequences_data_path,
+            tree_path=self.tree_path,
+            taxon_to_weight={"A": 1, "B": 1, "C": 1, "D": 1, "E": 1},
+        )
         expected_sample = {"A", "D", "E"}
         accepted_sample = pda.get_sample(3, self.aux_dir)
         if type(accepted_sample) is str:
@@ -55,9 +57,11 @@ class TestPDA(unittest.TestCase):
         self.assertEqual(accepted_sample, expected_sample)
 
     def test_weighted_sample_no_normalization(self):
-        pda = Pda(sequence_data_path=self.sequences_data_path,
-                  tree_path=self.tree_path,
-                  taxon_to_weight={"A": 0.5, "B": 0.5, "C": 1, "D": 0.01, "E": 0.5})
+        pda = Pda(
+            sequence_data_path=self.sequences_data_path,
+            tree_path=self.tree_path,
+            taxon_to_weight={"A": 0.5, "B": 0.5, "C": 1, "D": 0.01, "E": 0.5},
+        )
         expected_sample = {"A", "D", "E"}
         accepted_sample = pda.get_sample(3, self.aux_dir, is_weighted=True)
         if type(accepted_sample) is str:
@@ -66,9 +70,11 @@ class TestPDA(unittest.TestCase):
         self.assertEqual(accepted_sample, expected_sample)
 
     def test_weighted_sample_no_normalization_external(self):
-        pda = Pda(sequence_data_path=self.sequences_data_path,
-                  tree_path=self.tree_path,
-                  taxon_to_weight={"A": 0.5, "B": 0.5, "C": 1, "D": 0.01, "E": 0.5})
+        pda = Pda(
+            sequence_data_path=self.sequences_data_path,
+            tree_path=self.tree_path,
+            taxon_to_weight={"A": 0.5, "B": 0.5, "C": 1, "D": 0.01, "E": 0.5},
+        )
         expected_sample = {"A", "D", "E"}
         accepted_sample = pda.get_sample(3, self.aux_dir, use_external=True)
         if type(accepted_sample) is str:
@@ -77,9 +83,11 @@ class TestPDA(unittest.TestCase):
         self.assertEqual(accepted_sample, expected_sample)
 
     def test_weighted_sample_with_normalization(self):
-        pda = Pda(sequence_data_path=self.sequences_data_path,
-                  tree_path=self.tree_path,
-                  taxon_to_weight={"A": 0.5, "B": 0.5, "C": 1, "D": 0.01, "E": 0.5})
+        pda = Pda(
+            sequence_data_path=self.sequences_data_path,
+            tree_path=self.tree_path,
+            taxon_to_weight={"A": 0.5, "B": 0.5, "C": 1, "D": 0.01, "E": 0.5},
+        )
         pda.norm_factor = 0.01
         expected_sample = {"A", "C", "E"}
         accepted_sample = pda.get_sample(3, self.aux_dir, is_weighted=True)
@@ -105,8 +113,7 @@ class TestPDA(unittest.TestCase):
         self.assertEqual(accepted_sample, expected_sample)
 
     def test_computed_weights(self):
-        pda = Pda(sequence_data_path=self.sequences_data_path,
-                  tree_path=self.tree_path)
+        pda = Pda(sequence_data_path=self.sequences_data_path, tree_path=self.tree_path)
         pda.compute_taxon_weights(f"/data/test/aligned_seq_data.fas")
         self.assertEqual(
             pda.taxon_to_weight,

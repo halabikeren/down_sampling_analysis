@@ -14,8 +14,18 @@ log = logging.getLogger(__name__)
 class CdHit(Sampler):
     thr_to_sample: t.Dict[float, t.List[SeqIO.SeqRecord]] = field(default_factory=dict)
 
-    def __init__(self, sequence_data_path: str, tree_path: str, exclude_a_ref_sequence: bool = False, sequences: t.Optional[t.List[SeqIO.SeqRecord]] = None):
-        super(CdHit, self).__init__(sequence_data_path=sequence_data_path, tree_path=tree_path, sequences=sequences)
+    def __init__(
+        self,
+        sequence_data_path: str,
+        tree_path: str,
+        exclude_a_ref_sequence: bool = False,
+        sequences: t.Optional[t.List[SeqIO.SeqRecord]] = None,
+    ):
+        super(CdHit, self).__init__(
+            sequence_data_path=sequence_data_path,
+            tree_path=tree_path,
+            sequences=sequences,
+        )
         self.thr_to_sample = dict()
 
     def run_cd_hit(self, threshold: float, aux_dir: str) -> str:
@@ -39,7 +49,9 @@ class CdHit(Sampler):
             else (3 if threshold > 0.5 else 2)
         )
         cmd = f"cd-hit -i {self.sequences_path} -o {output_file} -c {threshold} -n {word_len}"
-        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(
+            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         if len(process.stderr.read()) > 0:
             raise RuntimeError(
                 f"CD-HIT failed to properly execute and provide an output file with error {process.stderr.read()} and output is {process.stdout.read()}"
@@ -125,24 +137,27 @@ class CdHit(Sampler):
         else:  # self.sample_size < middle_sample_size:
             return self.get_similarity_threshold(k, left_thr, middle_thr, aux_dir)
 
-    def get_sample(
-        self, k: int, aux_dir: str, **kwargs
-    ) -> t.List[SeqIO.SeqRecord]:
+    def get_sample(self, k: int, aux_dir: str, **kwargs) -> t.List[SeqIO.SeqRecord]:
         """
         :param k: number of sequences to sample
         :param aux_dir directory to generate auxiliary files in
         :return: either a path to the generated sample or a list of samples sequence names
         """
         sample = super(CdHit, self).get_sample(k, aux_dir)
-        if k < len(self.sequences) and ((self.exclude_a_ref_sequence and k-1>0) or not self.exclude_a_ref_sequence):
+        if k < len(self.sequences) and (
+            (self.exclude_a_ref_sequence and k - 1 > 0)
+            or not self.exclude_a_ref_sequence
+        ):
             os.makedirs(aux_dir, exist_ok=True)
-            sample_size = k-1 if self.exclude_a_ref_sequence else k
+            sample_size = k - 1 if self.exclude_a_ref_sequence else k
             thr = self.get_similarity_threshold(
                 sample_size, 0.4, 1, aux_dir
             )  # the minimum threshold 0.4 is set based on experience
             sample = self.thr_to_sample[thr]
             if self.exclude_a_ref_sequence:
-                sample.append(self.saved_sequence)  # saved sequence must be in every sample
+                sample.append(
+                    self.saved_sequence
+                )  # saved sequence must be in every sample
         elif self.exclude_a_ref_sequence and k == 1:
             return [self.saved_sequence]
         return sample

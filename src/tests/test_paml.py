@@ -31,11 +31,37 @@ class TestPAML(unittest.TestCase):
             additional_params={"NSsites": "3"},
         )
         result = prog.parse_output(self.output_path)
-        neb_positive_selection_analysis = pd.DataFrame.from_dict(result["NEB_positive_selection_analysis"])
-        self.assertTrue(neb_positive_selection_analysis.loc[neb_positive_selection_analysis["position"] == 50, "is_significant"].values[0])
-        self.assertTrue(abs(neb_positive_selection_analysis.loc[neb_positive_selection_analysis["position"] == 50, "mean(w)"].values[0]-4.705) < 0.1)
-        self.assertTrue(not neb_positive_selection_analysis.loc[neb_positive_selection_analysis["position"] == 15, "is_significant"].values[0])
-        self.assertTrue(abs(neb_positive_selection_analysis.loc[neb_positive_selection_analysis["position"] == 15, "p(w>1)"].values[0] - 0.913) < 0.1)
+        neb_positive_selection_analysis = pd.DataFrame.from_dict(
+            result["NEB_positive_selection_analysis"]
+        )
+        self.assertTrue(
+            neb_positive_selection_analysis.loc[
+                neb_positive_selection_analysis["position"] == 50, "is_significant"
+            ].values[0]
+        )
+        self.assertTrue(
+            abs(
+                neb_positive_selection_analysis.loc[
+                    neb_positive_selection_analysis["position"] == 50, "mean(w)"
+                ].values[0]
+                - 4.705
+            )
+            < 0.1
+        )
+        self.assertTrue(
+            not neb_positive_selection_analysis.loc[
+                neb_positive_selection_analysis["position"] == 15, "is_significant"
+            ].values[0]
+        )
+        self.assertTrue(
+            abs(
+                neb_positive_selection_analysis.loc[
+                    neb_positive_selection_analysis["position"] == 15, "p(w>1)"
+                ].values[0]
+                - 0.913
+            )
+            < 0.1
+        )
         self.assertTrue(result["selection_parameters"][1]["prop"] <= 1)
         self.assertTrue(result["selection_parameters"][1]["w"] < 0.4)
         self.assertTrue(int(result["duration(minutes)"]) < 2)
@@ -43,4 +69,3 @@ class TestPAML(unittest.TestCase):
     def tearDown(self):
         if os.path.exists(self.output_path):
             os.remove(self.output_path)
-

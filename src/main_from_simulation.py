@@ -13,7 +13,9 @@ import seaborn as sns
 load_dotenv()
 
 
-def plot_large_scale_error(df: pd.DataFrame, output_path: str, use_relative_error: bool = False):
+def plot_large_scale_error(
+    df: pd.DataFrame, output_path: str, use_relative_error: bool = False
+):
     """
     :param df: dataframe with a column "replicate" and other, program specific, columns
     :param output_path: path to plot the data in
@@ -26,7 +28,12 @@ def plot_large_scale_error(df: pd.DataFrame, output_path: str, use_relative_erro
     prefix = "absolute"
     if use_relative_error:
         prefix = "relative"
-    ncols = 2 if f"{prefix}_error_to_ref" in df.columns and f"{prefix}_error_to_full" in df.columns else 1
+    ncols = (
+        2
+        if f"{prefix}_error_to_ref" in df.columns
+        and f"{prefix}_error_to_full" in df.columns
+        else 1
+    )
     fig, axis = plt.subplots(
         nrows=1,
         ncols=ncols,
@@ -36,17 +43,31 @@ def plot_large_scale_error(df: pd.DataFrame, output_path: str, use_relative_erro
         frameon=True,
     )
     if f"{prefix}_error_to_ref" in df.columns:
-        sns.boxplot(ax=axis[0], y=f"{prefix}_error_to_ref", x="sampling_fraction", data=df,
-                    palette="colorblind",
-                    hue="sampling_method")
-        axis[0].set_ylabel(f"mean {prefix} error ({len(df['replicate'].unique())} replicates)")
+        sns.boxplot(
+            ax=axis[0],
+            y=f"{prefix}_error_to_ref",
+            x="sampling_fraction",
+            data=df,
+            palette="colorblind",
+            hue="sampling_method",
+        )
+        axis[0].set_ylabel(
+            f"mean {prefix} error ({len(df['replicate'].unique())} replicates)"
+        )
         axis[0].set_xlabel("sampling fraction")
         axis[0].set_title("reference: simulated rates")
     if f"{prefix}_error_to_full" in df.columns:
-        sns.boxplot(ax=axis[1], y=f"{prefix}_error_to_full", x="sampling_fraction", data=df,
-                    palette="colorblind",
-                    hue="sampling_method")
-        axis[1].set_ylabel(f"mean {prefix} error ({len(df['replicate'].unique())} replicates)")
+        sns.boxplot(
+            ax=axis[1],
+            y=f"{prefix}_error_to_full",
+            x="sampling_fraction",
+            data=df,
+            palette="colorblind",
+            hue="sampling_method",
+        )
+        axis[1].set_ylabel(
+            f"mean {prefix} error ({len(df['replicate'].unique())} replicates)"
+        )
         axis[1].set_xlabel("sampling fraction")
         axis[1].set_title("reference: inferred rates based on full dataset")
     fig.subplots_adjust()
@@ -67,17 +88,27 @@ def plot_large_scale_bias(df: pd.DataFrame, output_path: str):
         frameon=True,
     )
     # plot rate next to simulated
-    sns.boxplot(ax=axis[0], y="full_bias", x="sampling_fraction", data=df,
-                palette="colorblind",
-                hue="sampling_method")
+    sns.boxplot(
+        ax=axis[0],
+        y="full_bias",
+        x="sampling_fraction",
+        data=df,
+        palette="colorblind",
+        hue="sampling_method",
+    )
     # plot rate next to full
     axis[0].set_ylabel(f"rates diff ({len(df['replicate'].unique())} replicates)")
     axis[0].set_xlabel("sampling fraction")
     axis[0].set_title("reference: simulated rates")
 
-    sns.boxplot(ax=axis[1], y="simulated_bias", x="sampling_fraction", data=df,
-                palette="colorblind",
-                hue="sampling_method")
+    sns.boxplot(
+        ax=axis[1],
+        y="simulated_bias",
+        x="sampling_fraction",
+        data=df,
+        palette="colorblind",
+        hue="sampling_method",
+    )
     axis[1].set_ylabel(f"rates diff ({len(df['replicate'].unique())} replicates)")
     axis[1].set_xlabel("sampling fraction")
     axis[1].set_title("reference: inferred rates based on full dataset")
@@ -99,9 +130,14 @@ def plot_large_scale_samples_overlap(df: pd.DataFrame, output_path: str):
         figsize=[1 * 8.5 + 2 + 2, 7.58 + 2],
         frameon=True,
     )
-    sns.boxplot(ax=axis, y="overlap_fraction", x="sampling_fraction", data=df,
-                palette="colorblind",
-                hue="compared_methods")
+    sns.boxplot(
+        ax=axis,
+        y="overlap_fraction",
+        x="sampling_fraction",
+        data=df,
+        palette="colorblind",
+        hue="compared_methods",
+    )
     axis.set_ylabel(f"% overlap ({len(df['replicate'].unique())} replicates)")
     axis.set_xlabel("sampling fraction")
     fig.subplots_adjust()
@@ -119,7 +155,7 @@ def plot_large_scale_samples_overlap(df: pd.DataFrame, output_path: str):
 )
 def exec_pipeline_on_simulations(input_path: click.Path):
     """Program to simulate multiple datasets and then submit pipeline jobs for each one
-       For example of the json format parameters, see data/test/simulation.json"""
+    For example of the json format parameters, see data/test/simulation.json"""
 
     # process input json file
     with open(input_path, "r") as input_file:
@@ -135,9 +171,7 @@ def exec_pipeline_on_simulations(input_path: click.Path):
         format="%(asctime)s module: %(module)s function: %(funcName)s line: %(lineno)d %(message)s",
         handlers=[
             logging.StreamHandler(sys.stdout),
-            logging.FileHandler(
-                f"{os.path.dirname(input_path)}/simulations.log"
-            ),
+            logging.FileHandler(f"{os.path.dirname(input_path)}/simulations.log"),
         ],
     )
     logger = logging.getLogger(__name__)
@@ -151,8 +185,10 @@ def exec_pipeline_on_simulations(input_path: click.Path):
     simulations_exist = False
     simulations_exec_complete = False
     repetitions_num = simulation_input.nrep
-    if os.path.exists(simulation_input.simulations_output_dir) and os.listdir(
-            simulation_input.simulations_output_dir) == repetitions_num:
+    if (
+        os.path.exists(simulation_input.simulations_output_dir)
+        and os.listdir(simulation_input.simulations_output_dir) == repetitions_num
+    ):
         simulations_exist = True
         all_exist = True
         for path in os.listdir(simulation_params.simulations_output_dir):
@@ -164,13 +200,19 @@ def exec_pipeline_on_simulations(input_path: click.Path):
             simulations_exec_complete = True
 
     if not simulations_exist:
-        pipeline_input_json_paths = SimulationTools.simulate(simulation_input=simulation_input)
-        simulations_dirs = [f"{os.path.dirname(json_path)}/" for json_path in pipeline_input_json_paths]
+        pipeline_input_json_paths = SimulationTools.simulate(
+            simulation_input=simulation_input
+        )
+        simulations_dirs = [
+            f"{os.path.dirname(json_path)}/" for json_path in pipeline_input_json_paths
+        ]
         logger.info(f"Simulation is complete.")
 
     else:
-        simulations_dirs = [f"{simulation_input.simulations_output_dir}/{path}/" for path in
-                            os.listdir(simulation_input.simulations_output_dir)]
+        simulations_dirs = [
+            f"{simulation_input.simulations_output_dir}/{path}/"
+            for path in os.listdir(simulation_input.simulations_output_dir)
+        ]
 
     if not simulations_exec_complete:
         logger.info(f"submitting pipeline jobs for the simulated data")
@@ -184,14 +226,17 @@ def exec_pipeline_on_simulations(input_path: click.Path):
                     sh_dir=aux_dir,
                     output_dir=aux_dir,
                     commands=[
-                        f"python /groups/itay_mayrose/halabikeren/down_sampling_analysis/src/main.py --input_path={json_path}"],
+                        f"python /groups/itay_mayrose/halabikeren/down_sampling_analysis/src/main.py --input_path={json_path}"
+                    ],
                     priority=simulation_params["priority"],
                     queue=simulation_params["queue"],
                 )
-                completion_validators.append(job.submit(
-                    wait_until_complete=False,
-                    get_completion_validator=True,
-                ))
+                completion_validators.append(
+                    job.submit(
+                        wait_until_complete=False,
+                        get_completion_validator=True,
+                    )
+                )
         logger.info(f"Job submission is complete")
 
         # wait for jobs to complete
@@ -200,22 +245,33 @@ def exec_pipeline_on_simulations(input_path: click.Path):
                 sleep(60)
 
     # analyze large scale results
-    paths = [path for path in os.listdir(simulation_input.simulations_output_dir) if "rep" in path]
+    paths = [
+        path
+        for path in os.listdir(simulation_input.simulations_output_dir)
+        if "rep" in path
+    ]
     overlap_dfs = []
     for path in paths:
         overlap_df_path = f"{simulation_input.simulations_output_dir}/{path}/pipeline_dir/samples/samples_overlap.csv"
         overlap_df = pd.read_csv(overlap_df_path)
         overlap_df["replicate"] = path
-        overlap_df["compared_methods"] = overlap_df["method_1"].str.cat(overlap_df[["method_2"]], sep=',')
+        overlap_df["compared_methods"] = overlap_df["method_1"].str.cat(
+            overlap_df[["method_2"]], sep=","
+        )
         overlap_dfs.append(overlap_df)
     full_overlap_df = pd.concat(overlap_dfs)
-    plot_large_scale_samples_overlap(df=full_overlap_df, output_path=f"{simulation_input.simulations_output_dir}/samples_overlap.svg")
-
-
+    plot_large_scale_samples_overlap(
+        df=full_overlap_df,
+        output_path=f"{simulation_input.simulations_output_dir}/samples_overlap.svg",
+    )
 
     for program in simulation_input.programs:
         data = []
-        paths = [path for path in os.listdir(simulation_input.simulations_output_dir) if "rep" in path]
+        paths = [
+            path
+            for path in os.listdir(simulation_input.simulations_output_dir)
+            if "rep" in path
+        ]
         for path in paths:
             df_path = f"{simulation_input.simulations_output_dir}/{path}/pipeline_dir/tables/{program}_summary.csv"
             try:
@@ -223,22 +279,36 @@ def exec_pipeline_on_simulations(input_path: click.Path):
                 rep_data["replicate"] = path
                 data.append(rep_data)
             except Exception as e:
-                logger.error(f"Failed to load dataframe from {df_path} due to error {e}")
+                logger.error(
+                    f"Failed to load dataframe from {df_path} due to error {e}"
+                )
         full_df = pd.concat(data)
         full_df["full_bias"] = full_df["result"] - full_df["full_result"]
         full_df["simulated_bias"] = full_df["result"] - full_df["simulated"]
-        full_df_grouped = full_df.groupby(["replicate", "sampling_fraction", "sampling_method"]).mean().reset_index()
-        full_df_grouped.to_csv(f"{simulation_params['simulations_output_dir']}/{program}_aggregated_data.csv")
+        full_df_grouped = (
+            full_df.groupby(["replicate", "sampling_fraction", "sampling_method"])
+            .mean()
+            .reset_index()
+        )
+        full_df_grouped.to_csv(
+            f"{simulation_params['simulations_output_dir']}/{program}_aggregated_data.csv"
+        )
 
         # plot large scale data
-        plot_large_scale_error(df=full_df_grouped,
-                               output_path=f"{simulation_input.simulations_output_dir}/{program}_absolute_error.svg",
-                               use_relative_error=False)
-        plot_large_scale_error(df=full_df_grouped,
-                               output_path=f"{simulation_input.simulations_output_dir}/{program}_relative_error.svg",
-                               use_relative_error=True)
-        plot_large_scale_bias(df=full_df_grouped,
-                              output_path=f"{simulation_input.simulations_output_dir}/{program}_bias.svg")
+        plot_large_scale_error(
+            df=full_df_grouped,
+            output_path=f"{simulation_input.simulations_output_dir}/{program}_absolute_error.svg",
+            use_relative_error=False,
+        )
+        plot_large_scale_error(
+            df=full_df_grouped,
+            output_path=f"{simulation_input.simulations_output_dir}/{program}_relative_error.svg",
+            use_relative_error=True,
+        )
+        plot_large_scale_bias(
+            df=full_df_grouped,
+            output_path=f"{simulation_input.simulations_output_dir}/{program}_bias.svg",
+        )
 
 
 if __name__ == "__main__":

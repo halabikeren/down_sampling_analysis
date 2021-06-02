@@ -163,15 +163,17 @@ class Paml(Program):
             control_file.write(control_file_content)
 
     @staticmethod
-    def parse_reference_data(input_path: str) -> t.Dict[str, t.Any]:
+    def parse_reference_data(input_paths: t.Dict[str, str]) -> t.Dict[str, t.Any]:
         """
-        :param input_path: path to the reference data
+        :param input_paths: paths to the reference data
         :return: a dictionary with the parsed reference data
         """
         rates_data_regex = re.compile("(Site\s*Class.*)", re.MULTILINE | re.DOTALL)
+        input_path = input_paths["per_position_reference"]
         with open(input_path, "r") as input_file:
             rates_data = rates_data_regex.search(input_file.read()).group(1)
         f = StringIO(rates_data)
+        # here, might need to cross with simulated rates (dN/dS) which are available in input_paths["parameters_reference"]
         rates_df = pd.read_csv(f, sep="\t")
         return rates_df.to_dict()
 
@@ -310,7 +312,7 @@ class Paml(Program):
         result["duration(minutes)"] = float(
             (duration_regex.search(content).group(1).replace(":", "."))
         )
-        kappa_regex = re.compile("kappa\s*\(ts\/tv\)\s= \s(\d*\.?\d*)")
+        kappa_regex = re.compile("kappa\s*\(ts\/tv\)\s*=\s*(\d*\.?\d*)")
         result["kappa"] = float(kappa_regex.search(content).group(1))
         tree_length_regex = re.compile("tree\s*length\s*=\s*(\d*\.?\d*)")
         result["tree_length"] = float(tree_length_regex.search(content).group(1))
