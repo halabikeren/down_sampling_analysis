@@ -102,7 +102,7 @@ class BaseTools:
                     new_to_orig_name[f"S{s}"] = leaf.name
                     leaf.name = f"S{s}"
                     s += 1
-                tree.write(outfile=output_path)
+                tree.write(outfile=output_path, format=5)
                 return new_to_orig_name
             else:
                 reversed_names_translator = {
