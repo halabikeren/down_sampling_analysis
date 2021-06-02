@@ -52,14 +52,20 @@ class Program:
         additional_params_str = ""
         if additional_params:
             for field in additional_params:
-                if parallelize and not additional_params[field].startswith(
-                    cluster_data_dir
+                if (
+                    parallelize
+                    and os.path.isdir(additional_params[field])
+                    and not additional_params[field].startswith(cluster_data_dir)
                 ):
                     additional_params[
                         field
                     ] = f"{cluster_data_dir}/{additional_params[field]}"
-                elif not parallelize and not additional_params[field].startswith(
-                    os.environ["container_data_dir"]
+                elif (
+                    not parallelize
+                    and os.path.isdir(additional_params[field])
+                    and not additional_params[field].startswith(
+                        os.environ["container_data_dir"]
+                    )
                 ):
                     additional_params[
                         field
