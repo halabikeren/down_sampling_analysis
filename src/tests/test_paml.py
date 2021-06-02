@@ -63,7 +63,12 @@ class TestPAML(unittest.TestCase):
             < 0.1
         )
         self.assertTrue(result["selection_parameters"][1]["prop"] <= 1)
-        self.assertTrue(result["selection_parameters"][1]["w"] < 0.4)
+
+        self.assertTrue(
+            result["selection_parameters"][0]["w"]
+            <= result["selection_parameters"][1]["w"]
+            <= 1
+        )
         self.assertTrue(int(result["duration(minutes)"]) < 2)
 
     def tearDown(self):
