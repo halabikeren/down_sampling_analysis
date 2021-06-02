@@ -67,7 +67,10 @@ class TestPAML(unittest.TestCase):
         self.assertTrue(
             result["selection_parameters"][0]["w"]
             <= result["selection_parameters"][1]["w"]
-            <= 1
+        )
+        self.assertTrue(
+            result["selection_parameters"][1]["w"]
+            <= result["selection_parameters"][2]["w"]
         )
         self.assertTrue(int(result["duration(minutes)"]) < 2)
 
