@@ -594,7 +594,6 @@ class Pipeline:
         df["error"] = program_instance.get_error(
             reference_data=reference_data,
             test_data=test_data,
-            use_normalized_rates=use_normalized_rates,
             use_relative_error=use_relative_error,
         )
         df["result"] = program_instance.get_result(data=test_data)
