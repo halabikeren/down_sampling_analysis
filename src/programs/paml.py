@@ -4,8 +4,8 @@ import os
 import re
 from io import StringIO
 import pandas as pd
+import numpy as np
 from ete3 import Tree
-import itertools
 import json
 from utils import SequenceDataType, TreeReconstructionMethod, BaseTools, SimulationInput
 from .program import Program
@@ -174,17 +174,22 @@ class Paml(Program):
             rates_data = rates_data_regex.search(input_file.read()).group(1)
         f = StringIO(rates_data)
         # here, might need to cross with simulated rates (dN/dS) which are available in input_paths["parameters_reference"]
-        rates_df = pd.read_csv(f, sep="\t")
+        rates_df = pd.read_csv(f, sep="\t").rename(columns={"Site": "position"})
+        rates_df["p(w>1)"] = rates_df.apply(
+            lambda x: 1 if x["Class"] == 4 else 0, axis=1
+        )
         return rates_df.to_dict()
 
     @staticmethod
     def parse_positive_selection_analysis(
-        data: str, data_regex: re, column_names
+        data: str, data_regex: re, column_names, pos_num: int
     ) -> t.Dict[t.Any, t.Any]:
         """
         :param data: string or the output file content
         :param data_regex: regex to catch the result of the analysis of interest
         :param column_names: names of columns in the generated df
+        :param: the total number of analyzed positions (ones that were not
+        inferred to be under positive selection are excluded from the data()
         :return: a dataframe of the parsed result
         """
         if "p(w>1)" not in column_names:
@@ -193,8 +198,13 @@ class Paml(Program):
             )
         data_content = data_regex.search(data).group(1)
         data_content = data_content.lstrip()
-        f = StringIO(data_content)
+        f = StringIO(
+            data_content
+        )  # this data consists only of positions inferred to be under positive selection. for comparison pu
         df = pd.read_csv(f, names=column_names, delimiter=r"\s+")
+        df.set_index("position")
+        # add rows for missing positions with nan data and then reset index
+        df = df.reindex(range(pos_num), fill_value=np.nan)
         df["is_significant"] = df["p(w>1)"].apply(lambda x: "*" in str(x))
         df["p(w>1)"] = df["p(w>1)"].apply(lambda x: float(str(x).replace("*", "")))
         return df.to_dict()
@@ -264,6 +274,9 @@ class Paml(Program):
         with open(output_path, "r") as outfile:
             content = outfile.read()
 
+        pos_num_regex = re.compile("ns.*?ls\s*=\s*(\d*)", re.DOTALL)
+        pos_num = int(pos_num_regex.search(content).group(1))
+
         neb_positive_selection_regex = re.compile(
             ".*Naive Empirical Bayes \(NEB\) analysis.*?Pr\(w>1\).*?for w\n\n(.*?)\n\n",
             re.MULTILINE | re.DOTALL,
@@ -274,6 +287,7 @@ class Paml(Program):
             content,
             neb_positive_selection_regex,
             column_names=["position", "sequence", "p(w>1)", "mean(w)"],
+            pos_num=pos_num,
         )
         try:
             beb_positive_selection_regex = re.compile(
@@ -293,6 +307,7 @@ class Paml(Program):
                     "sign",
                     "standard_error",
                 ],
+                pos_num=pos_num,
             )
         except Exception as e:  # no bayes empirical bayes analysis is available
             pass
@@ -361,3 +376,60 @@ class Paml(Program):
         }
         with open(output_path, "w") as output_file:
             json.dump(obj=clean_simulation_input, fp=output_file)
+
+    @staticmethod
+    def get_error(
+        reference_data: t.Dict[str, t.Any],
+        test_data: t.Dict[str, t.Any],
+        use_relative_error: bool = False,
+        use_bayes_inference: bool = True,
+    ) -> pd.Series:
+        """
+        :param reference_data: reference data to compute results by reference to
+        :param test_data: test data to compare to the reference data
+        :param use_relative_error: indicates weather absolute or relative error should be used
+        :param use_bayes_inference: indicates weather naive of bayes empirical bayes should be used for estimating the error
+        :return: the output of pd series with indices as the members for which error it assessed (be it positions in a sequence of sequences) and the values are the error values computed for them
+        """
+        factor_type = "NEB_positive_selection_analysis"
+        if use_bayes_inference:
+            factor_type = factor_type.replace("NEB", "BEB")
+        if factor_type in reference_data:
+            data = reference_data[factor_type]
+        else:
+            data = reference_data
+        reference_df = pd.DataFrame.from_dict(data)[["position", "p(w>1)"]].rename(
+            columns={"p(w>1)": "reference_p(w>1)"}
+        )
+        test_df = pd.DataFrame.from_dict(test_data[factor_type])[
+            ["position", "p(w>1)"]
+        ].rename(columns={"p(w>1)": "test_p(w>1)"})
+        merged_df = pd.merge(reference_df, test_df, how="outer", on="position")
+        merged_df.fillna(
+            0, inplace=True
+        )  # missing positions from positive selection analysis were inferred as not under positive selection -> p(w>1) =0
+        absolute_error = abs(merged_df["reference_p(w>1)"] - merged_df["test_p(w>1)"])
+        relative_error = absolute_error / (
+            merged_df["reference_p(w>1)"] + 0.0001
+        )  # add a small number in case the simulated rate is 0
+        if use_relative_error:
+            return relative_error
+        return absolute_error
+
+    @staticmethod
+    def get_result(
+        data: t.Dict[str, t.Any], use_bayes_inference: bool = True
+    ) -> pd.Series:
+        """
+        :param data: dictionary mapping results
+        :param use_bayes_inference: indicator weather bayes empirical bayes or naive empirical bays should be used as a measure
+        :return: the relevant data to compute error for
+        """
+        factor_type = "NEB_positive_selection_analysis"
+        if use_bayes_inference:
+            factor_type = factor_type.replace("NEB", "BEB")
+        if factor_type in data:
+            df = pd.DataFrame.from_dict(data[factor_type])
+        else:
+            df = pd.DataFrame.from_dict(data)
+        return df["p(w>1)"]
