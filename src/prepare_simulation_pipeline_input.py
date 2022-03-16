@@ -57,7 +57,7 @@ def sample_data(
         output_path = f"{output_dir}/sample_{i}/sequences_old_names.fasta"
         if not os.path.exists(output_path):
             sampled_data = sample(full_data, required_data_size)
-            SeqIO.write(sampled_data, output_path, "fasta")
+            SeqIO.write(sampled_data, output_path, format="fasta")
         output_path = f"{output_dir}/sample_{i}/sequences_new_names.fasta"
         if not os.path.exists(output_path):
             convert_names(
@@ -65,7 +65,7 @@ def sample_data(
                 records=sampled_data,
             )
             output_path = f"{output_dir}/sample_{i}/sequences_new_names.fasta"
-            SeqIO.write(sampled_data, output_path, "fasta")
+            SeqIO.write(sampled_data, output_path, format="fasta")
         samples_paths.append(output_path)
     return samples_paths
 
@@ -136,10 +136,28 @@ def output_exists(program_name: str, output_dir: str) -> bool:
     return False
 
 
+def get_sequence_data_format(sequence_data_path):
+    suffix = sequence_data_path.split(".")[-1]
+    if suffix.startswith("fas"):
+        return "fasta"
+    elif suffix.startswith("next"):
+        return "nexus"
+    return "phylip"
+
+
+def program_output_exists(program_name: str, program_output_path: str, program_input_path: str) -> bool:
+    if program_name == "paml":
+        return os.path.exists(program_output_path)
+    elif program_name == "busted":
+        return os.path.exists(f"{program_input_path}.BUSTED.json")
+    else: # program name == "phyml
+        return os.path.exists(f"{program_output_path}/{os.path.basename(program_input_path)}_phyml_stats.txt")
+
+
 @click.command()
 @click.option(
     "--sequence_data_path",
-    help="path to the full sequence data in a fasta format",
+    help="path to the full sequence data",
     type=click.Path(exists=True, file_okay=True, readable=True),
     required=True,
 )
@@ -223,7 +241,7 @@ def prepare_data(
     """reduced the given data to a required size by randomly sampling sequences without repeats.
     can repeat the procedure multiple times to augment data"""
 
-    # intialize the logger
+    # initialize the logger
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s module: %(module)s function: %(funcName)s line: %(lineno)d %(message)s",
@@ -237,7 +255,7 @@ def prepare_data(
 
     sequence_data_type = SequenceDataType(sequence_data_type)
     os.makedirs(output_dir, exist_ok=True)
-    full_data = list(SeqIO.parse(sequence_data_path, "fasta"))
+    full_data = list(SeqIO.parse(sequence_data_path, format=get_sequence_data_format(sequence_data_path)))
     logger.info("Data loaded successfully")
     try:  # duplicates removed is meant for data downloaded from VIPRDB only and will fail for any other type of data
         remove_duplicates(sequence_records=full_data)
@@ -272,16 +290,16 @@ def prepare_data(
             if os.path.isdir(input_path)
             else f"{os.path.dirname(input_path)}/"
         )
-        alignment_path = str(sequence_data_path).replace(".fas", "_aligned.fas")
+        alignment_path = str(sequence_data_path).replace(".", "_aligned.")
         if is_data_aligned:
             alignment_path = input_path
         program_output_path = (
-            working_dir
+            os.path.dirname(input_path)
             if program_name in ["phyml", "busted"]
             else f"{working_dir}/paml.out"
         )
         completion_validator_path = None
-        if not os.path.exists(program_output_path):
+        if not program_output_exists(program_name=program_name, program_output_path=program_output_path, program_input_path=input_path):
             logger.info(f"executing program on sample {input_path}")
             completion_validator_path = run_program(
                 program_name=program_name,
@@ -336,14 +354,11 @@ def prepare_data(
         if not "seq_len" in additional_simulation_parameters:
             additional_simulation_parameters["seq_len"] = len(
                 list(
-                    SeqIO.parse(sample_to_output[input_path]["alignment_path"], "fasta")
+                    SeqIO.parse(sample_to_output[input_path]["alignment_path"], format=get_sequence_data_format(sample_to_output[input_path]["alignment_path"]))
                 )[0].seq
             ) // (3 if sequence_data_type == SequenceDataType.CODON else 1)
         if not "ntaxa" in additional_simulation_parameters:
             additional_simulation_parameters["ntaxa"] = len(full_data)
-        working_dir = (
-            input_path if os.path.isdir(input_path) else os.path.dirname(input_path)
-        )
         program_to_exec.write_output_to_simulation_pipeline_json(
             program_output=output,
             output_path=f"{os.path.dirname(input_path)}/simulations.json",

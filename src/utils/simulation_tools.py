@@ -21,19 +21,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
-@dataclass
-class SimulationTools:
-    @staticmethod
-    def check_model_legality(simulation_input: SimulationInput):
-        """
-        :param   simulation_input: SimulationInput instance
-        :return: none. will raise error if model is illegal
-        """
-        if (
-            simulation_input.sequence_data_type == SequenceDataType.NUC
-            and simulation_input.substitution_model
-            not in [
+nucleotide_substitution_models = [
                 "JC",
                 "F81",
                 "K80",
@@ -51,18 +39,7 @@ class SimulationTools:
                 "F84ef",
                 "F84",
             ]
-        ):
-            logger.error(
-                f"provided model {simulation_input.substitution_model} is not in nucleotide substitution model set {['JC', 'F81', 'K80', 'HKY', 'TrNef', 'TrN', 'K81', 'K81uf', 'TIMef', 'TIM', 'TVMef', 'TVM', 'SYM', 'GTR', 'F84ef', 'F84']}"
-            )
-            raise ValueError(
-                f"provided model {simulation_input.substitution_model} is not in nucleotide substitution model set {['JC', 'F81', 'K80', 'HKY', 'TrNef', 'TrN', 'K81', 'K81uf', 'TIMef', 'TIM', 'TVMef', 'TVM', 'SYM', 'GTR', 'F84ef', 'F84']}"
-            )
-
-        elif (
-            simulation_input.sequence_data_type == SequenceDataType.AA
-            and simulation_input.substitution_model
-            not in [
+protein_substitution_models = [
                 "Poisson",
                 "JTT",
                 "JTT-dcmut",
@@ -81,12 +58,122 @@ class SimulationTools:
                 "HIVw",
                 "USER",
             ]
+nucleotides = ["T", "C", "A", "G"]
+amino_acids = [
+                "A",
+                "R",
+                "N",
+                "D",
+                "C",
+                "Q",
+                "E",
+                "G",
+                "H",
+                "I",
+                "L",
+                "K",
+                "M",
+                "F",
+                "P",
+                "S",
+                "T",
+                "W",
+                "Y",
+                "V",
+            ]
+codons = [
+                "TTT",
+                "TTC",
+                "TTA",
+                "TTG",
+                "TCT",
+                "TCC",
+                "TCA",
+                "TCG",
+                "TAT",
+                "TAC",
+                "TAA",
+                "TAG",
+                "TGT",
+                "TGC",
+                "TGA",
+                "TGG",
+                "CTT",
+                "CTC",
+                "CTA",
+                "CTG",
+                "CCT",
+                "CCC",
+                "CCA",
+                "CCG",
+                "CAT",
+                "CAC",
+                "CAA",
+                "CAG",
+                "CGT",
+                "CGC",
+                "CGA",
+                "CGG",
+                "ATT",
+                "ATC",
+                "ATA",
+                "ATG",
+                "ACT",
+                "ACC",
+                "ACA",
+                "ACG",
+                "AAT",
+                "AAC",
+                "AAA",
+                "AAG",
+                "AGT",
+                "AGC",
+                "AGA",
+                "AGG",
+                "GTT",
+                "GTC",
+                "GTA",
+                "GTG",
+                "GCT",
+                "GCC",
+                "GCA",
+                "GCG",
+                "GAT",
+                "GAC",
+                "GAA",
+                "GAG",
+                "GGT",
+                "GGC",
+                "GGA",
+                "GGG",
+            ]
+
+@dataclass
+class SimulationTools:
+    @staticmethod
+    def check_model_legality(simulation_input: SimulationInput):
+        if (
+            simulation_input.sequence_data_type == SequenceDataType.NUC
+            and simulation_input.substitution_model
+            not in nucleotide_substitution_models
         ):
             logger.error(
-                f"provided model {simulation_input.substitution_model} is not in protein substitution model set {'Poisson', 'JTT', 'JTT-dcmut', 'Dayhoff', 'Dayhoff-dcmut', 'WAG', 'mtMAM', 'mtART', 'mtREV', 'rtREV', 'cpREV', 'Vt', 'Blosum', 'LG', 'HIVb', 'HIVw', 'USER'}"
+                f"provided model {simulation_input.substitution_model} is not in nucleotide substitution model set {nucleotide_substitution_models}"
             )
             raise ValueError(
-                f"provided model {simulation_input.substitution_model} is not in protein substitution model set {'Poisson', 'JTT', 'JTT-dcmut', 'Dayhoff', 'Dayhoff-dcmut', 'WAG', 'mtMAM', 'mtART', 'mtREV', 'rtREV', 'cpREV', 'Vt', 'Blosum', 'LG', 'HIVb', 'HIVw', 'USER'}"
+                f"provided model {simulation_input.substitution_model} is not in nucleotide substitution model set {nucleotide_substitution_models}"
+            )
+
+        elif (
+            simulation_input.sequence_data_type == SequenceDataType.AA
+            and simulation_input.substitution_model
+            not in protein_substitution_models
+        ):
+            logger.error(
+                f"provided model {simulation_input.substitution_model} is not in protein substitution model set {protein_substitution_models}"
+            )
+            raise ValueError(
+                f"provided model {simulation_input.substitution_model} is not in protein substitution model set {protein_substitution_models}"
             )
         elif (
             simulation_input.sequence_data_type == SequenceDataType.AA
@@ -102,19 +189,13 @@ class SimulationTools:
                 "chosen aa model is USER but parameters file is either not provided or does not exist"
             )
             raise ValueError(
-                "chosen aa model is USER but parameters file is either not provided or does not exist"
+                "chosen aa model  is USER but parameters file is either not provided or does not exist"
             )
 
     @staticmethod  # to do: add parsing of codon and aa models
     def get_substitution_parameter(
         state_1: str, state_2: str, parameters: t.Dict[tuple, t.Any]
     ) -> float:
-        """
-        :param state_1: character state 1
-        :param state_2: character state 2
-        :param parameters: rate of substitution between the two if provided, else 1
-        :return:
-        """
         parameter = 1
         state_1_uppercase = state_1.upper()
         state_2_uppercase = state_2.upper()
@@ -233,102 +314,12 @@ class SimulationTools:
 
     @staticmethod
     def parse_states_frequencies(simulation_input: SimulationInput) -> str:
-        """
-        :param simulation_input: SimulationInput instance
-        :return: string representing the parsed states frequencies
-        """
         if simulation_input.sequence_data_type == SequenceDataType.NUC:
-            ordered_states = ["T", "C", "A", "G"]
+            ordered_states = nucleotides
         elif simulation_input.sequence_data_type == SequenceDataType.AA:
-            ordered_states = [
-                "A",
-                "R",
-                "N",
-                "D",
-                "C",
-                "Q",
-                "E",
-                "G",
-                "H",
-                "I",
-                "L",
-                "K",
-                "M",
-                "F",
-                "P",
-                "S",
-                "T",
-                "W",
-                "Y",
-                "V",
-            ]
+            ordered_states = amino_acids
         elif simulation_input.sequence_data_type == SequenceDataType.CODON:
-            ordered_states = [
-                "TTT",
-                "TTC",
-                "TTA",
-                "TTG",
-                "TCT",
-                "TCC",
-                "TCA",
-                "TCG",
-                "TAT",
-                "TAC",
-                "TAA",
-                "TAG",
-                "TGT",
-                "TGC",
-                "TGA",
-                "TGG",
-                "CTT",
-                "CTC",
-                "CTA",
-                "CTG",
-                "CCT",
-                "CCC",
-                "CCA",
-                "CCG",
-                "CAT",
-                "CAC",
-                "CAA",
-                "CAG",
-                "CGT",
-                "CGC",
-                "CGA",
-                "CGG",
-                "ATT",
-                "ATC",
-                "ATA",
-                "ATG",
-                "ACT",
-                "ACC",
-                "ACA",
-                "ACG",
-                "AAT",
-                "AAC",
-                "AAA",
-                "AAG",
-                "AGT",
-                "AGC",
-                "AGA",
-                "AGG",
-                "GTT",
-                "GTC",
-                "GTA",
-                "GTG",
-                "GCT",
-                "GCC",
-                "GCA",
-                "GCG",
-                "GAT",
-                "GAC",
-                "GAA",
-                "GAG",
-                "GGT",
-                "GGC",
-                "GGA",
-                "GGG",
-            ]
+            ordered_states = codons
         state_to_frequency = {
             state: (
                 simulation_input.states_frequencies[state]
@@ -348,10 +339,6 @@ class SimulationTools:
 
     @staticmethod
     def parse_simulation_tree(simulation_input: SimulationInput) -> str:
-        """
-        :param simulation_input: SimulationInput instance
-        :return: string representing the parsed tree settings in indelible format
-        """
         simulation_tree_str = ""
         if not simulation_input.tree_random:
             with open(simulation_input.simulation_tree_path, "r") as tree_file:
@@ -375,11 +362,6 @@ class SimulationTools:
 
     @staticmethod
     def write_control_file(simulation_input: SimulationInput, output_path: str):
-        """
-        :param simulation_input: SimulationInput instance
-        :param output_path: path ot write the control file to
-        :return: none. writes control file for simulations
-        """
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
         SimulationTools.check_model_legality(simulation_input)
         rates_str = (
@@ -411,22 +393,19 @@ class SimulationTools:
 
     @staticmethod
     def write_pipeline_input(simulation_input: SimulationInput, output_path: str):
-        tree_regex = re.compile("TREE STRING.*?(\(.*?\;)", re.MULTILINE | re.DOTALL)
+        nwk_tree_pattern = re.compile("TREE STRING.*?(\(.*?\;)", re.MULTILINE | re.DOTALL)
         pipeline_json_input = simulation_input.dict()
-        pipeline_json_input.pop("simulations_output_dir")
-        pipeline_json_input.pop("simulation_tree_path")
-        pipeline_json_input.pop("substitution_model_params")
-        pipeline_json_input.pop("states_frequencies")
         for key in pipeline_json_input:
-            if issubclass(type(pipeline_json_input[key]), Enum):
-                pipeline_json_input[key] = pipeline_json_input[key].value
-            elif (
-                type(pipeline_json_input[key]) is list
-                and len(pipeline_json_input[key]) > 0
-                and issubclass(type(pipeline_json_input[key][0]), Enum)
-            ):
-                for i in range(len(pipeline_json_input[key])):
-                    pipeline_json_input[key][i] = pipeline_json_input[key][i].value
+            if key not in ["simulations_output_dir", "simulation_tree_path", "substitution_model_params", "states_frequencies"]:
+                if issubclass(type(pipeline_json_input[key]), Enum):
+                    pipeline_json_input[key] = pipeline_json_input[key].value
+                elif (
+                    isinstance(pipeline_json_input[key], list)
+                    and len(pipeline_json_input[key]) > 0
+                    and issubclass(type(pipeline_json_input[key][0]), Enum)
+                ):
+                    for i in range(len(pipeline_json_input[key])):
+                        pipeline_json_input[key][i] = pipeline_json_input[key][i].value
         pipeline_json_input["pipeline_dir"] = f"{os.getcwd()}/pipeline_dir/"
         pipeline_json_input["cluster_data_dir"] = os.getcwd()
         pipeline_json_input[
@@ -440,7 +419,7 @@ class SimulationTools:
             tree_path = f"{os.getcwd()}/simulated_tree.nwk"
             if simulation_input.tree_random:
                 with open(f"{os.getcwd()}/trees.txt", "r") as trees_file:
-                    tree_str = tree_regex.search(trees_file.read()).group(1)
+                    tree_str = nwk_tree_pattern.search(trees_file.read()).group(1)
                     tree = Tree(tree_str, format=1)
                     tree.write(outfile=tree_path, format=1)
             else:
@@ -468,10 +447,6 @@ class SimulationTools:
 
     @staticmethod
     def simulate(simulation_input: SimulationInput) -> t.List[str]:
-        """
-        :param simulation_input: parameters to simulate data with
-        :return: a list of paths to json input files corresponding to the input jsons for executing the pipeline on the simulated datasets
-        """
         number_of_repeats = simulation_input.nrep
         simulation_output_dir = simulation_input.simulations_output_dir
         os.makedirs(simulation_output_dir, exist_ok=True)

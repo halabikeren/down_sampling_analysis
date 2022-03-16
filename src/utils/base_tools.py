@@ -319,30 +319,3 @@ class BaseTools:
             os.rename(f"{aux_dir}RAxML_bestTree.out", output_path)
             os.remove(aux_dir)
 
-    @staticmethod
-    def jsonable_encoder(obj):
-        if isinstance(obj, BaseTools.JSONABLE_OK):
-            return obj
-        if isinstance(obj, dict):
-            return {
-                BaseTools.jsonable_encoder(key): BaseTools.jsonable_encoder(value)
-                for key, value in obj.items()
-            }
-        if isinstance(obj, BaseTools.SEQUENCES):
-            return [BaseTools.jsonable_encoder(item) for item in obj]
-        if isinstance(obj, BaseModel):
-            return BaseTools.jsonable_encoder(obj.dict())
-        if isinstance(obj, PosixPath):
-            return str(obj)
-        if isinstance(obj, bool):
-            return int(obj)
-        if isinstance(obj, Enum):
-            return BaseTools.jsonable_encoder(obj.value)
-        try:
-            encoder = BaseTools.ENCODERS_BY_TYPE[type(obj)]
-        except KeyError:
-            raise TypeError(
-                f"Object of type '{obj.__class__.__name__}' is not serializable"
-            )
-        else:
-            return encoder(obj)

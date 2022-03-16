@@ -1,25 +1,25 @@
 from enum import Enum
 
 
-class SequenceDataType(Enum):
+class SequenceDataType(str,Enum):
     NUC = "nucleotide"
     AA = "amino_acid"
     CODON = "codon"
 
 
-class AlignmentMethod(Enum):
+class AlignmentMethod(str,Enum):
     MAFFT = "mafft"
     PRANK = "prank"
 
 
-class TreeReconstructionMethod(Enum):
+class TreeReconstructionMethod(str,Enum):
     UPGMA = "upgma"
     FASTTREE = "fasttree"
     NJ = "nj"
     ML = "ml"
 
 
-class Queue(Enum):
+class Queue(str,Enum):
     ITAYM = "itaym"
     ITAYMAA = "itaymaa"
     ITAYM1 = "itaym1"

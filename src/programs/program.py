@@ -149,11 +149,14 @@ class Program:
         additional_args = dict()
         from .paml import Paml
         from .busted import Busted
+        from.phyml import PhyML
 
         if type(self) in [Paml, Busted]:
             additional_args["input_tree_path"] = re.sub(
                 "\.fas[^.]*", "_tree.nwk", input_path
             )
+        if type(self) is PhyML:
+            additional_args["output_dir"] = os.path.dirname(output_path)
         if type(self) is Paml:
             additional_args["control_file_path"] = re.sub(
                 "\.fas[^.]*", "_paml.ctl", input_path
@@ -167,12 +170,6 @@ class Program:
             **additional_args,
         )
         os.makedirs(aux_dir, exist_ok=True)
-
-        if os.path.exists(output_path):
-            logger.info(
-                f"{self.name} output already exists at {output_path} and will not be generated again"
-            )
-            return
 
         if not parallelize:
             start_time = time()

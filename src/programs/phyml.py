@@ -33,8 +33,8 @@ class PhyML(Program):
         additional_params: t.Optional[t.Dict[str, str]],
         parallelize: bool,
         cluster_data_dir: str,
-        sequence_data_type: SequenceDataType,
         output_dir: str,
+        sequence_data_type: SequenceDataType = SequenceDataType.NUC,
     ) -> t.List[str]:
         """
         :param input_path: path to the input of the program
@@ -59,7 +59,7 @@ class PhyML(Program):
         default_model = "WAG" if sequence_data_type == SequenceDataType.AA else "GTR"
         cmd = [
             f"cd {program_output_dir}",
-            f"phyml {self.input_param_name} {program_input_path} -d {'aa' if sequence_data_type == SequenceDataType.AA else 'nt'} -m {additional_params['model'] if 'model' in additional_params else default_model} -c {additional_params['ncat'] if 'ncat' in additional_params else 16}",
+            f"phyml {self.input_param_name} {program_input_path} -d {'aa' if sequence_data_type == SequenceDataType.AA else 'nt'} -m {additional_params['model'] if additional_params and 'model' in additional_params else default_model} -c {additional_params['ncat'] if additional_params and 'ncat' in additional_params else 16}",
         ]
         return cmd
 
@@ -106,7 +106,7 @@ class PhyML(Program):
             "\s*(\w)\s<->\s(\w)\s*(\d*\.?\d*)", re.MULTILINE | re.DOTALL
         )
         stats["substitution_model_params"] = {
-            str(match.group(1), match.group(2)): float(match.group(3))
+            f"({match.group(1)}, {match.group(2)})": float(match.group(3))
             for match in substitution_rates_regex.finditer(input_content)
         }
         seed_regex = re.compile("Random seed\:\s*(\d*)", re.MULTILINE | re.DOTALL)
@@ -204,11 +204,11 @@ class PhyML(Program):
             }
         )
         simulation_input_parameters.update(additional_simulation_parameters)
-        simulation_input = BaseTools.jsonable_encoder(
-            SimulationInput(**simulation_input_parameters)
-        )
+        # simulation_input = BaseTools.jsonable_encoder(
+        #     SimulationInput(**simulation_input_parameters)
+        # )
         clean_simulation_input = {
-            k: v for k, v in simulation_input.items() if v is not None
+            k: v for k, v in simulation_input_parameters.items() if v is not None
         }
         with open(output_path, "w") as output_file:
             json.dump(obj=clean_simulation_input, fp=output_file)
