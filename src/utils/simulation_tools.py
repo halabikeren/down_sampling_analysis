@@ -417,7 +417,6 @@ class SimulationTools:
                 "per_position_reference": f"{os.getcwd()}/seq_data_RATES.txt",
             },
         }
-        # "fastml": f"{os.getcwd()}/seq_data_ANCESTRAL_1.fasta"}
         with open(output_path, "w") as json_file:
             json.dump(pipeline_json_input, json_file)
 
@@ -443,8 +442,10 @@ class SimulationTools:
             if len(process.stderr.read()) > 0 or not os.path.exists(
                 f"{os.getcwd()}/seq_data_1.fasta"
             ):
+                with open(control_file_path, "r") as infile:
+                    control_file_content = infile.read()
                 raise RuntimeError(
-                    f"INDELible failed to properly execute and provide an output file with error {process.stderr.read()} and output is {process.stdout.read()}"
+                    f"INDELible failed to properly execute and provide an output file with error {process.stderr.read()} and output is {process.stdout.read()}, with control file content = {control_file_content}"
                 )
             # prepare pipeline input
             json_path = f"{os.getcwd()}/input.json"
