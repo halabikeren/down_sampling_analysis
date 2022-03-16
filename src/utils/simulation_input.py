@@ -1,8 +1,6 @@
 import typing as t
 import os
-
-import re
-from pydantic import BaseModel, FilePath, DirectoryPath, Field, validator
+from pydantic import BaseModel, FilePath, Field, validator
 from .types import SequenceDataType, AlignmentMethod, TreeReconstructionMethod
 from samplers import SamplingMethod
 
@@ -12,17 +10,15 @@ logger = logging.getLogger(__name__)
 
 
 class SimulationInput(BaseModel):
-    simulations_output_dir: DirectoryPath  # path to write simulations to
+    simulations_output_dir: str  # path to write simulations to
     sequence_data_type: SequenceDataType  # the type of provided sequence data in the form of SequenceDataType
     substitution_model: str  # substitution model. will be build as a enum later
-    substitution_model_params: t.Dict[
-        t.Any, t.Any]  # maps tuples of two states to the rate of substitution between them
-    states_frequencies: t.Dict[
-        str, float]  # maps state (character / triplet of characters in case of codons) to their frequencies
+    substitution_model_params: t.Dict[str , t.Union[float,str]]  # maps tuples of two states to the rate of substitution between them
+    states_frequencies: t.Dict[str, float]  # maps state (character / triplet of characters in case of codons) to their frequencies
     tree_rooted: bool = True
     tree_random: bool = True
     tree_length: t.Optional[float] = None
-    simulation_tree_path: t.Optional[FilePath] = None
+    simulation_tree_path: t.Optional[str] = None
     ntaxa: int
     seq_len: int = 1000
     birth_rate: float = 0.3
@@ -123,13 +119,3 @@ class SimulationInput(BaseModel):
                     f"Sampling fraction {item} is invalid. A value must be between 0 and 1, excluded"
                 )
         return v
-
-    @validator("substitution_model_params", pre=True)
-    def validate_data(cls, v):
-        new_data = {}
-        for key, value in v.items():
-            if "," in key:
-                new_data[tuple([re.sub("\(|\)|\s*", "", item) for item in key.split(",")])] = value
-            else:
-                new_data[key] = value
-        return new_data

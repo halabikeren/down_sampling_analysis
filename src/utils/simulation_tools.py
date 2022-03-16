@@ -1,3 +1,4 @@
+import pathlib
 import subprocess
 import typing as t
 from dataclasses import dataclass
@@ -194,22 +195,10 @@ class SimulationTools:
 
     @staticmethod  # to do: add parsing of codon and aa models
     def get_substitution_parameter(
-        state_1: str, state_2: str, parameters: t.Dict[tuple, t.Any]
+        state_1: str, state_2: str, parameters: t.Dict[str, t.Union[float,str]]
     ) -> float:
-        parameter = 1
-        state_1_uppercase = state_1.upper()
-        state_2_uppercase = state_2.upper()
-        state_1_lowercase = state_1.lower()
-        state_2_lowercase = state_2.lower()
-        if (state_1_uppercase, state_2_uppercase) in parameters:
-            parameter = parameters[(state_1_uppercase, state_2_uppercase)]
-        elif (state_1_lowercase, state_2_lowercase) in parameters:
-            parameter = parameters[(state_1_lowercase, state_2_lowercase)]
-        elif (state_2_uppercase, state_1_uppercase) in parameters:
-            parameter = parameters[(state_2_uppercase, state_1_uppercase)]
-        elif (state_2_lowercase, state_1_lowercase) in parameters:
-            parameter = parameters[(state_2_lowercase, state_1_lowercase)]
-        return parameter
+        return parameters.get(f"{state_1.upper()},{state_2.upper()}") or parameters.get(f"{state_2.upper()},{state_1.upper()}")
+
 
     @staticmethod
     def parse_simulation_substitution_parameters(
@@ -394,23 +383,10 @@ class SimulationTools:
     @staticmethod
     def write_pipeline_input(simulation_input: SimulationInput, output_path: str):
         nwk_tree_pattern = re.compile("TREE STRING.*?(\(.*?\;)", re.MULTILINE | re.DOTALL)
-        pipeline_json_input = simulation_input.dict()
-        for key in pipeline_json_input:
-            if key not in ["simulations_output_dir", "simulation_tree_path", "substitution_model_params", "states_frequencies"]:
-                if issubclass(type(pipeline_json_input[key]), Enum):
-                    pipeline_json_input[key] = pipeline_json_input[key].value
-                elif (
-                    isinstance(pipeline_json_input[key], list)
-                    and len(pipeline_json_input[key]) > 0
-                    and issubclass(type(pipeline_json_input[key][0]), Enum)
-                ):
-                    for i in range(len(pipeline_json_input[key])):
-                        pipeline_json_input[key][i] = pipeline_json_input[key][i].value
+        pipeline_json_input = json.loads(simulation_input.json())
         pipeline_json_input["pipeline_dir"] = f"{os.getcwd()}/pipeline_dir/"
         pipeline_json_input["cluster_data_dir"] = os.getcwd()
-        pipeline_json_input[
-            "unaligned_sequence_data_path"
-        ] = f"{os.getcwd()}/seq_data_1.fasta"
+        pipeline_json_input["unaligned_sequence_data_path"] = f"{os.getcwd()}/seq_data_1.fasta"
         if simulation_input.use_simulated_alignment:
             pipeline_json_input[
                 "aligned_sequence_data_path"

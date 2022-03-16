@@ -106,7 +106,7 @@ class PhyML(Program):
             "\s*(\w)\s<->\s(\w)\s*(\d*\.?\d*)", re.MULTILINE | re.DOTALL
         )
         stats["substitution_model_params"] = {
-            f"({match.group(1)}, {match.group(2)})": float(match.group(3))
+            f"{match.group(1)},{match.group(2)}": float(match.group(3))
             for match in substitution_rates_regex.finditer(input_content)
         }
         seed_regex = re.compile("Random seed\:\s*(\d*)", re.MULTILINE | re.DOTALL)

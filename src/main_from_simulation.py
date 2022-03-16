@@ -158,14 +158,13 @@ def exec_pipeline_on_simulations(input_path: click.Path):
     For example of the json format parameters, see data/test/simulation.json"""
 
     # process input json file
-    with open(input_path, "r") as input_file:
-        simulation_params = json.load(input_file)
+    simulation_input = SimulationInput.parse_file(input_path)
     os.makedirs(
-        simulation_params["simulations_output_dir"],
+        simulation_input.simulations_output_dir,
         exist_ok=True,
     )
 
-    # intialize the logger
+    # initialize the logger
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s module: %(module)s function: %(funcName)s line: %(lineno)d %(message)s",
@@ -175,12 +174,6 @@ def exec_pipeline_on_simulations(input_path: click.Path):
         ],
     )
     logger = logging.getLogger(__name__)
-    logger.info("Json input has been successfully processed")
-
-    logger.info(f"Processing simulation input from {input_path}")
-    simulation_input = SimulationInput(**simulation_params)
-    logger.info("Json input has been successfully parsed as simulation input")
-
     logger.info(f"Simulating data in {simulation_input.simulations_output_dir}")
     simulations_exist = False
     simulations_exec_complete = False
@@ -191,8 +184,8 @@ def exec_pipeline_on_simulations(input_path: click.Path):
     ):
         simulations_exist = True
         all_exist = True
-        for path in os.listdir(simulation_params.simulations_output_dir):
-            completion_validator = f"{simulation_params.simulations_output_dir}/{path}/job_aux/pipeline_on_simulated_data.touch"
+        for path in os.listdir(simulation_input.simulations_output_dir):
+            completion_validator=os.path.join(simulation_input.simulations_output_dir,path,"job_aux","pipeline_on_simulated_data.touch")
             if not os.path.exists(completion_validator):
                 all_exist = False
                 break
@@ -228,8 +221,8 @@ def exec_pipeline_on_simulations(input_path: click.Path):
                     commands=[
                         f"python /groups/itay_mayrose/halabikeren/down_sampling_analysis/src/main.py --input_path={json_path}"
                     ],
-                    priority=simulation_params["priority"],
-                    queue=simulation_params["queue"],
+                    priority=simulation_input.priority,
+                    queue=simulation_input.queue,
                 )
                 completion_validators.append(
                     job.submit(
@@ -291,7 +284,7 @@ def exec_pipeline_on_simulations(input_path: click.Path):
             .reset_index()
         )
         full_df_grouped.to_csv(
-            f"{simulation_params['simulations_output_dir']}/{program}_aggregated_data.csv"
+            f"{simulation_input.simulations_output_dir}/{program}_aggregated_data.csv"
         )
 
         # plot large scale data

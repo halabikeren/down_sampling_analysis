@@ -58,7 +58,7 @@
       </ENTRIES>
     </EXTENSION>
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/main.py" />
-    <option name="PARAMETERS" value="--input_path=/groups/itay_mayrose/halabikeren/down_sampling_analysis/simulated_data/no_gaps/based_on_empirical_data/positive_selection/toy_example/simulations/rep_18/input.json" />
+    <option name="PARAMETERS" value="--input_path=/groups/itay_mayrose/halabikeren/down_sampling_analysis/simulated_data/no_gaps/based_on_empirical_data/positive_selection/hiv/coding_tully_et_al_hsx/simulations/rep_1/input.json" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

@@ -7,7 +7,7 @@ from .program import Program
 from enum import Enum
 
 
-class ProgramName(Enum):
+class ProgramName(str,Enum):
     RATE4SITE = "rate4site"
     PAML = "paml"
     PHYML = "phyml"
