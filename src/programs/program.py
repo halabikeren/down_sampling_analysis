@@ -161,60 +161,61 @@ class Program:
             additional_args["control_file_path"] = re.sub(
                 "\.fas[^.]*", "_paml.ctl", input_path
             )
-        command = self.set_command(
-            input_path=input_path,
-            output_path=output_path,
-            additional_params=additional_params,
-            parallelize=parallelize,
-            cluster_data_dir=cluster_data_dir,
-            **additional_args,
-        )
-        os.makedirs(aux_dir, exist_ok=True)
+        if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
+            command = self.set_command(
+                input_path=input_path,
+                output_path=output_path,
+                additional_params=additional_params,
+                parallelize=parallelize,
+                cluster_data_dir=cluster_data_dir,
+                **additional_args,
+            )
+            os.makedirs(aux_dir, exist_ok=True)
 
-        if not parallelize:
-            start_time = time()
-            if type(self) is not Paml:
-                os.chdir(
-                    aux_dir
-                )  # move to aux dir as rate4site generates extra files in current running directory
-            for cmd in command:
-                if "cd " in cmd:
-                    os.chdir(cmd.replace("cd ", ""))
-                else:
-                    res = os.system(
-                        f"{cmd} > /dev/null 2>&1"
-                    )  # for some reason, rate4 prints some logs into the stderr,
-                    # making the typical test (raise error i=f stderr > 0) invalid in this case
-                    if res != 0:
-                        raise RuntimeError(f"command {cmd} failed to execute.")
-            end_time = time()
-            return (end_time - start_time) / 60
-        else:
-            commands = (
-                [
-                    f"cd {aux_dir.replace(os.environ['container_data_dir'], cluster_data_dir)}",
-                    """timestamp() {
-                      date +"%T" # current time
-                    }
-                    timestamp""",
-                ]
-                + command
-                + ["timestamp"]
-            )
+            if not parallelize:
+                start_time = time()
+                if type(self) is not Paml:
+                    os.chdir(
+                        aux_dir
+                    )  # move to aux dir as rate4site generates extra files in current running directory
+                for cmd in command:
+                    if "cd " in cmd:
+                        os.chdir(cmd.replace("cd ", ""))
+                    else:
+                        res = os.system(
+                            f"{cmd} > /dev/null 2>&1"
+                        )  # for some reason, rate4 prints some logs into the stderr,
+                        # making the typical test (raise error i=f stderr > 0) invalid in this case
+                        if res != 0:
+                            raise RuntimeError(f"command {cmd} failed to execute.")
+                end_time = time()
+                return (end_time - start_time) / 60
+            else:
+                commands = (
+                    [
+                        f"cd {aux_dir.replace(os.environ['container_data_dir'], cluster_data_dir)}",
+                        """timestamp() {
+                          date +"%T" # current time
+                        }
+                        timestamp""",
+                    ]
+                    + command
+                    + ["timestamp"]
+                )
 
-            job = Job(
-                name=self.name,
-                sh_dir=aux_dir,
-                output_dir=aux_dir,
-                commands=commands,
-                priority=priority,
-                queue=queue,
-            )
-            completion_validator = job.submit(
-                wait_until_complete=wait_until_complete,
-                get_completion_validator=get_completion_validator,
-            )
-            return completion_validator
+                job = Job(
+                    name=self.name,
+                    sh_dir=aux_dir,
+                    output_dir=aux_dir,
+                    commands=commands,
+                    priority=priority,
+                    queue=queue,
+                )
+                completion_validator = job.submit(
+                    wait_until_complete=wait_until_complete,
+                    get_completion_validator=get_completion_validator,
+                )
+                return completion_validator
 
     @staticmethod
     def parse_output(

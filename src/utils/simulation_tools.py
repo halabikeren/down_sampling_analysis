@@ -435,17 +435,15 @@ class SimulationTools:
             )
             # simulate
             os.chdir(output_dir)
-            cmd = f"{os.environ['cluster_indelible'] if 'power' in socket.gethostname() else os.environ['indelible']}"
-            process = subprocess.Popen(
-                cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-            )
-            if len(process.stderr.read()) > 0 or not os.path.exists(
+            cmd = f"{os.environ['cluster_indelible'] if 'tau' in socket.gethostname() else os.environ['indelible']}"
+            res = os.system(cmd)
+            if res != 0 or not os.path.exists(
                 f"{os.getcwd()}/seq_data_1.fasta"
             ):
                 if not os.path.exists(control_file_path):
                     logger.error(f"control file does not exists at {output_dir}. The only available content is {os.listdir(output_dir)}")
                 raise RuntimeError(
-                    f"INDELible failed to properly execute and provide an output file with error {process.stderr.read()} and output is {process.stdout.read()}, with control file content = {control_file_content}"
+                    f"INDELible failed to properly execute and provide an output file with error {res} and command {cmd}"
                 )
             # prepare pipeline input
             json_path = f"{os.getcwd()}/input.json"

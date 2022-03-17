@@ -52,7 +52,6 @@ class Rate4Site(Program):
         :param job_output_dir
         :return: None. parses the output file into a json form and saves it into self.result
         """
-        # TO DO: parse non normalized rates (required for comparison to simulated rates)
         result = super(Rate4Site, Rate4Site).parse_output(
             output_path=output_path, job_output_dir=job_output_dir
         )
