@@ -219,7 +219,7 @@ def exec_pipeline_on_simulations(input_path: click.Path):
                     sh_dir=aux_dir,
                     output_dir=aux_dir,
                     commands=[
-                        f"python /groups/itay_mayrose/halabikeren/down_sampling_analysis/src/main.py --input_path={json_path}"
+                        f"python {os.path.dirname(os.path.realpath(__file__))}/main.py --input_path={json_path}"
                     ],
                     priority=simulation_input.priority,
                     queue=simulation_input.queue,
