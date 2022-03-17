@@ -442,8 +442,8 @@ class SimulationTools:
             if len(process.stderr.read()) > 0 or not os.path.exists(
                 f"{os.getcwd()}/seq_data_1.fasta"
             ):
-                with open(control_file_path, "r") as infile:
-                    control_file_content = infile.read()
+                if not os.path.exists(control_file_path):
+                    logger.error(f"control file does not exists at {output_dir}. The only available content is {os.listdir(output_dir)}")
                 raise RuntimeError(
                     f"INDELible failed to properly execute and provide an output file with error {process.stderr.read()} and output is {process.stdout.read()}, with control file content = {control_file_content}"
                 )

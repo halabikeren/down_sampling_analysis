@@ -50,7 +50,7 @@ class SimulationInput(BaseModel):
     ] = None  # the parameters that the tree reconstruction method should be executed with. The default ones are
     # available in the method Pipeline.build_tree()
     sampling_fractions: t.List[float] = Field(
-        default_factory=lambda: [0.25, 0.5, 0.75]
+        default_factory=lambda: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     )  # the fractions of sampling that should be generated in the scope of the pipeline (must be > 0 and < 1)
     sampling_methods: t.List[SamplingMethod] = Field(
         default_factory=lambda: [m for m in SamplingMethod]
@@ -76,7 +76,7 @@ class SimulationInput(BaseModel):
     )
     reference_data_paths: t.Optional[
         t.Dict[str, FilePath]] = None  # maps a program to its relevant simulated reference data
-    parallelize: bool = False  # indicator weather execution of programs on the samples should be parallelized or not
+    parallelize: bool = True  # indicator weather execution of programs on the samples should be parallelized or not
     cluster_data_dir: t.Optional[str] = None
     priority: int = (
         0  # in case of parallelization, this parameter sets the priority of the jobs
