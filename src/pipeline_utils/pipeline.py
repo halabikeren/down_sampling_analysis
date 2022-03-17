@@ -612,9 +612,7 @@ class Pipeline:
         plt.grid(False)
         ncols = (
             1
-            if not pipeline_input.reference_data_paths[program_name.value][
-                "parameters_reference"
-            ]
+            if not "parameters_reference" not in pipeline_input.reference_data_paths[program_name.value]
             else 2
         )
         fig, axis = plt.subplots(
@@ -689,9 +687,7 @@ class Pipeline:
         plt.grid(False)
         ncols = (
             1
-            if not pipeline_input.reference_data_paths[program_name.value][
-                "parameters_reference"
-            ]
+            if "parameters_reference" not in pipeline_input.reference_data_paths[program_name.value]
             else 2
         )
         fig, axis = plt.subplots(
@@ -737,17 +733,18 @@ class Pipeline:
         if len(full_error_dfs) > 0:
             full_error_df = pd.concat(full_error_dfs)
             full_error_df["bias"] = full_error_df["reference"] - full_error_df["result"]
+            ax = axis[0] if ncols == 2 else axis
             sns.boxplot(
-                ax=axis[0],
+                ax=ax,
                 y="bias",
                 x="sampling_fraction",
                 data=full_error_df,
                 palette="colorblind",
                 hue="sampling_method",
             )
-            axis[0].set_ylabel("full_rate-sampled_rate")
-            axis[0].set_title("reference: full")
-        if len(ref_error_dfs) > 0:
+            ax.set_ylabel("full_rate-sampled_rate")
+            ax.set_title("reference: full")
+        if ncols == 2:
             ref_error_df = pd.concat(ref_error_dfs)
             ref_error_df["bias"] = ref_error_df["reference"] - ref_error_df["result"]
             sns.boxplot(
