@@ -426,7 +426,7 @@ class Pipeline:
                     full_data_program_params["input_tree_path"] = self.tree_path
 
                 if pipeline_input.parallelize:
-                    if os.path.isdir(output_path) or (os.path.isfile(output_path) and not os.path.exists(output_path)):
+                    if os.path.isdir(output_path) or not os.path.exists(output_path):
                         completion_validator_path = program_to_exec.exec(
                             input_path=input_path,
                             output_path=output_path,
@@ -440,7 +440,8 @@ class Pipeline:
                             get_completion_validator=True,
                         )
                         completion_validators.append(completion_validator_path)
-                    else:
+                else:
+                    if os.path.isdir(output_path) or not os.path.exists(output_path):
                         full_data_duration = program_to_exec.exec(
                             input_path=input_path,
                             output_path=output_path,
@@ -465,32 +466,33 @@ class Pipeline:
                         "aux_dir"
                     ] = f"{program_dir}fraction_{fraction}_sampling_method_{method_name}_aux/"
 
-                    if pipeline_input.parallelize:
-                        completion_validator_path = program_to_exec.exec(
-                            program_exec_info["input_path"],
-                            program_exec_info["output_path"],
-                            program_exec_info["aux_dir"],
-                            additional_params=program_params,
-                            parallelize=pipeline_input.parallelize,
-                            cluster_data_dir=pipeline_input.cluster_data_dir,
-                            priority=pipeline_input.priority,
-                            queue=pipeline_input.queue,
-                            wait_until_complete=False,
-                            get_completion_validator=True,
-                        )
-                        completion_validators.append(completion_validator_path)
-                    else:
-                        duration = program_to_exec.exec(
-                            program_exec_info["input_path"],
-                            program_exec_info["output_path"],
-                            program_exec_info["aux_dir"],
-                            additional_params=program_params,
-                        )
-                        self.samples_info[fraction][method_name][
-                            "programs_performance"
-                        ][program_name.value]["result"].update(
-                            {"duration(minutes)": duration}
-                        )
+                    if os.path.isdir(program_exec_info["output_path"]) or not os.path.exists(program_exec_info["output_path"]):
+                        if pipeline_input.parallelize:
+                            completion_validator_path = program_to_exec.exec(
+                                program_exec_info["input_path"],
+                                program_exec_info["output_path"],
+                                program_exec_info["aux_dir"],
+                                additional_params=program_params,
+                                parallelize=pipeline_input.parallelize,
+                                cluster_data_dir=pipeline_input.cluster_data_dir,
+                                priority=pipeline_input.priority,
+                                queue=pipeline_input.queue,
+                                wait_until_complete=False,
+                                get_completion_validator=True,
+                            )
+                            completion_validators.append(completion_validator_path)
+                        else:
+                            duration = program_to_exec.exec(
+                                program_exec_info["input_path"],
+                                program_exec_info["output_path"],
+                                program_exec_info["aux_dir"],
+                                additional_params=program_params,
+                            )
+                            self.samples_info[fraction][method_name][
+                                "programs_performance"
+                            ][program_name.value]["result"].update(
+                                {"duration(minutes)": duration}
+                            )
 
         # wait for programs to finish
         if pipeline_input.parallelize:
