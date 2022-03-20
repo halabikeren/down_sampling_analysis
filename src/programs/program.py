@@ -1,4 +1,5 @@
 import os
+import socket
 import typing as t
 from dataclasses import dataclass
 from datetime import datetime
@@ -117,7 +118,7 @@ class Program:
             )
         else:
             additional_params_str = ""
-        command = f"{self.program_exe if not parallelize else self.cluster_program_exe} {input_str} {output_str} {additional_params_str} "
+        command = f"{self.cluster_program_exe if 'tau' in socket.gethostname() or 'power' in socket.gethostname() else self.program_exe} {input_str} {output_str} {additional_params_str} "
         return [command]
 
     def exec(
