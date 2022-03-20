@@ -435,7 +435,7 @@ class SimulationTools:
             )
             # simulate
             os.chdir(output_dir)
-            cmd = f"{os.environ['cluster_indelible'] if 'tau' in socket.gethostname() else os.environ['indelible']}"
+            cmd = f"{os.environ['cluster_indelible'] if 'tau' in socket.gethostname() or 'power' in socket.gethostname() else os.environ['indelible']}"
             res = os.system(cmd)
             if res != 0 or not os.path.exists(
                 f"{os.getcwd()}/seq_data_1.fasta"
