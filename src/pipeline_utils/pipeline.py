@@ -426,26 +426,27 @@ class Pipeline:
                     full_data_program_params["input_tree_path"] = self.tree_path
 
                 if pipeline_input.parallelize:
-                    completion_validator_path = program_to_exec.exec(
-                        input_path=input_path,
-                        output_path=output_path,
-                        aux_dir=full_data_program_aux_dir,
-                        additional_params=full_data_program_params,
-                        parallelize=pipeline_input.parallelize,
-                        cluster_data_dir=pipeline_input.cluster_data_dir,
-                        priority=pipeline_input.priority,
-                        queue=pipeline_input.queue,
-                        wait_until_complete=False,
-                        get_completion_validator=True,
-                    )
-                    completion_validators.append(completion_validator_path)
-                else:
-                    full_data_duration = program_to_exec.exec(
-                        input_path=input_path,
-                        output_path=output_path,
-                        aux_dir=full_data_program_aux_dir,
-                        additional_params=full_data_program_params,
-                    )
+                    if os.path.isdir(output_path) or (os.path.isfile(output_path) and not os.path.exists(output_path)):
+                        completion_validator_path = program_to_exec.exec(
+                            input_path=input_path,
+                            output_path=output_path,
+                            aux_dir=full_data_program_aux_dir,
+                            additional_params=full_data_program_params,
+                            parallelize=pipeline_input.parallelize,
+                            cluster_data_dir=pipeline_input.cluster_data_dir,
+                            priority=pipeline_input.priority,
+                            queue=pipeline_input.queue,
+                            wait_until_complete=False,
+                            get_completion_validator=True,
+                        )
+                        completion_validators.append(completion_validator_path)
+                    else:
+                        full_data_duration = program_to_exec.exec(
+                            input_path=input_path,
+                            output_path=output_path,
+                            aux_dir=full_data_program_aux_dir,
+                            additional_params=full_data_program_params,
+                        )
 
             # execute program on each sample
             for fraction in self.samples_info:
