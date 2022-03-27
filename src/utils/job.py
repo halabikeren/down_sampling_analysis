@@ -1,3 +1,4 @@
+import socket
 import typing as t
 
 import os
@@ -39,6 +40,8 @@ class Job(BaseModel):
             handle.write(
                 f"#PBS -l select=ncpus={self.cpus_number}:mem={self.mem_alloc}gb\n"
             )
+            if 'tau' in socket.gethostname() or 'power' in socket.gethostname():
+                handle.write(f"{os.environ['conda_act_cmd']}\n")
             handle.write("\n".join(self.commands))
             handle.write(f"\ntouch {self.output_dir}{self.name}.touch")
 

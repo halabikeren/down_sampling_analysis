@@ -183,8 +183,9 @@ class Program:
                 if "cd " in cmd:
                     os.chdir(cmd.replace("cd ", ""))
                 else:
+                    pre_cmd = f"{os.environ['conda_act_cmd']};" if 'tau' in socket.gethostname() or 'power' in socket.gethostname() else ""
                     res = os.system(
-                        f"{cmd} > /dev/null 2>&1"
+                        f"{pre_cmd}{cmd} > /dev/null 2>&1"
                     )  # for some reason, rate4 prints some logs into the stderr,
                     # making the typical test (raise error i=f stderr > 0) invalid in this case
                     if res != 0:

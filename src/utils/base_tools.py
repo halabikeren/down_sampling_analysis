@@ -4,8 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timedelta, date, time
 from decimal import Decimal
-from enum import Enum
-from pathlib import PosixPath
+import socket
 from types import GeneratorType
 
 from ete3 import Tree
@@ -13,7 +12,6 @@ import os
 from Bio import SeqIO
 from Bio.Seq import Seq
 from dotenv import load_dotenv, find_dotenv
-from pydantic import BaseModel
 from pydantic.json import isoformat
 
 from .types import SequenceDataType, AlignmentMethod, TreeReconstructionMethod
@@ -221,7 +219,8 @@ class BaseTools:
                 f"Temporary alignment {alignment_output_path} already exists and will not be recreated."
             )
         else:
-            process = os.system(cmd)
+            pre_cmd = f"{os.environ['conda_act_cmd']};" if 'tau' in socket.gethostname() or 'power' in socket.gethostname() else ""
+            process = os.system(f"{pre_cmd}{cmd}")
             if process != 0:
                 raise IOError(
                     f"failed to align {alignment_output_path} with {alignment_method.value}"
@@ -284,8 +283,9 @@ class BaseTools:
                 )
 
         elif tree_reconstruction_method == TreeReconstructionMethod.FASTTREE:
+            pre_cmd = f"{os.environ['conda_act_cmd']};" if 'tau' in socket.gethostname() or 'power' in socket.gethostname() else ""
             cmd = f"(fasttree {input_path} > {output_path}) > /dev/null 2>&1"
-            res = os.system(cmd)
+            res = os.system(f"{pre_cmd}{cmd}")
             if res:
                 raise IOError(
                     f"failed to reconstruct {tree_reconstruction_method.value} tree with fasttree program."

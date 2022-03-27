@@ -435,8 +435,9 @@ class SimulationTools:
             )
             # simulate
             os.chdir(output_dir)
+            pre_cmd = f"{os.environ['conda_act_cmd']};" if 'tau' in socket.gethostname() or 'power' in socket.gethostname() else ""
             cmd = f"{os.environ['cluster_indelible'] if 'tau' in socket.gethostname() or 'power' in socket.gethostname() else os.environ['indelible']}"
-            res = os.system(cmd)
+            res = os.system(f"{pre_cmd}{cmd}")
             if res != 0 or not os.path.exists(
                 f"{os.getcwd()}/seq_data_1.fasta"
             ):
